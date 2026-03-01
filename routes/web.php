@@ -19,6 +19,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);
+        Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
     });
 
     Route::get('/dashboard', function () {
