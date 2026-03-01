@@ -16,6 +16,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
         Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class);
+        Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
     });
 
     Route::get('/dashboard', function () {
