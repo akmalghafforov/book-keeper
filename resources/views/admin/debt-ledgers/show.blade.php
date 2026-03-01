@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Debt Ledger Entry Details')
-@section('header_title', 'Debt Ledger Entry Details')
+@section('title', __('Debt Ledger Entry Details'))
+@section('header_title', __('Debt Ledger Entry Details'))
 
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
@@ -22,11 +22,11 @@
         <div class="p-8">
             <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Client</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Client') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white font-semibold">{{ $debtLedger->client->name }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Type</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Type') }}</dt>
                     <dd class="mt-1 text-sm">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                             {{ $debtLedger->type === 'charge' ? 'bg-red-100 text-red-800' : ($debtLedger->type === 'payment' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800') }}">
@@ -35,7 +35,7 @@
                     </dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Amount</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Amount') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white font-bold text-lg">${{ number_format($debtLedger->amount, 2) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
@@ -43,7 +43,7 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->reference_id ?? 'None' }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Created At</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->created_at->format('F d, Y H:i') }}</dd>
                 </div>
                 <div class="sm:col-span-1">

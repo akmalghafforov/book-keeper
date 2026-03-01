@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Distribution Details')
-@section('header_title', 'Distribution Details')
+@section('title', __('Distribution Details'))
+@section('header_title', __('Distribution Details'))
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
@@ -36,27 +36,27 @@
                     </dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Client</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Client') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->client->name }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Product</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Product') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->product->name }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Quantity</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Quantity') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->quantity }} {{ str_replace('per_', '', $distribution->quantity_unit) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Price</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Price') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">${{ number_format($distribution->price, 2) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Subtotal</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Subtotal') }}</dt>
                     <dd class="mt-1 text-sm font-bold text-indigo-600 dark:text-indigo-400">${{ number_format($distribution->subtotal, 2) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Created At</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->created_at->format('d/m/Y H:i') }}</dd>
                 </div>
             </dl>

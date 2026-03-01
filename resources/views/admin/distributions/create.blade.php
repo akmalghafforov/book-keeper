@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Distribution')
-@section('header_title', 'Add Distribution')
+@section('title', __('Add Distribution'))
+@section('header_title', __('Add Distribution'))
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -164,7 +164,7 @@
     }
 }">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Add Distribution</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Add Distribution') }}</h2>
         <a href="{{ route('admin.distributions.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Back to list
@@ -190,7 +190,7 @@
                                     });
                                 }
                             }">
-                                <label for="distribution_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                                <label for="distribution_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Date') }}</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -206,7 +206,7 @@
 
                             <div x-data="{ supplierId: '{{ old('supplier_id') }}' }">
                                 <div class="flex justify-between items-center mb-1">
-                                    <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Supplier</label>
+                                    <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Supplier') }}</label>
                                     <button type="button" @click="showSupplierModal = true" class="text-xs text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center">
                                         <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         New Supplier
@@ -226,7 +226,7 @@
                                     <option value="">None (Direct Distribution)</option>
                                     @foreach($suppliers as $supplier)
                                         <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                                            {{ $supplier->car_number }} ({{ $supplier->car_color ?? 'N/A' }})
+                                            {{ $supplier->car_number }} ({{ $supplier->car_color ?? __('N/A') }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -239,7 +239,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div x-data="{ clientId: '{{ old('client_id') }}' }">
                                 <div class="flex justify-between items-center mb-1">
-                                    <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Client</label>
+                                    <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Client') }}</label>
                                     <button type="button" @click="showClientModal = true" class="text-xs text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center">
                                         <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         New Client
@@ -270,7 +270,7 @@
                             </div>
 
                             <div>
-                                <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product</label>
+                                <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product') }}</label>
                                 <select name="product_id" id="product_id" required
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">Select Product</option>
@@ -307,7 +307,7 @@
                             </div>
 
                             <div>
-                                <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                                <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Quantity') }}</label>
                                 <input type="number" step="0.001" name="quantity" id="quantity" x-model.number="quantity" required
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                                     placeholder="0.000">
@@ -317,7 +317,7 @@
                             </div>
 
                             <div>
-                                <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price</label>
+                                <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Price') }}</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <span class="text-gray-500 sm:text-sm">$</span>
@@ -408,12 +408,12 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label for="modal_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                            <label for="modal_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Name') }}</label>
                             <input type="text" x-model="newClient.name" id="modal_client_name" 
                                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                         </div>
                         <div>
-                            <label for="modal_client_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                            <label for="modal_client_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Phone') }}</label>
                             <input type="text" x-model="newClient.phone" id="modal_client_phone" 
                                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                         </div>

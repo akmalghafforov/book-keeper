@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Debt Ledger Entry')
-@section('header_title', 'Add Debt Ledger Entry')
+@section('title', __('Add Debt Ledger Entry'))
+@section('header_title', __('Add Debt Ledger Entry'))
 
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6">
@@ -19,7 +19,7 @@
                 @csrf
                 
                 <div>
-                    <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client</label>
+                    <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Client') }}</label>
                     <select name="client_id" id="client_id" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                         <option value="">Select a client</option>
@@ -33,7 +33,7 @@
                 </div>
 
                 <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                    <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Type') }}</label>
                     <select name="type" id="type" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                         <option value="charge" {{ old('type') == 'charge' ? 'selected' : '' }}>Charge</option>
@@ -46,7 +46,7 @@
                 </div>
 
                 <div>
-                    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount</label>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Amount') }}</label>
                     <input type="number" name="amount" id="amount" value="{{ old('amount') }}" step="0.01" min="0.01" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                         placeholder="0.00">

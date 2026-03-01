@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Client')
+@section('title', __('Edit Client'))
 @section('header_title', 'Edit Client: ' . $client->name)
 
 @section('content')
@@ -20,7 +20,7 @@
                 @method('PUT')
                 
                 <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Name') }}</label>
                     <input type="text" name="name" id="name" value="{{ old('name', $client->name) }}" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                     @error('name')
@@ -29,7 +29,7 @@
                 </div>
 
                 <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Phone') }}</label>
                     <input type="text" name="phone" id="phone" value="{{ old('phone', $client->phone) }}"
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                     @error('phone')
