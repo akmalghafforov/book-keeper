@@ -35,7 +35,15 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:50',
         ]);
 
-        Client::create($validated);
+        $client = Client::create($validated);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Client created successfully.',
+                'client' => $client
+            ]);
+        }
 
         return redirect()->route('admin.clients.index')
             ->with('success', 'Client created successfully.');

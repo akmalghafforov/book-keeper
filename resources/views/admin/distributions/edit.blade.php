@@ -10,6 +10,7 @@
     .flatpickr-input {
         background-color: transparent !important;
     }
+    [x-cloak] { display: none !important; }
 </style>
 @endpush
 
@@ -17,8 +18,43 @@
 <div class="max-w-4xl mx-auto space-y-6" x-data="{ 
     quantity: {{ old('quantity', $distribution->quantity) }}, 
     price: {{ old('price', $distribution->price) }},
+    showClientModal: false,
+    newClient: { name: '', phone: '' },
+    isSavingClient: false,
+    clientError: '',
     get subtotal() {
         return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    },
+    async submitClient() {
+        this.isSavingClient = true;
+        this.clientError = '';
+        try {
+            const response = await fetch('{{ route('admin.clients.store') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(this.newClient)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                const newOption = new Option(data.client.name, data.client.id, true, true);
+                $('#client_id').append(newOption).trigger('change');
+                this.showClientModal = false;
+                this.newClient = { name: '', phone: '' };
+            } else {
+                this.clientError = data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : 'Something went wrong');
+            }
+        } catch (error) {
+            this.clientError = 'An error occurred while saving the client.';
+        } finally {
+            this.isSavingClient = false;
+        }
     }
 }">
     <div class="flex items-center justify-between">
@@ -82,7 +118,13 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div x-data="{ clientId: '{{ old('client_id', $distribution->client_id) }}' }">
-                                <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client</label>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Client</label>
+                                    <button type="button" @click="showClientModal = true" class="text-xs text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center">
+                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        New Client
+                                    </button>
+                                </div>
                                 <select name="client_id" id="client_id" x-ref="select"
                                     x-init="
                                         $($refs.select).select2({
@@ -208,6 +250,69 @@
             </div>
         </div>
     </form>
+
+    <!-- Client Modal -->
+    <div x-show="showClientModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Backdrop -->
+            <div x-show="showClientModal" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-gray-500 dark:bg-black bg-opacity-75 dark:bg-opacity-75 transition-opacity" 
+                 @click="showClientModal = false">
+            </div>
+
+            <!-- Modal Panel -->
+            <div x-show="showClientModal"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="relative inline-block align-bottom bg-white dark:bg-[#161615] rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-[#3E3E3A] z-50">
+                <div class="bg-white dark:bg-[#161615] px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add New Client</h3>
+                    
+                    <template x-if="clientError">
+                        <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+                            <span x-text="clientError"></span>
+                        </div>
+                    </template>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="modal_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                            <input type="text" x-model="newClient.name" id="modal_client_name" 
+                                   class="mt-1 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="modal_client_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                            <input type="text" x-model="newClient.phone" id="modal_client_phone" 
+                                   class="mt-1 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-[#1C1C1A] px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="submitClient()" :disabled="isSavingClient"
+                            class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">
+                        <span x-show="!isSavingClient">Save Client</span>
+                        <span x-show="isSavingClient">Saving...</span>
+                    </button>
+                    <button type="button" @click="showClientModal = false"
+                            class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 dark:border-[#3E3E3A] shadow-sm px-4 py-2 bg-white dark:bg-transparent text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2A2A28] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
