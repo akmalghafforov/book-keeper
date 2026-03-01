@@ -11,6 +11,76 @@
         background-color: transparent !important;
     }
     [x-cloak] { display: none !important; }
+
+    /* Select2 Custom Styling */
+    .select2-container--default .select2-selection--single {
+        background-color: white !important;
+        border-color: #D1D5DB !important;
+        height: 38px !important;
+        border-radius: 0.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .dark .select2-container--default .select2-selection--single {
+        background-color: #0a0a0a !important;
+        border-color: #3E3E3A !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #000000 !important; /* Pure Black font */
+        padding-left: 0.75rem !important;
+        padding-right: 2rem !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #ffffff !important; /* Pure White font */
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 8px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #6B7280 transparent transparent transparent !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #9CA3AF transparent transparent transparent !important;
+    }
+    .select2-dropdown {
+        background-color: white !important;
+        border-color: #D1D5DB !important;
+        border-radius: 0.5rem !important;
+        z-index: 9999 !important;
+    }
+    .dark .select2-dropdown {
+        background-color: #161615 !important;
+        border-color: #3E3E3A !important;
+    }
+    .select2-results__option {
+        color: #000000 !important; /* Black font for options */
+        padding: 8px 12px !important;
+    }
+    .dark .select2-results__option {
+        color: #ffffff !important; /* White font for options */
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #4F46E5 !important;
+        color: white !important;
+    }
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: white !important;
+        border-color: #D1D5DB !important;
+        border-radius: 0.375rem !important;
+        color: #000000 !important;
+    }
+    .dark .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: #0a0a0a !important;
+        border-color: #3E3E3A !important;
+        color: #ffffff !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #6B7280 !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #9CA3AF !important;
+    }
 </style>
 @endpush
 
@@ -99,9 +169,18 @@
                                 @enderror
                             </div>
 
-                            <div>
+                            <div x-data="{ supplierId: '{{ old('supplier_id', $distribution->supplier_id) }}' }">
                                 <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier</label>
-                                <select name="supplier_id" id="supplier_id"
+                                <select name="supplier_id" id="supplier_id" x-ref="selectSupplier"
+                                    x-init="
+                                        $($refs.selectSupplier).select2({
+                                            placeholder: 'Select Supplier',
+                                            allowClear: true,
+                                            width: '100%'
+                                        });
+                                        $($refs.selectSupplier).on('change', () => { supplierId = $($refs.selectSupplier).val() });
+                                    "
+                                    x-effect="$($refs.selectSupplier).val(supplierId).trigger('change')"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">None (Direct Distribution)</option>
                                     @foreach($suppliers as $supplier)
@@ -148,6 +227,177 @@
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
+
+                            <div>
+                                <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product</label>
+                                <select name="product_id" id="product_id" required
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                                    <option value="">Select Product</option>
+                                    @foreach($products as $product)
+                                        <option value="{{ $product->id }}" {{ old('product_id', $distribution->product_id) == $product->id ? 'selected' : '' }}>
+                                            {{ $product->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('product_id')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
+                    <div class="p-6 space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-[#3E3E3A] pb-2">Pricing & Quantity</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
+                                <select name="quantity_unit" id="quantity_unit" required
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                                    <option value="per_ton" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_ton' ? 'selected' : '' }}>Per Ton</option>
+                                    <option value="per_bag" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_bag' ? 'selected' : '' }}>Per Bag</option>
+                                    <option value="per_piece" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_piece' ? 'selected' : '' }}>Per Piece</option>
+                                </select>
+                                @error('quantity_unit')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                                <input type="number" step="0.001" name="quantity" id="quantity" x-model.number="quantity" required
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                    placeholder="0.000">
+                                @error('quantity')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    <input type="number" step="0.01" name="price" id="price" x-model.number="price" required
+                                        class="block w-full pl-7 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        placeholder="0.00">
+                                </div>
+                                @error('price')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Summary & Submit -->
+            <div class="space-y-6">
+                <div class="bg-indigo-600 dark:bg-indigo-900 overflow-hidden shadow-lg sm:rounded-xl text-white">
+                    <div class="p-6 space-y-4">
+                        <h3 class="text-lg font-bold">Summary</h3>
+                        
+                        <div class="flex justify-between items-center text-indigo-100">
+                            <span>Quantity:</span>
+                            <span class="font-medium" x-text="quantity"></span>
+                        </div>
+                        <div class="flex justify-between items-center text-indigo-100">
+                            <span>Price:</span>
+                            <span class="font-medium">$<span x-text="price.toFixed(2)"></span></span>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-indigo-500 flex justify-between items-end">
+                            <span class="text-sm uppercase tracking-wider font-semibold">Total Subtotal</span>
+                            <span class="text-3xl font-bold">$<span x-text="subtotal"></span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
+                    <div class="p-6 space-y-3">
+                        <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-3 bg-indigo-600 border border-transparent rounded-lg font-bold text-sm text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md shadow-indigo-500/20">
+                            Update Distribution
+                        </button>
+                        <a href="{{ route('admin.distributions.index') }}" class="w-full inline-flex justify-center items-center px-4 py-2 bg-gray-100 dark:bg-[#2A2A28] border border-transparent rounded-lg font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-[#3E3E3A] focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-700 transition ease-in-out duration-150">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Client Modal -->
+    <div x-show="showClientModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Backdrop -->
+            <div x-show="showClientModal" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-gray-500 dark:bg-black bg-opacity-75 dark:bg-opacity-75 transition-opacity" 
+                 @click="showClientModal = false">
+            </div>
+
+            <!-- Modal Panel -->
+            <div x-show="showClientModal"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="relative inline-block align-bottom bg-white dark:bg-[#161615] rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-[#3E3E3A] z-50">
+                <div class="bg-white dark:bg-[#161615] px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add New Client</h3>
+                    
+                    <template x-if="clientError">
+                        <div class="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+                            <span x-text="clientError"></span>
+                        </div>
+                    </template>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="modal_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                            <input type="text" x-model="newClient.name" id="modal_client_name" 
+                                   class="mt-1 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="modal_client_phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                            <input type="text" x-model="newClient.phone" id="modal_client_phone" 
+                                   class="mt-1 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-[#1C1C1A] px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="submitClient()" :disabled="isSavingClient"
+                            class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">
+                        <span x-show="!isSavingClient">Save Client</span>
+                        <span x-show="isSavingClient">Saving...</span>
+                    </button>
+                    <button type="button" @click="showClientModal = false"
+                            class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 dark:border-[#3E3E3A] shadow-sm px-4 py-2 bg-white dark:bg-transparent text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2A2A28] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endpush
 
                             <div>
                                 <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product</label>
