@@ -9,6 +9,10 @@ class LoginController extends Controller
 {
     public function show()
     {
+        if (Auth::check()) {
+            return redirect()->intended('dashboard');
+        }
+
         return view('auth.login');
     }
 
