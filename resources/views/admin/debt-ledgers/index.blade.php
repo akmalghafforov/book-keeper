@@ -39,7 +39,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     {{ $ledger->type === 'charge' ? 'bg-red-100 text-red-800' : ($ledger->type === 'payment' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800') }}">
-                                    {{ ucfirst($ledger->type) }}
+                                    {{ __($ledger->type) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">

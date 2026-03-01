@@ -45,7 +45,7 @@
                                 {{ $distribution->product->name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $distribution->quantity }} {{ str_replace('per_', '', $distribution->quantity_unit) }}
+                                {{ $distribution->quantity }} {{ __($distribution->quantity_unit) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 ${{ number_format($distribution->price, 2) }}

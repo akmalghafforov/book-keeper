@@ -36,9 +36,9 @@
                     <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Type') }}</label>
                     <select name="type" id="type" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                        <option value="charge" {{ old('type') == 'charge' ? 'selected' : '' }}>Charge</option>
-                        <option value="payment" {{ old('type') == 'payment' ? 'selected' : '' }}>Payment</option>
-                        <option value="credit_note" {{ old('type') == 'credit_note' ? 'selected' : '' }}>Credit Note</option>
+                        <option value="charge" {{ old('type') == 'charge' ? 'selected' : '' }}>{{ __('charge') }}</option>
+                        <option value="payment" {{ old('type') == 'payment' ? 'selected' : '' }}>{{ __('payment') }}</option>
+                        <option value="credit_note" {{ old('type') == 'credit_note' ? 'selected' : '' }}>{{ __('credit_note') }}</option>
                     </select>
                     @error('type')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>

@@ -98,7 +98,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                             {{ $ledger->type === 'charge' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                            {{ ucfirst($ledger->type) }}
+                                            {{ __($ledger->type) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm font-medium text-right {{ $ledger->type === 'charge' ? 'text-red-600' : 'text-green-600' }}">

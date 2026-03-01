@@ -79,5 +79,11 @@
     "Suppliers": "Таъминкунандагон",
     "Product Details": "Тафсилоти маҳсулот",
     "Edit Product": "Таҳрири маҳсулот",
-    "Update Product": "Навсозии маҳсулот"
+    "Update Product": "Навсозии маҳсулот",
+    "per_ton": "Барои тонна",
+    "per_bag": "Барои халта",
+    "per_piece": "Барои дона",
+    "charge": "Ҳисобкунӣ",
+    "payment": "Пардохт",
+    "credit_note": "Эзоҳи кредитӣ"
 }

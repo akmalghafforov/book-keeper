@@ -256,9 +256,9 @@
                                 <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
                                 <select name="quantity_unit" id="quantity_unit" required
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                                    <option value="per_ton" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_ton' ? 'selected' : '' }}>Per Ton</option>
-                                    <option value="per_bag" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_bag' ? 'selected' : '' }}>Per Bag</option>
-                                    <option value="per_piece" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_piece' ? 'selected' : '' }}>Per Piece</option>
+                                    <option value="per_ton" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
+                                    <option value="per_bag" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>
+                                    <option value="per_piece" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_piece' ? 'selected' : '' }}>{{ __('per_piece') }}</option>
                                 </select>
                                 @error('quantity_unit')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>

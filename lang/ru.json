@@ -79,5 +79,11 @@
     "Suppliers": "Поставщики",
     "Product Details": "Детали продукта",
     "Edit Product": "Редактировать продукт",
-    "Update Product": "Обновить продукт"
+    "Update Product": "Обновить продукт",
+    "per_ton": "За тонну",
+    "per_bag": "За мешок",
+    "per_piece": "За штуку",
+    "charge": "Начисление",
+    "payment": "Оплата",
+    "credit_note": "Кредит-нота"
 }

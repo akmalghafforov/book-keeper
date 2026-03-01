@@ -79,5 +79,11 @@
     "Suppliers": "Suppliers",
     "Product Details": "Product Details",
     "Edit Product": "Edit Product",
-    "Update Product": "Update Product"
+    "Update Product": "Update Product",
+    "per_ton": "Per Ton",
+    "per_bag": "Per Bag",
+    "per_piece": "Per Piece",
+    "charge": "Charge",
+    "payment": "Payment",
+    "credit_note": "Credit Note"
 }

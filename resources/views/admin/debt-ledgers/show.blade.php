@@ -6,14 +6,14 @@
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Entry Details</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Entry Details') }}</h2>
         <div class="flex space-x-3">
             <a href="{{ route('admin.debt-ledgers.index') }}" class="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                Back to list
+                {{ __('Back to list') }}
             </a>
             <a href="{{ route('admin.debt-ledgers.edit', $debtLedger) }}" class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 focus:bg-yellow-700 active:bg-yellow-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                Edit
+                {{ __('Edit') }}
             </a>
         </div>
     </div>
@@ -30,7 +30,7 @@
                     <dd class="mt-1 text-sm">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                             {{ $debtLedger->type === 'charge' ? 'bg-red-100 text-red-800' : ($debtLedger->type === 'payment' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800') }}">
-                            {{ ucfirst($debtLedger->type) }}
+                            {{ __($debtLedger->type) }}
                         </span>
                     </dd>
                 </div>
@@ -39,21 +39,21 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white font-bold text-lg">${{ number_format($debtLedger->amount, 2) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Reference ID</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->reference_id ?? 'None' }}</dd>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Reference ID') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->reference_id ?? __('N/A') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->created_at->format('F d, Y H:i') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Last Updated') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->updated_at->format('F d, Y H:i') }}</dd>
                 </div>
                 <div class="sm:col-span-2 border-t border-gray-100 dark:border-[#3E3E3A] pt-6">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Notes</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{{ __('Notes') }}</dt>
                     <dd class="text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-[#0a0a0a] p-4 rounded-lg italic">
-                        {{ $debtLedger->notes ?? 'No notes provided.' }}
+                        {{ $debtLedger->notes ?? __('No notes provided.') }}
                     </dd>
                 </div>
             </dl>
