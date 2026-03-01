@@ -62,5 +62,22 @@
     "Subtotal": "Подитог",
     "Total": "Итого",
     "Qty": "Кол-во",
-    "Action": "Действие"
+    "Action": "Действие",
+    "Reference ID": "Идентификатор",
+    "Last Updated": "Последнее обновление",
+    "Notes": "Заметки",
+    "Entry Details": "Детали записи",
+    "Debt Ledger Entry Details": "Детали записи книги долгов",
+    "Optional": "Необязательно",
+    "Update Entry": "Обновить запись",
+    "Edit Debt Ledger Entry": "Редактировать запись книги долгов",
+    "Distribution Date": "Дата распределения",
+    "Supplier (Car)": "Поставщик (Машина)",
+    "Distribution Details": "Детали распределения",
+    "Edit Client": "Редактировать клиента",
+    "Update Client": "Обновить клиента",
+    "Suppliers": "Поставщики",
+    "Product Details": "Детали продукта",
+    "Edit Product": "Редактировать продукт",
+    "Update Product": "Обновить продукт"
 }

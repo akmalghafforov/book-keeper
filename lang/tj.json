@@ -62,5 +62,22 @@
     "Subtotal": "Ҷамъи қисмӣ",
     "Total": "Ҷамъ",
     "Qty": "Миқдор",
-    "Action": "Амал"
+    "Action": "Амал",
+    "Reference ID": "Рақами сабт",
+    "Last Updated": "Охирин навсозӣ",
+    "Notes": "Қайдҳо",
+    "Entry Details": "Тафсилоти сабт",
+    "Debt Ledger Entry Details": "Тафсилоти сабти дафтари қарз",
+    "Optional": "Ихтиёрӣ",
+    "Update Entry": "Навсозии сабт",
+    "Edit Debt Ledger Entry": "Таҳрири сабти дафтари қарз",
+    "Distribution Date": "Санаи тақсимот",
+    "Supplier (Car)": "Таъминкунанда (Мошин)",
+    "Distribution Details": "Тафсилоти тақсимот",
+    "Edit Client": "Таҳрири мизоҷ",
+    "Update Client": "Навсозии мизоҷ",
+    "Suppliers": "Таъминкунандагон",
+    "Product Details": "Тафсилоти маҳсулот",
+    "Edit Product": "Таҳрири маҳсулот",
+    "Update Product": "Навсозии маҳсулот"
 }
