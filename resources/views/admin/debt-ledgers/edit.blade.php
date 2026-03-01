@@ -22,7 +22,7 @@
                 <div>
                     <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Client') }}</label>
                     <select name="client_id" id="client_id" required
-                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                        class="select2 block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                         <option value="">Select a client</option>
                         @foreach($clients as $client)
                             <option value="{{ $client->id }}" {{ (old('client_id') ?? $debtLedger->client_id) == $client->id ? 'selected' : '' }}>{{ $client->name }}</option>
@@ -87,3 +87,85 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .select2-container--default .select2-selection--single {
+        background-color: transparent;
+        border-color: #D1D5DB;
+        height: 38px;
+        border-radius: 0.5rem;
+    }
+    .dark .select2-container--default .select2-selection--single {
+        background-color: #0a0a0a;
+        border-color: #3E3E3A;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #111827;
+        line-height: 36px;
+        padding-left: 0.75rem;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: white;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #6B7280;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #9CA3AF;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    .select2-dropdown {
+        background-color: white;
+        border-color: #D1D5DB;
+        border-radius: 0.5rem;
+    }
+    .dark .select2-dropdown {
+        background-color: #161615;
+        border-color: #3E3E3A;
+        color: white;
+    }
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: white;
+        border-color: #D1D5DB;
+        border-radius: 0.375rem;
+    }
+    .dark .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: #0a0a0a;
+        border-color: #3E3E3A;
+        color: white;
+    }
+    .select2-results__option {
+        color: #111827;
+    }
+    .dark .select2-results__option {
+        color: #EDEDEC;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #4F46E5;
+        color: white;
+    }
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #E0E7FF;
+        color: #4338CA;
+    }
+    .dark .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #312E81;
+        color: #E0E7FF;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('#client_id').select2({
+            placeholder: "{{ __('Select a client') }}",
+            allowClear: true,
+            width: '100%'
+        });
+    });
+</script>
+@endpush
