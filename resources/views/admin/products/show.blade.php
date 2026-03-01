@@ -16,13 +16,6 @@
             <a href="{{ route('admin.products.edit', $product) }}" class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 active:bg-yellow-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md shadow-yellow-500/20">
                 Edit
             </a>
-            <form action="{{ route('admin.products.destroy', $product) }}" method="POST" class="inline">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md shadow-red-500/20" onclick="return confirm('{{ __('Are you sure?') }}')">
-                    Delete
-                </button>
-            </form>
         </div>
     </div>
 

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\LoginController;
-use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/lang/{locale}', function ($locale) {
@@ -17,19 +16,21 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/', function () {
-        return redirect()->route('admin.dashboard');
+        return redirect()->route('admin.debt-ledgers.index');
     });
 
     Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
-        Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class);
+        Route::get('/', function () {
+            return redirect()->route('admin.debt-ledgers.index');
+        });
+        Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class)->except(['destroy']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
-        Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
+        Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
     });
 
     Route::get('/dashboard', function () {
-        return redirect()->route('admin.dashboard');
+        return redirect()->route('admin.debt-ledgers.index');
     })->name('dashboard');
 });

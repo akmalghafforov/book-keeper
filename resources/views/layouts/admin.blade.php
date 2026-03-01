@@ -29,12 +29,7 @@
             </div>
             
             <nav class="p-4 space-y-2 overflow-y-auto h-[calc(100vh-4rem)]">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.dashboard') ? 'bg-gray-100 dark:bg-[#2A2A28] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1C1C1A]' }}">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                    {{ __('Dashboard') }}
-                </a>
-                
-                <div class="pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ __('Resources') }}</div>
+                <div class="pt-2 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ __('Resources') }}</div>
                 
                 <!-- Example links for existing models -->
                 <a href="{{ route('admin.clients.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.clients.*') ? 'bg-gray-100 dark:bg-[#2A2A28] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1C1C1A]' }}">
@@ -65,7 +60,7 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
                     <div class="ml-4 lg:ml-0 font-medium text-gray-700 dark:text-gray-300">
-                        @yield('header_title', __('Dashboard'))
+                        @yield('header_title', __('Admin Panel'))
                     </div>
                 </div>
                 
