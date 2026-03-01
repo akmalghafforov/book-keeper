@@ -17,6 +17,7 @@ help:
 	@echo "  migrate     Run database migrations"
 	@echo "  fresh       Refresh database and run seeds"
 	@echo "  tinker      Open Laravel Tinker"
+	@echo "  vite        Run Vite development server"
 	@echo "  shell       Enter the application container shell"
 	@echo "  artisan c=  Run an artisan command (e.g., make artisan c='make:model Client')"
 	@echo "  composer c= Run a composer command (e.g., make composer c='require laravel/breeze')"
@@ -55,6 +56,9 @@ fresh:
 tinker:
 	$(SAIL) artisan tinker
 
+vite:
+	$(SAIL) npm run dev
+
 shell:
 	$(SAIL) shell
 
@@ -67,4 +71,4 @@ composer:
 npm:
 	$(SAIL) npm $(c)
 
-.PHONY: help up down build setup test lint migrate fresh tinker shell artisan composer npm
+.PHONY: help up down build setup test lint migrate fresh tinker vite shell artisan composer npm
