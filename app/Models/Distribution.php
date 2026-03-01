@@ -12,7 +12,7 @@ class Distribution extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'supply_id',
+        'supplier_id',
         'client_id',
         'product_id',
         'quantity_unit',
@@ -29,9 +29,9 @@ class Distribution extends Model
         'subtotal' => 'decimal:2',
     ];
 
-    public function supply(): BelongsTo
+    public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supply::class);
+        return $this->belongsTo(Supplier::class);
     }
 
     public function client(): BelongsTo

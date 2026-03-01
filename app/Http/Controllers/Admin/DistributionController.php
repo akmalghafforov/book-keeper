@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Distribution;
 use App\Models\Client;
 use App\Models\Product;
-use App\Models\Supply;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 
 class DistributionController extends Controller
@@ -16,7 +16,7 @@ class DistributionController extends Controller
      */
     public function index()
     {
-        $distributions = Distribution::with(['client', 'product', 'supply'])
+        $distributions = Distribution::with(['client', 'product', 'supplier'])
             ->latest()
             ->paginate(10);
         return view('admin.distributions.index', compact('distributions'));
@@ -29,8 +29,8 @@ class DistributionController extends Controller
     {
         $clients = Client::all();
         $products = Product::all();
-        $supplies = Supply::all();
-        return view('admin.distributions.create', compact('clients', 'products', 'supplies'));
+        $suppliers = Supplier::all();
+        return view('admin.distributions.create', compact('clients', 'products', 'suppliers'));
     }
 
     /**
@@ -39,7 +39,7 @@ class DistributionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'supply_id' => 'nullable|exists:supplies,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
@@ -62,7 +62,7 @@ class DistributionController extends Controller
      */
     public function show(Distribution $distribution)
     {
-        $distribution->load(['client', 'product', 'supply']);
+        $distribution->load(['client', 'product', 'supplier']);
         return view('admin.distributions.show', compact('distribution'));
     }
 
@@ -73,8 +73,8 @@ class DistributionController extends Controller
     {
         $clients = Client::all();
         $products = Product::all();
-        $supplies = Supply::all();
-        return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'supplies'));
+        $suppliers = Supplier::all();
+        return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'suppliers'));
     }
 
     /**
@@ -83,7 +83,7 @@ class DistributionController extends Controller
     public function update(Request $request, Distribution $distribution)
     {
         $validated = $request->validate([
-            'supply_id' => 'nullable|exists:supplies,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',

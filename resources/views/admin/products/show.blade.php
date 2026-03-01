@@ -53,8 +53,8 @@
         </div>
         
         <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-8">
-            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Supplies</h3>
-            <p class="text-gray-500 dark:text-gray-400 italic">No supplies found.</p>
+            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Suppliers</h3>
+            <p class="text-gray-500 dark:text-gray-400 italic">No suppliers found.</p>
         </div>
     </div>
 </div>

@@ -26,12 +26,12 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->distribution_date->format('d/m/Y') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Supply (Car)</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Supplier (Car)</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                        @if($distribution->supply)
-                            {{ $distribution->supply->car_number }} ({{ $distribution->supply->car_color }}) - {{ $distribution->supply->delivery_date->format('d/m/Y') }}
+                        @if($distribution->supplier)
+                            {{ $distribution->supplier->car_number }} ({{ $distribution->supplier->car_color }})
                         @else
-                            <span class="text-gray-400 italic">No associated supply (Direct)</span>
+                            <span class="text-gray-400 italic">No associated supplier (Direct)</span>
                         @endif
                     </dd>
                 </div>

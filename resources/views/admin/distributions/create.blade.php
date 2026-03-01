@@ -99,17 +99,17 @@
                             </div>
 
                             <div>
-                                <label for="supply_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supply (Arrival)</label>
-                                <select name="supply_id" id="supply_id"
+                                <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Supplier</label>
+                                <select name="supplier_id" id="supplier_id"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">None (Direct Distribution)</option>
-                                    @foreach($supplies as $supply)
-                                        <option value="{{ $supply->id }}" {{ old('supply_id') == $supply->id ? 'selected' : '' }}>
-                                            {{ $supply->car_number }} ({{ $supply->car_color }}) - {{ $supply->delivery_date->format('d/m/Y') }}
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                            {{ $supplier->car_number }} ({{ $supplier->car_color }})
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('supply_id')
+                                @error('supplier_id')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
