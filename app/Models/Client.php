@@ -25,4 +25,13 @@ class Client extends Model
     {
         return $this->hasMany(DebtLedger::class);
     }
+
+    public function getTotalDebtAttribute(): float
+    {
+        $charges = $this->debtLedgers()->where('type', 'charge')->sum('amount');
+        $payments = $this->debtLedgers()->where('type', 'payment')->sum('amount');
+        $creditNotes = $this->debtLedgers()->where('type', 'credit_note')->sum('amount');
+
+        return (float) ($charges - $payments - $creditNotes);
+    }
 }

@@ -4,7 +4,7 @@
 @section('header_title', 'Client Details: ' . $client->name)
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-6xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Client Details</h2>
         <div class="flex items-center space-x-3">
@@ -28,7 +28,7 @@
 
     <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
         <div class="p-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="space-y-1">
                     <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client Name</h3>
                     <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $client->name }}</p>
@@ -38,27 +38,89 @@
                     <p class="text-xl text-gray-900 dark:text-white">{{ $client->phone ?? 'N/A' }}</p>
                 </div>
                 <div class="space-y-1">
-                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created At</h3>
-                    <p class="text-gray-900 dark:text-white">{{ $client->created_at->format('F d, Y H:i') }}</p>
-                </div>
-                <div class="space-y-1">
-                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Updated</h3>
-                    <p class="text-gray-900 dark:text-white">{{ $client->updated_at->format('F d, Y H:i') }}</p>
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Debt</h3>
+                    <p class="text-2xl font-black {{ $client->total_debt > 0 ? 'text-red-600' : 'text-green-600' }}">
+                        ${{ number_format($client->total_debt, 2) }}
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Placeholder for related data like Distributions and Debt Ledgers -->
-        <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-8">
-            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Recent Distributions</h3>
-            <p class="text-gray-500 dark:text-gray-400 italic">No recent distributions.</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Distributions -->
+        <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
+            <div class="p-6 border-b border-gray-200 dark:border-[#3E3E3A] flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Distributions</h3>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                @if($client->distributions->count() > 0)
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-[#1C1C1B]">
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Qty</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-[#3E3E3A]">
+                            @foreach($client->distributions->sortByDesc('created_at')->take(10) as $dist)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-[#1C1C1B] transition-colors duration-150">
+                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $dist->created_at->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $dist->product->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300 text-right">{{ $dist->quantity }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white text-right">${{ number_format($dist->subtotal, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div class="p-8 text-center">
+                        <p class="text-gray-500 dark:text-gray-400 italic">No distributions recorded yet.</p>
+                    </div>
+                @endif
+            </div>
         </div>
         
-        <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-8">
-            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Debt Ledger</h3>
-            <p class="text-gray-500 dark:text-gray-400 italic">No debt records found.</p>
+        <!-- Debt Ledger -->
+        <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
+            <div class="p-6 border-b border-gray-200 dark:border-[#3E3E3A] flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Debt Ledger</h3>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                @if($client->debtLedgers->count() > 0)
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-[#1C1C1B]">
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-[#3E3E3A]">
+                            @foreach($client->debtLedgers->sortByDesc('created_at')->take(10) as $ledger)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-[#1C1C1B] transition-colors duration-150">
+                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $ledger->created_at->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            {{ $ledger->type === 'charge' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                            {{ ucfirst($ledger->type) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $ledger->type === 'charge' ? 'text-red-600' : 'text-green-600' }}">
+                                        {{ $ledger->type === 'charge' ? '+' : '-' }}${{ number_format($ledger->amount, 2) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div class="p-8 text-center">
+                        <p class="text-gray-500 dark:text-gray-400 italic">No debt records found.</p>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 </div>

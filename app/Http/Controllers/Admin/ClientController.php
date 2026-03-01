@@ -54,6 +54,7 @@ class ClientController extends Controller
      */
     public function show(Client $client)
     {
+        $client->load(['distributions.product', 'debtLedgers']);
         return view('admin.clients.show', compact('client'));
     }
 
