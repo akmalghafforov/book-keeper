@@ -93,5 +93,22 @@
     "From": "С",
     "To": "По",
     "Clear": "Очистить",
-    "Filter": "Фильтр"
+    "Filter": "Фильтр",
+    "Client Debt Report": "Отчет по долгам клиентов",
+    "Reports": "Отчеты",
+    "Total Clients with Debt": "Всего клиентов с долгами",
+    "Client Debt": "Долги клиентов",
+    "Current Debt": "Текущий долг",
+    "View Ledger": "Посмотреть книгу",
+    "No clients with active debt found.": "Клиенты с активными долгами не найдены.",
+    "Generated Reports": "Сгенерированные отчеты",
+    "New Client Debt Report": "Новый отчет по долгам",
+    "No reports generated yet.": "Отчеты еще не созданы.",
+    "Report Name": "Название отчета",
+    "Format": "Формат",
+    "Download": "Скачать",
+    "Pending": "В ожидании",
+    "Completed": "Завершено",
+    "Failed": "Ошибка",
+    "Report generation started in the background. Please wait.": "Генерация отчета началась в фоновом режиме. Пожалуйста, подождите."
 }

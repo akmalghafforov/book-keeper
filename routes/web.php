@@ -28,6 +28,12 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
+            Route::get('/client-debt', [\App\Http\Controllers\Admin\ReportController::class, 'clientDebt'])->name('client-debt');
+            Route::post('/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])->name('export');
+        });
     });
 
     Route::get('/dashboard', function () {

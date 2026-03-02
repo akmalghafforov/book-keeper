@@ -93,5 +93,22 @@
     "From": "Аз",
     "To": "То",
     "Clear": "Тоза кардан",
-    "Filter": "Филтр"
+    "Filter": "Филтр",
+    "Client Debt Report": "Ҳисоботи қарзи мизоҷон",
+    "Reports": "Ҳисоботҳо",
+    "Total Clients with Debt": "Шумораи мизоҷони қарздор",
+    "Client Debt": "Қарзи мизоҷон",
+    "Current Debt": "Қарзи ҷорӣ",
+    "View Ledger": "Дидани дафтар",
+    "No clients with active debt found.": "Мизоҷон бо қарзи фаъол ёфт нашуданд.",
+    "Generated Reports": "Ҳисоботҳои сохташуда",
+    "New Client Debt Report": "Ҳисоботи нави қарз",
+    "No reports generated yet.": "Ҳисоботҳо ҳанӯз сохта нашудаанд.",
+    "Report Name": "Номи ҳисобот",
+    "Format": "Формат",
+    "Download": "Боргирӣ",
+    "Pending": "Дар интизорӣ",
+    "Completed": "Иҷро шуд",
+    "Failed": "Хатогӣ",
+    "Report generation started in the background. Please wait.": "Сохтани ҳисобот дар замина оғоз ёфт. Лутфан мунтазир шавед."
 }

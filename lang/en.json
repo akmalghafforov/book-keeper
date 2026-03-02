@@ -93,5 +93,22 @@
     "From": "From",
     "To": "To",
     "Clear": "Clear",
-    "Filter": "Filter"
+    "Filter": "Filter",
+    "Client Debt Report": "Client Debt Report",
+    "Reports": "Reports",
+    "Total Clients with Debt": "Total Clients with Debt",
+    "Client Debt": "Client Debt",
+    "Current Debt": "Current Debt",
+    "View Ledger": "View Ledger",
+    "No clients with active debt found.": "No clients with active debt found.",
+    "Generated Reports": "Generated Reports",
+    "New Client Debt Report": "New Client Debt Report",
+    "No reports generated yet.": "No reports generated yet.",
+    "Report Name": "Report Name",
+    "Format": "Format",
+    "Download": "Download",
+    "Pending": "Pending",
+    "Completed": "Completed",
+    "Failed": "Failed",
+    "Report generation started in the background. Please wait.": "Report generation started in the background. Please wait."
 }
