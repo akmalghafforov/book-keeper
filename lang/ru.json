@@ -85,5 +85,13 @@
     "per_piece": "За штуку",
     "charge": "Долг",
     "payment": "Оплата",
-    "credit_note": "Кредит-нота"
+    "credit_note": "Кредит-нота",
+    "Notes or Reference...": "Заметки или Идентификатор...",
+    "All Clients": "Все клиенты",
+    "All Types": "Все типы",
+    "Date Range": "Диапазон дат",
+    "From": "С",
+    "To": "По",
+    "Clear": "Очистить",
+    "Filter": "Фильтр"
 }

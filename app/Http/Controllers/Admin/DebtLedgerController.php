@@ -12,10 +12,38 @@ class DebtLedgerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $debtLedgers = DebtLedger::with('client')->latest()->paginate(15);
-        return view('admin.debt-ledgers.index', compact('debtLedgers'));
+        $query = DebtLedger::with('client')->latest();
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('notes', 'like', '%' . $search . '%')
+                  ->orWhere('reference_id', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $debtLedgers = $query->paginate(15)->withQueryString();
+        $clients = Client::orderBy('name')->get();
+
+        return view('admin.debt-ledgers.index', compact('debtLedgers', 'clients'));
     }
 
     /**

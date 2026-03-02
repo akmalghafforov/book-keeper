@@ -85,5 +85,13 @@
     "per_piece": "Барои дона",
     "charge": "Қарз",
     "payment": "Пардохт",
-    "credit_note": "Эзоҳи кредитӣ"
+    "credit_note": "Эзоҳи кредитӣ",
+    "Notes or Reference...": "Қайдҳо ё Рақами сабт...",
+    "All Clients": "Ҳамаи мизоҷон",
+    "All Types": "Ҳамаи намудҳо",
+    "Date Range": "Диапазони санаҳо",
+    "From": "Аз",
+    "To": "То",
+    "Clear": "Тоза кардан",
+    "Filter": "Филтр"
 }

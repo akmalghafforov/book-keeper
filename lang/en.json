@@ -85,5 +85,13 @@
     "per_piece": "Per Piece",
     "charge": "Charge",
     "payment": "Payment",
-    "credit_note": "Credit Note"
+    "credit_note": "Credit Note",
+    "Notes or Reference...": "Notes or Reference...",
+    "All Clients": "All Clients",
+    "All Types": "All Types",
+    "Date Range": "Date Range",
+    "From": "From",
+    "To": "To",
+    "Clear": "Clear",
+    "Filter": "Filter"
 }
