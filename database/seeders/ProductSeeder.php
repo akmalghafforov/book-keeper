@@ -20,5 +20,7 @@ class ProductSeeder extends Seeder
         Product::query()->create(['name' => "Цемент Хатлон M-500"]);
         Product::query()->create(['name' => "Гипсокартон"]);
         Product::query()->create(['name' => "Шифер"]);
+        Product::query()->create(['name' => "Цемент Рассыпной Мохир"]);
+        Product::query()->create(['name' => "Цемент Рассыпной Хуаксин"]);
     }
 }
