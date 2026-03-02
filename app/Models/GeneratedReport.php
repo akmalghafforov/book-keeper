@@ -13,8 +13,13 @@ class GeneratedReport extends Model
         'name',
         'type',
         'format',
+        'parameters',
         'status',
         'file_path',
         'error_message',
+    ];
+
+    protected $casts = [
+        'parameters' => 'array',
     ];
 }

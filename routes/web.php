@@ -33,6 +33,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
             Route::get('/client-debt', [\App\Http\Controllers\Admin\ReportController::class, 'clientDebt'])->name('client-debt');
             Route::post('/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])->name('export');
+            Route::post('/export-client-debt/{client}', [\App\Http\Controllers\Admin\ReportController::class, 'exportClientDebt'])->name('export-client-debt');
         });
     });
 

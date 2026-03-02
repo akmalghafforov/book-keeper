@@ -34,28 +34,57 @@ class GenerateClientDebtReport implements ShouldQueue
     {
         \Log::info('Starting report generation for report ID: ' . $this->report->id);
 
-        $clients = Client::query()
-            ->withSum(['debtLedgers as total_charges' => function ($query) {
-                $query->where('type', 'charge');
-            }], 'amount')
-            ->withSum(['debtLedgers as total_payments' => function ($query) {
-                $query->where('type', 'payment');
-            }], 'amount')
-            ->withSum(['debtLedgers as total_credit_notes' => function ($query) {
-                $query->where('type', 'credit_note');
-            }], 'amount')
-            ->get()
-            ->map(function ($client) {
-                $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
-                return $client;
-            })
-            ->filter(fn($c) => $c->calculated_total_debt != 0)
-            ->sortBy('name');
+        if (isset($this->report->parameters['locale'])) {
+            app()->setLocale($this->report->parameters['locale']);
+        }
 
-        $pdf = Pdf::loadView('admin.reports.pdf.client-debt', compact('clients'));
+        $clientId = $this->report->parameters['client_id'] ?? null;
+
+        if ($clientId) {
+            $client = Client::query()
+                ->with(['debtLedgers' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                }])
+                ->withSum(['debtLedgers as total_charges' => function ($query) {
+                    $query->where('type', 'charge');
+                }], 'amount')
+                ->withSum(['debtLedgers as total_payments' => function ($query) {
+                    $query->where('type', 'payment');
+                }], 'amount')
+                ->withSum(['debtLedgers as total_credit_notes' => function ($query) {
+                    $query->where('type', 'credit_note');
+                }], 'amount')
+                ->findOrFail($clientId);
+
+            $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
+            
+            $pdf = Pdf::loadView('admin.reports.pdf.single-client-debt', compact('client'));
+            $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
+        } else {
+            $clients = Client::query()
+                ->withSum(['debtLedgers as total_charges' => function ($query) {
+                    $query->where('type', 'charge');
+                }], 'amount')
+                ->withSum(['debtLedgers as total_payments' => function ($query) {
+                    $query->where('type', 'payment');
+                }], 'amount')
+                ->withSum(['debtLedgers as total_credit_notes' => function ($query) {
+                    $query->where('type', 'credit_note');
+                }], 'amount')
+                ->get()
+                ->map(function ($client) {
+                    $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
+                    return $client;
+                })
+                ->filter(fn($c) => $c->calculated_total_debt != 0)
+                ->sortBy('name');
+
+            $pdf = Pdf::loadView('admin.reports.pdf.client-debt', compact('clients'));
+            $fileNamePrefix = 'all-clients-debt-';
+        }
+
         $pdfContent = $pdf->output();
-
-        $fileName = 'reports/client-debt-' . now()->timestamp;
+        $fileName = 'reports/' . $fileNamePrefix . now()->timestamp;
 
         if ($this->report->format === 'pdf') {
             $path = $fileName . '.pdf';
@@ -68,20 +97,16 @@ class GenerateClientDebtReport implements ShouldQueue
             $path = $fileName . '.jpg';
 
             $imagick = new Imagick();
-            // Using 100 DPI for a balance of speed and quality
             $imagick->setResolution(100, 100);
             $imagick->readImageBlob($pdfContent);
 
-            // Convert each page to JPG format and remove transparency efficiently
             foreach ($imagick as $page) {
                 $page->setImageFormat('jpg');
                 $page->setImageBackgroundColor('white');
-                // Remove alpha channel to flatten onto the background color
                 $page->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
             }
 
             $imagick->resetIterator();
-            // Combine all pages into one vertically
             $combined = $imagick->appendImages(true);
             $combined->setImageFormat('jpg');
             $combined->setImageCompressionQuality(100);

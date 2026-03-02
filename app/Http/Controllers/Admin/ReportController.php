@@ -32,9 +32,10 @@ class ReportController extends Controller
         ]);
 
         $report = GeneratedReport::create([
-            'name' => 'Client Debt Report (' . now()->format('Y-m-d H:i') . ')',
+            'name' => 'All Clients Debt Report (' . now()->format('Y-m-d H:i') . ')',
             'type' => 'client_debt',
             'format' => $request->format,
+            'parameters' => ['locale' => app()->getLocale()],
             'status' => 'pending',
         ]);
 
@@ -42,6 +43,29 @@ class ReportController extends Controller
 
         return redirect()->route('admin.reports.index')
             ->with('success', 'Report generation started in the background. Please wait.');
+    }
+
+    public function exportClientDebt(Request $request, Client $client)
+    {
+        $request->validate([
+            'format' => 'required|in:pdf,jpg',
+        ]);
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: ' . $client->name . ' (' . now()->format('Y-m-d H:i') . ')',
+            'type' => 'single_client_debt',
+            'format' => $request->format,
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => app()->getLocale(),
+            ],
+            'status' => 'pending',
+        ]);
+
+        GenerateClientDebtReport::dispatch($report);
+
+        return redirect()->route('admin.reports.index')
+            ->with('success', 'Report generation started for ' . $client->name . '. Please wait.');
     }
 
     private function getClientDebtData()

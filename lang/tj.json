@@ -110,5 +110,9 @@
     "Pending": "Дар интизорӣ",
     "Completed": "Иҷро шуд",
     "Failed": "Хатогӣ",
-    "Report generation started in the background. Please wait.": "Сохтани ҳисобот дар замина оғоз ёфт. Лутфан мунтазир шавед."
+    "Report generation started in the background. Please wait.": "Сохтани ҳисобот дар замина оғоз ёфт. Лутфан мунтазир шавед.",
+    "Current Total Debt": "Қарзи умумии ҷорӣ",
+    "Transaction History": "Таърихи амалиётҳо",
+    "Final Balance": "Баланси ниҳоӣ",
+    "Generated on": "Санаи сохташуда"
 }
