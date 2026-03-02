@@ -26,8 +26,8 @@ class Distribution extends Model
     protected $casts = [
         'distribution_date' => 'date',
         'quantity' => 'decimal:3',
-        'price' => 'decimal:2',
-        'subtotal' => 'decimal:2',
+        'price' => 'decimal:4',
+        'subtotal' => 'decimal:4',
     ];
 
     protected static function booted()

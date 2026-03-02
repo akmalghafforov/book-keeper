@@ -29,7 +29,7 @@
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Supplier (Car)') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">
                         @if($distribution->supplier)
-                            {{ $distribution->supplier->car_number }} ({{ $distribution->supplier->car_color }})
+                            {{ $distribution->supplier->car_number }} ({{ $distribution->supplier->car_color ?? __('N/A') }})
                         @else
                             <span class="text-gray-400 italic">{{ __('N/A') }} ({{ __('Direct') }})</span>
                         @endif
@@ -49,11 +49,11 @@
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Price') }}</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">${{ number_format($distribution->price, 2) }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">${{ number_format($distribution->price, 4) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Subtotal') }}</dt>
-                    <dd class="mt-1 text-sm font-bold text-indigo-600 dark:text-indigo-400">${{ number_format($distribution->subtotal, 2) }}</dd>
+                    <dd class="mt-1 text-sm font-bold text-indigo-600 dark:text-indigo-400">${{ number_format($distribution->subtotal, 4) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At') }}</dt>

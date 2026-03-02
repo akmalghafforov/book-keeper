@@ -21,17 +21,10 @@
         display: flex !important;
         align-items: center !important;
     }
-    .dark .select2-container--default .select2-selection--single {
-        background-color: #0a0a0a !important;
-        border-color: #3E3E3A !important;
-    }
     .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: #000000 !important; /* Pure Black font */
+        color: #000000 !important;
         padding-left: 0.75rem !important;
         padding-right: 2rem !important;
-    }
-    .dark .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: #ffffff !important; /* Pure White font */
     }
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 36px !important;
@@ -40,25 +33,15 @@
     .select2-container--default .select2-selection--single .select2-selection__arrow b {
         border-color: #6B7280 transparent transparent transparent !important;
     }
-    .dark .select2-container--default .select2-selection--single .select2-selection__arrow b {
-        border-color: #9CA3AF transparent transparent transparent !important;
-    }
     .select2-dropdown {
         background-color: white !important;
         border-color: #D1D5DB !important;
         border-radius: 0.5rem !important;
         z-index: 9999 !important;
     }
-    .dark .select2-dropdown {
-        background-color: #161615 !important;
-        border-color: #3E3E3A !important;
-    }
     .select2-results__option {
-        color: #000000 !important; /* Black font for options */
+        color: #000000 !important;
         padding: 8px 12px !important;
-    }
-    .dark .select2-results__option {
-        color: #ffffff !important; /* White font for options */
     }
     .select2-container--default .select2-results__option--highlighted[aria-selected] {
         background-color: #4F46E5 !important;
@@ -70,13 +53,61 @@
         border-radius: 0.375rem !important;
         color: #000000 !important;
     }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #6B7280 !important;
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .select2-container--default .select2-selection--single {
+            background-color: #0a0a0a !important;
+            border-color: #3E3E3A !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            border-color: #9CA3AF transparent transparent transparent !important;
+        }
+        .select2-dropdown {
+            background-color: #161615 !important;
+            border-color: #3E3E3A !important;
+        }
+        .select2-results__option {
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            background-color: #0a0a0a !important;
+            border-color: #3E3E3A !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9CA3AF !important;
+        }
+    }
+
+    /* Fallback for .dark class if used */
+    .dark .select2-container--default .select2-selection--single {
+        background-color: #0a0a0a !important;
+        border-color: #3E3E3A !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #ffffff !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #9CA3AF transparent transparent transparent !important;
+    }
+    .dark .select2-dropdown {
+        background-color: #161615 !important;
+        border-color: #3E3E3A !important;
+    }
+    .dark .select2-results__option {
+        color: #ffffff !important;
+    }
     .dark .select2-container--default .select2-search--dropdown .select2-search__field {
         background-color: #0a0a0a !important;
         border-color: #3E3E3A !important;
         color: #ffffff !important;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__placeholder {
-        color: #6B7280 !important;
     }
     .dark .select2-container--default .select2-selection--single .select2-selection__placeholder {
         color: #9CA3AF !important;
@@ -93,7 +124,7 @@
     isSavingClient: false,
     clientError: '',
     get subtotal() {
-        return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
     },
     async submitClient() {
         this.isSavingClient = true;
@@ -128,7 +159,7 @@
     }
 }">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Distribution</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Edit Distribution') }}</h2>
         <a href="{{ route('admin.distributions.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Back to list
@@ -185,7 +216,7 @@
                                     <option value="">None (Direct Distribution)</option>
                                     @foreach($suppliers as $supplier)
                                         <option value="{{ $supplier->id }}" {{ old('supplier_id', $distribution->supplier_id) == $supplier->id ? 'selected' : '' }}>
-                                            {{ $supplier->car_number }} ({{ $supplier->car_color }})
+                                            {{ $supplier->car_number }} ({{ $supplier->car_color ?? __('N/A') }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -256,9 +287,9 @@
                                 <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
                                 <select name="quantity_unit" id="quantity_unit" required
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                                    <option value="per_ton" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
-                                    <option value="per_bag" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>
-                                    <option value="per_piece" {{ old('quantity_unit', $distribution->quantity_unit) == 'per_piece' ? 'selected' : '' }}>{{ __('per_piece') }}</option>
+                                    <option value="per_ton" {{ (old('quantity_unit', $distribution->quantity_unit) == 'per_ton') ? 'selected' : '' }}>{{ __('per_ton') }}</option>
+                                    <option value="per_bag" {{ (old('quantity_unit', $distribution->quantity_unit) == 'per_bag') ? 'selected' : '' }}>{{ __('per_bag') }}</option>
+                                    <option value="per_piece" {{ (old('quantity_unit', $distribution->quantity_unit) == 'per_piece') ? 'selected' : '' }}>{{ __('per_piece') }}</option>
                                 </select>
                                 @error('quantity_unit')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -281,7 +312,7 @@
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <span class="text-gray-500 sm:text-sm">$</span>
                                     </div>
-                                    <input type="number" step="0.01" name="price" id="price" x-model.number="price" required
+                                    <input type="number" step="any" name="price" id="price" x-model.number="price" required
                                         class="block w-full pl-7 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                                         placeholder="0.00">
                                 </div>
@@ -306,7 +337,7 @@
                         </div>
                         <div class="flex justify-between items-center text-indigo-100">
                             <span>Price:</span>
-                            <span class="font-medium">$<span x-text="price.toFixed(2)"></span></span>
+                            <span class="font-medium">$<span x-text="subtotal"></span></span>
                         </div>
                         
                         <div class="pt-4 border-t border-indigo-500 flex justify-between items-end">

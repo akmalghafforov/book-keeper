@@ -49,10 +49,11 @@ class DebtLedgerController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         $clients = Client::orderBy('name')->get();
-        return view('admin.debt-ledgers.create', compact('clients'));
+        $selectedClientId = $request->query('client_id');
+        return view('admin.debt-ledgers.create', compact('clients', 'selectedClientId'));
     }
 
     /**
