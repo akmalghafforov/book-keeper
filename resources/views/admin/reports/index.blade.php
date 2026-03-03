@@ -92,17 +92,29 @@
 </div>
 
 <script>
-    function shareOnWhatsApp(reportName, reportUrl) {
-        const text = `{{ __('Report') }}: ${reportName}\n{{ __('You can download it here') }}: ${reportUrl}`;
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    async function shareOnWhatsApp(reportName, reportUrl) {
+        const text = `{{ __('Report') }}: ${reportName}`;
         
-        if (navigator.share) {
-            navigator.share({
-                title: reportName,
-                text: text,
-                url: reportUrl
-            }).catch(console.error);
-        } else {
+        try {
+            const response = await fetch(reportUrl);
+            const blob = await response.blob();
+            const file = new File([blob], `${reportName}.jpg`, { type: 'image/jpeg' });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: reportName,
+                    text: text,
+                });
+            } else {
+                const downloadText = `${text}\n{{ __('You can download it here') }}: ${reportUrl}`;
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(downloadText)}`;
+                window.open(whatsappUrl, '_blank');
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+            const downloadText = `${text}\n{{ __('You can download it here') }}: ${reportUrl}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(downloadText)}`;
             window.open(whatsappUrl, '_blank');
         }
     }
