@@ -64,5 +64,9 @@
     }
     .summary-item {
         margin-bottom: 3px;
+        font-size: 16px;
+    }
+    tfoot tr.font-bold td {
+        font-size: 16px;
     }
 </style>

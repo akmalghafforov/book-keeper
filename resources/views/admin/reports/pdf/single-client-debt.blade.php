@@ -16,7 +16,7 @@
         @if($client->phone)
             <div>{{ __('Phone') }}: {{ $client->phone }}</div>
         @endif
-        <div style="margin-top: 10px;">
+        <div style="margin-top: 10px; font-size: 16px;">
             <strong>{{ __('Current Total Debt') }}:</strong> 
             <span class="{{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
                 {{ number_format((float) $client->calculated_total_debt, 2) }}
