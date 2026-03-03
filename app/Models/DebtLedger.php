@@ -27,4 +27,9 @@ class DebtLedger extends Model
     {
         return $this->belongsTo(Client::class);
     }
+
+    public function distribution(): BelongsTo
+    {
+        return $this->belongsTo(Distribution::class, 'reference_id');
+    }
 }

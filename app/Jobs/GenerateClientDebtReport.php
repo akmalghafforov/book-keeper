@@ -43,7 +43,7 @@ class GenerateClientDebtReport implements ShouldQueue
         if ($clientId) {
             $client = Client::query()
                 ->with(['debtLedgers' => function ($query) {
-                    $query->orderBy('created_at', 'desc');
+                    $query->with(['distribution.product'])->orderBy('created_at', 'desc');
                 }])
                 ->withSum(['debtLedgers as total_charges' => function ($query) {
                     $query->where('type', 'charge');
@@ -86,14 +86,7 @@ class GenerateClientDebtReport implements ShouldQueue
         $pdfContent = $pdf->output();
         $fileName = 'reports/' . $fileNamePrefix . now()->timestamp;
 
-        if ($this->report->format === 'pdf') {
-            $path = $fileName . '.pdf';
-            Storage::disk('public')->put($path, $pdfContent);
-            $this->report->update([
-                'status' => 'completed',
-                'file_path' => $path,
-            ]);
-        } elseif ($this->report->format === 'jpg') {
+        if ($this->report->format === 'jpg') {
             $path = $fileName . '.jpg';
 
             $imagick = new Imagick();

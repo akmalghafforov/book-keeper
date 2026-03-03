@@ -86,7 +86,7 @@
             <tr>
                 <th>{{ __('Date') }}</th>
                 <th>{{ __('Type') }}</th>
-                <th>{{ __('Notes') }}</th>
+                <th>{{ __('Details') }}</th>
                 <th class="text-right">{{ __('Amount') }}</th>
             </tr>
         </thead>
@@ -95,7 +95,11 @@
                 <tr>
                     <td>{{ $ledger->created_at->format('Y-m-d H:i') }}</td>
                     <td>{{ __($ledger->type) }}</td>
-                    <td>{{ $ledger->notes }}</td>
+                    <td>
+                        @if($ledger->type === 'charge' && $ledger->distribution)
+                            {{ $ledger->distribution->product->name }} ({{ $ledger->distribution->quantity }} x {{ number_format((float) $ledger->distribution->price, 2) }})
+                        @endif
+                    </td>
                     <td class="text-right font-bold {{ in_array($ledger->type, ['charge']) ? 'debt-positive' : 'debt-negative' }}">
                         {{ in_array($ledger->type, ['charge']) ? '' : '-' }}{{ number_format((float) $ledger->amount, 2) }}
                     </td>

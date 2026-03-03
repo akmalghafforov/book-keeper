@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('type'); // e.g., 'client_debt'
-            $table->string('format'); // 'pdf', 'jpg'
+            $table->string('format'); // 'jpg'
             $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');
             $table->string('file_path')->nullable();
             $table->text('error_message')->nullable();

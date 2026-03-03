@@ -3,12 +3,113 @@
 @section('title', __('Distributions'))
 @section('header_title', __('Distributions'))
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<style>
+    .flatpickr-input {
+        background-color: transparent !important;
+    }
+    /* Select2 Custom Styling */
+    .select2-container--default .select2-selection--single {
+        background-color: white !important;
+        border-color: #D1D5DB !important;
+        height: 38px !important;
+        border-radius: 0.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #000000 !important;
+        padding-left: 0.75rem !important;
+        padding-right: 2rem !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 8px !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #6B7280 transparent transparent transparent !important;
+    }
+    .select2-dropdown {
+        background-color: white !important;
+        border-color: #D1D5DB !important;
+        border-radius: 0.5rem !important;
+        z-index: 9999 !important;
+    }
+    .select2-results__option {
+        color: #000000 !important;
+        padding: 8px 12px !important;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #4F46E5 !important;
+        color: white !important;
+    }
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: white !important;
+        border-color: #D1D5DB !important;
+        border-radius: 0.375rem !important;
+        color: #000000 !important;
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .select2-container--default .select2-selection--single {
+            background-color: #0a0a0a !important;
+            border-color: #3E3E3A !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            border-color: #9CA3AF transparent transparent transparent !important;
+        }
+        .select2-dropdown {
+            background-color: #161615 !important;
+            border-color: #3E3E3A !important;
+        }
+        .select2-results__option {
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            background-color: #0a0a0a !important;
+            border-color: #3E3E3A !important;
+            color: #ffffff !important;
+        }
+    }
+
+    /* Fallback for .dark class if used */
+    .dark .select2-container--default .select2-selection--single {
+        background-color: #0a0a0a !important;
+        border-color: #3E3E3A !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #ffffff !important;
+    }
+    .dark .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #9CA3AF transparent transparent transparent !important;
+    }
+    .dark .select2-dropdown {
+        background-color: #161615 !important;
+        border-color: #3E3E3A !important;
+    }
+    .dark .select2-results__option {
+        color: #ffffff !important;
+    }
+    .dark .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: #0a0a0a !important;
+        border-color: #3E3E3A !important;
+        color: #ffffff !important;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Distributions') }}</h2>
         <a href="{{ route('admin.distributions.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-            Add Distribution
+            {{ __('Add Distribution') }}
         </a>
     </div>
 
@@ -18,7 +119,114 @@
         </div>
     @endif
 
-    <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-lg border border-gray-200 dark:border-[#3E3E3A]">
+    <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-6 mb-6">
+        <form action="{{ route('admin.distributions.index') }}" method="GET" x-data="{
+            init() {
+                flatpickr($refs.dateFrom, {
+                    dateFormat: 'd/m/Y',
+                    allowInput: true,
+                });
+                flatpickr($refs.dateTo, {
+                    dateFormat: 'd/m/Y',
+                    allowInput: true,
+                });
+                $($refs.selectClient).select2({
+                    placeholder: '{{ __('All Clients') }}',
+                    allowClear: true,
+                    width: '100%'
+                });
+                $($refs.selectProduct).select2({
+                    placeholder: '{{ __('All Products') }}',
+                    allowClear: true,
+                    width: '100%'
+                });
+                $($refs.selectSupplier).select2({
+                    placeholder: '{{ __('All Suppliers') }}',
+                    allowClear: true,
+                    width: '100%'
+                });
+                $($refs.selectUnit).select2({
+                    placeholder: '{{ __('All Units') }}',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        }">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Client') }}</label>
+                    <select name="client_id" id="client_id" x-ref="selectClient" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm">
+                        <option value=""></option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>{{ $client->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Product') }}</label>
+                    <select name="product_id" id="product_id" x-ref="selectProduct" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm">
+                        <option value=""></option>
+                        @foreach($products as $product)
+                            <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Supplier') }}</label>
+                    <select name="supplier_id" id="supplier_id" x-ref="selectSupplier" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm">
+                        <option value=""></option>
+                        @foreach($suppliers as $supplier)
+                            <option value="{{ $supplier->id }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>{{ $supplier->car_number }} ({{ $supplier->car_color }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Unit') }}</label>
+                    <select name="quantity_unit" id="quantity_unit" x-ref="selectUnit" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm">
+                        <option value=""></option>
+                        <option value="per_ton" {{ request('quantity_unit') == 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
+                        <option value="per_bag" {{ request('quantity_unit') == 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>
+                        <option value="per_piece" {{ request('quantity_unit') == 'per_piece' ? 'selected' : '' }}>{{ __('per_piece') }}</option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Date Range') }}</label>
+                    <div class="flex items-center space-x-2">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <input type="text" name="date_from" id="date_from" x-ref="dateFrom" value="{{ request('date_from') }}" placeholder="{{ __('From') }} (DD/MM/YYYY)" class="block w-full pl-10 border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
+                        </div>
+                        <span class="text-gray-500">-</span>
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <input type="text" name="date_to" id="date_to" x-ref="dateTo" value="{{ request('date_to') }}" placeholder="{{ __('To') }} (DD/MM/YYYY)" class="block w-full pl-10 border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end space-x-3">
+                <a href="{{ route('admin.distributions.index') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-[#1C1C1A] border border-gray-300 dark:border-[#3E3E3A] rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-[#2C2C2A] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    {{ __('Clear') }}
+                </a>
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md shadow-indigo-500/20">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    {{ __('Filter') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                 <thead class="bg-gray-50 dark:bg-[#1C1C1A]">
@@ -72,7 +280,7 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
-                                No distributions found.
+                                {{ __('No distributions found.') }}
                             </td>
                         </tr>
                     @endforelse
@@ -87,3 +295,7 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endpush

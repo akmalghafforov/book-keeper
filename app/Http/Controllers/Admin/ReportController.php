@@ -7,7 +7,6 @@ use App\Models\Client;
 use App\Models\GeneratedReport;
 use App\Jobs\GenerateClientDebtReport;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Imagick;
 
 class ReportController extends Controller
@@ -28,7 +27,7 @@ class ReportController extends Controller
     public function export(Request $request)
     {
         $request->validate([
-            'format' => 'required|in:pdf,jpg',
+            'format' => 'required|in:jpg',
         ]);
 
         $report = GeneratedReport::create([
@@ -48,7 +47,7 @@ class ReportController extends Controller
     public function exportClientDebt(Request $request, Client $client)
     {
         $request->validate([
-            'format' => 'required|in:pdf,jpg',
+            'format' => 'required|in:jpg',
         ]);
 
         $report = GeneratedReport::create([

@@ -14,12 +14,46 @@ class DistributionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $distributions = Distribution::with(['client', 'product', 'supplier'])
-            ->latest()
-            ->paginate(10);
-        return view('admin.distributions.index', compact('distributions'));
+        $query = Distribution::with(['client', 'product', 'supplier']);
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('quantity_unit')) {
+            $query->where('quantity_unit', $request->quantity_unit);
+        }
+
+        if ($request->filled('date_from')) {
+            $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_from)->startOfDay();
+            $query->where('distribution_date', '>=', $startDate);
+        }
+
+        if ($request->filled('date_to')) {
+            $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_to)->endOfDay();
+            $query->where('distribution_date', '<=', $endDate);
+        }
+
+        $distributions = $query->latest('distribution_date')
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString();
+
+        $clients = Client::orderBy('name')->get();
+        $products = Product::orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
+
+        return view('admin.distributions.index', compact('distributions', 'clients', 'products', 'suppliers'));
     }
 
     /**
