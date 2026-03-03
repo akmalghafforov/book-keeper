@@ -5,6 +5,7 @@
     body {
         font-family: 'DejaVu Sans', sans-serif;
         font-size: 14px;
+        font-weight: bold;
         color: #333;
         margin: 0;
         padding: 0;

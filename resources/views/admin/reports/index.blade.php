@@ -54,11 +54,22 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $report->created_at->format('M d, Y H:i') }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 @if($report->status === 'completed' && $report->file_path)
                                     <a href="{{ Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                         {{ __('Download') }}
                                     </a>
+                                    
+                                    <button 
+                                        onclick="shareOnWhatsApp('{{ $report->name }}', '{{ url(Storage::url($report->file_path)) }}')"
+                                        class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 inline-flex items-center"
+                                        title="{{ __('Share on WhatsApp') }}"
+                                    >
+                                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.483 8.413-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.308 1.654zm6.222-4.103c1.73.93 3.332 1.403 4.933 1.403 5.428 0 9.848-4.419 9.85-9.847.001-2.628-1.02-5.101-2.877-6.958-1.856-1.856-4.33-2.878-6.957-2.878-5.428 0-9.848 4.421-9.85 9.849 0 1.832.503 3.541 1.455 5.04l-.963 3.518 3.409-.893zm11.336-6.623c-.301-.15-1.778-.877-2.054-.976-.275-.099-.476-.15-.676.15-.2.3-.776.976-.951 1.176-.174.2-.35.225-.651.075-.301-.15-1.268-.467-2.414-1.49-.893-.796-1.496-1.78-1.672-2.08-.175-.3-.018-.463.13-.611.135-.133.3-.35.45-.525.15-.175.2-.3.3-.5s.05-.375-.025-.525c-.075-.15-.676-1.628-.926-2.228-.244-.583-.493-.504-.676-.513-.175-.008-.375-.01-.576-.01-.2 0-.525.075-.8 0-.275.3-.8 1.15-.8 2.8 0 1.65 1.2 3.25 1.366 3.475.166.225 2.362 3.606 5.722 5.058.799.345 1.423.551 1.91.706.801.255 1.53.219 2.106.133.642-.095 1.778-.727 2.029-1.428.25-.7.25-1.3.175-1.428-.076-.128-.276-.203-.577-.353z"/>
+                                        </svg>
+                                        {{ __('Share') }}
+                                    </button>
                                 @endif
                             </td>
                         </tr>
@@ -79,4 +90,21 @@
         @endif
     </div>
 </div>
+
+<script>
+    function shareOnWhatsApp(reportName, reportUrl) {
+        const text = `{{ __('Report') }}: ${reportName}\n{{ __('You can download it here') }}: ${reportUrl}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: reportName,
+                text: text,
+                url: reportUrl
+            }).catch(console.error);
+        } else {
+            window.open(whatsappUrl, '_blank');
+        }
+    }
+</script>
 @endsection
