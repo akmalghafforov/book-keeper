@@ -13,7 +13,13 @@ class ClientController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Client::withBalance()->latest();
+        $query = Client::withBalance()
+            ->addSelect(['latest_ledger_at' => \App\Models\DebtLedger::select('updated_at')
+                ->whereColumn('client_id', 'clients.id')
+                ->latest('updated_at')
+                ->limit(1)
+            ])
+            ->orderByRaw('COALESCE(latest_ledger_at, clients.created_at) DESC');
 
         if ($request->filled('search')) {
             $search = strtolower($request->input('search'));
