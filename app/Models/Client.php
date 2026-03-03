@@ -26,6 +26,32 @@ class Client extends Model
         return $this->hasMany(DebtLedger::class);
     }
 
+    public function scopeWithBalance($query)
+    {
+        $charges = DebtLedger::selectRaw('SUM(amount)')
+            ->whereColumn('client_id', 'clients.id')
+            ->where('type', 'charge')
+            ->getQuery();
+
+        $payments = DebtLedger::selectRaw('SUM(amount)')
+            ->whereColumn('client_id', 'clients.id')
+            ->where('type', 'payment')
+            ->getQuery();
+
+        $creditNotes = DebtLedger::selectRaw('SUM(amount)')
+            ->whereColumn('client_id', 'clients.id')
+            ->where('type', 'credit_note')
+            ->getQuery();
+
+        return $query->select('clients.*')
+            ->selectSub($charges, 'total_charges')
+            ->selectSub($payments, 'total_payments')
+            ->selectSub($creditNotes, 'total_credit_notes')
+            ->selectRaw("COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'charge'), 0) - 
+                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'payment'), 0) - 
+                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'credit_note'), 0) as balance");
+    }
+
     public function getTotalDebtAttribute(): float
     {
         $charges = $this->debtLedgers()->where('type', 'charge')->sum('amount');

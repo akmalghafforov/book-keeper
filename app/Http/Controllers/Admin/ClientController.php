@@ -11,10 +11,35 @@ class ClientController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $clients = Client::latest()->paginate(10);
-        return view('admin.clients.index', compact('clients'));
+        $query = Client::withBalance()->latest();
+
+        if ($request->filled('search')) {
+            $search = strtolower($request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        if ($request->filled('client_id')) {
+            $query->where('id', $request->input('client_id'));
+        }
+
+        if ($request->filled('debt_status')) {
+            $status = $request->input('debt_status');
+            if ($status === 'with_debt') {
+                $query->having('balance', '>', 0);
+            } elseif ($status === 'no_debt') {
+                $query->having('balance', '<=', 0);
+            }
+        }
+
+        $clients = $query->paginate(10)->withQueryString();
+        $allClients = Client::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.clients.index', compact('clients', 'allClients'));
     }
 
     /**
