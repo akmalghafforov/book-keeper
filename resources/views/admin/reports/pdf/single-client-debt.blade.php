@@ -12,7 +12,7 @@
     </div>
 
     <div class="client-info">
-        <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">{{ $client->name }}</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{{ $client->name }}</div>
         @if($client->phone)
             <div>{{ __('Phone') }}: {{ $client->phone }}</div>
         @endif

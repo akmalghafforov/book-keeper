@@ -1,7 +1,7 @@
 <style>
     body {
         font-family: 'DejaVu Sans', sans-serif;
-        font-size: 12px;
+        font-size: 14px;
         color: #333;
     }
     .header {
@@ -10,7 +10,7 @@
     }
     .header h1 {
         margin: 0;
-        font-size: 18px;
+        font-size: 20px;
     }
     .header p {
         margin: 5px 0 0;
@@ -51,7 +51,7 @@
     .footer {
         margin-top: 30px;
         text-align: right;
-        font-size: 10px;
+        font-size: 12px;
         color: #999;
     }
     .summary {
