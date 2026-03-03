@@ -42,6 +42,9 @@
                     <td>
                         @if($ledger->type === 'charge' && $ledger->distribution)
                             {{ $ledger->distribution->product->name }} ({{ $ledger->distribution->quantity }} x {{ number_format((float) $ledger->distribution->price, 2) }})
+                            @if($ledger->distribution->supplier?->car_number)
+                                <br><small>{{ __('Car') }}: {{ $ledger->distribution->supplier->car_number }}</small>
+                            @endif
                         @endif
                     </td>
                     <td class="text-right font-bold {{ in_array($ledger->type, ['charge']) ? 'debt-positive' : 'debt-negative' }}">
