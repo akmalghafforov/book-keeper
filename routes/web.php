@@ -28,6 +28,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
+        Route::get('operations', [\App\Http\Controllers\Admin\OperationController::class, 'index'])->name('operations.index');
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
