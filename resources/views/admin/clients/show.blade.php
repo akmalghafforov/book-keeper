@@ -44,7 +44,7 @@
                 <div class="space-y-1">
                     <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Total Debt') }}</h3>
                     <p class="text-2xl font-black {{ $client->total_debt > 0 ? 'text-red-600' : 'text-green-600' }}">
-                        ${{ number_format($client->total_debt, 2) }}
+                        {{ number_format($client->total_debt, 2) }}
                     </p>
                 </div>
             </div>
@@ -74,7 +74,7 @@
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $dist->created_at->format('M d, Y') }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $dist->product->name }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300 text-right">{{ $dist->quantity }}</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white text-right">${{ number_format($dist->subtotal, 2) }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white text-right">{{ number_format($dist->subtotal, 2) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -113,7 +113,7 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm font-medium text-right {{ $ledger->type === 'charge' ? 'text-red-600' : 'text-green-600' }}">
-                                        {{ $ledger->type === 'charge' ? '+' : '-' }}${{ number_format($ledger->amount, 2) }}
+                                        {{ $ledger->type === 'charge' ? '+' : '-' }}{{ number_format($ledger->amount, 2) }}
                                     </td>
                                 </tr>
                             @endforeach

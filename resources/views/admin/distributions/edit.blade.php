@@ -244,11 +244,8 @@
                             <div>
                                 <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Price') }}</label>
                                 <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 sm:text-sm">$</span>
-                                    </div>
                                     <input type="number" step="any" name="price" id="price" x-model.number="price" required
-                                        class="block w-full pl-7 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        class="block w-full pl-3 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                                         placeholder="0.00">
                                 </div>
                                 @error('price')
@@ -272,12 +269,12 @@
                         </div>
                         <div class="flex justify-between items-center text-indigo-100">
                             <span>Price:</span>
-                            <span class="font-medium">$<span x-text="price.toFixed(2)"></span></span>
+                            <span class="font-medium"><span x-text="price.toFixed(2)"></span></span>
                         </div>
                         
                         <div class="pt-4 border-t border-indigo-500 flex justify-between items-end">
                             <span class="text-sm uppercase tracking-wider font-semibold">Total Subtotal</span>
-                            <span class="text-3xl font-bold">$<span x-text="subtotal"></span></span>
+                            <span class="text-3xl font-bold"><span x-text="subtotal"></span></span>
                         </div>
                     </div>
                 </div>
