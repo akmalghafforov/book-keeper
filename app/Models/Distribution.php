@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\DebtLedger;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,6 +39,10 @@ class Distribution extends Model
         });
 
         static::updated(function (Distribution $distribution) {
+            // Skip sync during restore — the `restored` event handles it
+            if ($distribution->isDirty('deleted_at')) {
+                return;
+            }
             $distribution->syncDebtLedgerCharge();
         });
 

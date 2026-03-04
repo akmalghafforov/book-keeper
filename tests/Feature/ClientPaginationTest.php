@@ -35,7 +35,9 @@ class ClientPaginationTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.clients.index', ['debt_status' => 'with_debt']));
 
         $response->assertStatus(200);
-        $response->assertSee('Client With Debt');
-        $response->assertDontSee('Client No Debt');
+        
+        $clients = $response->viewData('clients');
+        $this->assertTrue($clients->contains('id', $clientWithDebt->id));
+        $this->assertFalse($clients->contains('id', $clientNoDebt->id));
     }
 }

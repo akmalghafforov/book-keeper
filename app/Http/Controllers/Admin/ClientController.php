@@ -35,10 +35,13 @@ class ClientController extends Controller
 
         if ($request->filled('debt_status')) {
             $status = $request->input('debt_status');
+            $balanceSql = "COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'charge'), 0) - 
+                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'payment'), 0) - 
+                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'credit_note'), 0)";
             if ($status === 'with_debt') {
-                $query->having('balance', '>', 0);
+                $query->whereRaw("($balanceSql) > 0");
             } elseif ($status === 'no_debt') {
-                $query->having('balance', '<=', 0);
+                $query->whereRaw("($balanceSql) <= 0");
             }
         }
 
