@@ -210,6 +210,35 @@
                                 @enderror
                             </div>
                         </div>
+
+                        <div class="grid grid-cols-1 gap-4 mt-4">
+                            <div x-data="{ creditClientId: '{{ old('credit_client_id', $distribution->credit_client_id) }}' }">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label for="credit_client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Credit Client (Optional)') }} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">- Issues credit note to this client</span></label>
+                                </div>
+                                <select name="credit_client_id" id="credit_client_id" x-ref="selectCredit"
+                                    x-init="
+                                        $($refs.selectCredit).select2({
+                                            placeholder: 'Select Credit Client',
+                                            allowClear: true,
+                                            width: '100%'
+                                        });
+                                        $($refs.selectCredit).on('change', () => { creditClientId = $($refs.selectCredit).val() });
+                                    "
+                                    x-effect="$($refs.selectCredit).val(creditClientId).trigger('change')"
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                                    <option value=""></option>
+                                    @foreach($clients as $client)
+                                        <option value="{{ $client->id }}" {{ old('credit_client_id', $distribution->credit_client_id) == $client->id ? 'selected' : '' }}>
+                                            {{ $client->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('credit_client_id')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -19,7 +19,7 @@
         <div style="margin-top: 10px; font-size: 16px;">
             <strong>{{ __('Current Total Debt') }}:</strong> 
             <span class="{{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
-                {{ number_format((float) $client->calculated_total_debt, 2) }}
+                {{ (float) $client->calculated_total_debt == (int) $client->calculated_total_debt ? number_format((float) $client->calculated_total_debt, 0) : number_format((float) $client->calculated_total_debt, 2) }}
             </span>
         </div>
     </div>
@@ -40,15 +40,22 @@
                     <td>{{ $ledger->created_at->format('Y-m-d H:i') }}</td>
                     <td>{{ __($ledger->type) }}</td>
                     <td>
-                        @if($ledger->type === 'charge' && $ledger->distribution)
-                            {{ $ledger->distribution->product->name }} ({{ $ledger->distribution->quantity }} x {{ number_format((float) $ledger->distribution->price, 2) }})
+                        @if($ledger->distribution)
+                            {{ $ledger->distribution->product->name ?? '' }}
+                            ({{ (float) $ledger->distribution->quantity == (int) $ledger->distribution->quantity ? number_format((float) $ledger->distribution->quantity, 0) : number_format((float) $ledger->distribution->quantity, 2) }} {{ __($ledger->distribution->quantity_unit ?? '') }} × {{ (float) $ledger->distribution->price == (int) $ledger->distribution->price ? number_format((float) $ledger->distribution->price, 0) : number_format((float) $ledger->distribution->price, 2) }})
                             @if($ledger->distribution->supplier?->car_number)
                                 <br><small>{{ __('Car') }}: {{ $ledger->distribution->supplier->car_number }}</small>
                             @endif
+                            @if($ledger->type === 'credit_note' && $ledger->distribution->client && $ledger->distribution->client_id !== $client->id)
+                                <br><small>{{ __('Client') }}: {{ $ledger->distribution->client->name }}</small>
+                            @endif
+                            <br><small>{{ $ledger->distribution->distribution_date?->format('d/m/Y') }}</small>
+                        @else
+                            {{ $ledger->notes }}
                         @endif
                     </td>
                     <td class="text-right font-bold {{ in_array($ledger->type, ['charge']) ? 'debt-positive' : 'debt-negative' }}">
-                        {{ in_array($ledger->type, ['charge']) ? '' : '-' }}{{ number_format((float) $ledger->amount, 2) }}
+                        {{ in_array($ledger->type, ['charge']) ? '' : '-' }}{{ (float) $ledger->amount == (int) $ledger->amount ? number_format((float) $ledger->amount, 0) : number_format((float) $ledger->amount, 2) }}
                     </td>
                 </tr>
             @endforeach
@@ -57,7 +64,7 @@
             <tr class="font-bold">
                 <td colspan="3" class="text-right">{{ __('Final Balance') }}:</td>
                 <td class="text-right {{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
-                    {{ number_format((float) $client->calculated_total_debt, 2) }}
+                    {{ (float) $client->calculated_total_debt == (int) $client->calculated_total_debt ? number_format((float) $client->calculated_total_debt, 0) : number_format((float) $client->calculated_total_debt, 2) }}
                 </td>
             </tr>
         </tfoot>

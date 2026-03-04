@@ -99,6 +99,7 @@
                             <tr class="bg-gray-50 dark:bg-[#1C1C1B]">
                                 <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Date') }}</th>
                                 <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Type') }}</th>
+                                <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Notes') }}</th>
                                 <th class="px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">{{ __('Amount') }}</th>
                             </tr>
                         </thead>
@@ -112,6 +113,7 @@
                                             {{ __($ledger->type) }}
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $ledger->notes ?: '-' }}</td>
                                     <td class="px-6 py-4 text-sm font-medium text-right {{ $ledger->type === 'charge' ? 'text-red-600' : 'text-green-600' }}">
                                         {{ $ledger->type === 'charge' ? '+' : '-' }}{{ number_format($ledger->amount, 2) }}
                                     </td>

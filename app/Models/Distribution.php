@@ -15,6 +15,7 @@ class Distribution extends Model
     protected $fillable = [
         'supplier_id',
         'client_id',
+        'credit_client_id',
         'product_id',
         'quantity_unit',
         'quantity',
@@ -58,6 +59,16 @@ class Distribution extends Model
             'reference_id' => $this->id,
             'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
         ]);
+
+        if ($this->credit_client_id) {
+            DebtLedger::create([
+                'client_id' => $this->credit_client_id,
+                'type' => 'credit_note',
+                'amount' => $this->subtotal,
+                'reference_id' => $this->id,
+                'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+            ]);
+        }
     }
 
     public function syncDebtLedgerCharge()
@@ -73,14 +84,44 @@ class Distribution extends Model
                 'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
             ]);
         } else {
-            $this->createDebtLedgerCharge();
+            DebtLedger::create([
+                'client_id' => $this->client_id,
+                'type' => 'charge',
+                'amount' => $this->subtotal,
+                'reference_id' => $this->id,
+                'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+            ]);
+        }
+
+        $creditLedger = DebtLedger::where('type', 'credit_note')
+            ->where('reference_id', $this->id)
+            ->first();
+
+        if ($this->credit_client_id) {
+            if ($creditLedger) {
+                $creditLedger->update([
+                    'client_id' => $this->credit_client_id,
+                    'amount' => $this->subtotal,
+                    'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                ]);
+            } else {
+                DebtLedger::create([
+                    'client_id' => $this->credit_client_id,
+                    'type' => 'credit_note',
+                    'amount' => $this->subtotal,
+                    'reference_id' => $this->id,
+                    'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                ]);
+            }
+        } elseif ($creditLedger) {
+            $creditLedger->delete();
         }
     }
 
     public function deleteDebtLedgerCharge()
     {
         DebtLedger::where('reference_id', $this->id)
-            ->where('type', 'charge')
+            ->whereIn('type', ['charge', 'credit_note'])
             ->delete();
     }
 
@@ -88,7 +129,7 @@ class Distribution extends Model
     {
         DebtLedger::withTrashed()
             ->where('reference_id', $this->id)
-            ->where('type', 'charge')
+            ->whereIn('type', ['charge', 'credit_note'])
             ->restore();
     }
 
@@ -100,6 +141,11 @@ class Distribution extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function creditClient(): BelongsTo
+    {
+        return $this->belongsTo(Client::class, 'credit_client_id');
     }
 
     public function product(): BelongsTo

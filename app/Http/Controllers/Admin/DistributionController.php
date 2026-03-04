@@ -75,6 +75,7 @@ class DistributionController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
+            'credit_client_id' => 'nullable|exists:clients,id',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
             'quantity' => 'required|numeric|min:0',
@@ -119,6 +120,7 @@ class DistributionController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
+            'credit_client_id' => 'nullable|exists:clients,id',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
             'quantity' => 'required|numeric|min:0',
