@@ -59,9 +59,9 @@
                                     <a href="{{ Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                         {{ __('Download') }}
                                     </a>
-                                    
-                                    <button 
-                                        onclick="shareOnWhatsApp('{{ $report->name }}', '{{ url(Storage::url($report->file_path)) }}')"
+
+                                    <button
+                                        onclick="shareOnWhatsApp('{{ $report->name }}', '{{ Storage::url($report->file_path) }}')"
                                         class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 inline-flex items-center"
                                         title="{{ __('Share on WhatsApp') }}"
                                     >
@@ -93,28 +93,60 @@
 
 <script>
     async function shareOnWhatsApp(reportName, reportUrl) {
+        // Sanitize filename for the File object
+        const sanitizedName = reportName.replace(/[:\\/*?<>|]/g, '_');
         const text = `{{ __('Report') }}: ${reportName}`;
-        
+
+        // Ensure we use the current origin for fetch to avoid CORS/localhost issues
+        const fetchUrl = reportUrl.startsWith('http')
+            ? reportUrl.replace(/^https?:\/\/[^\/]+/, window.location.origin)
+            : reportUrl;
+
+        // Ensure fallback URL is absolute using current origin
+        const absoluteUrl = reportUrl.startsWith('http')
+            ? reportUrl.replace(/^https?:\/\/[^\/]+/, window.location.origin)
+            : window.location.origin + reportUrl;
+
         try {
-            const response = await fetch(reportUrl);
+            const response = await fetch(fetchUrl);
             const blob = await response.blob();
-            const file = new File([blob], `${reportName}.jpg`, { type: 'image/jpeg' });
-            
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            const file = new File([blob], `${sanitizedName}.jpg`, { type: 'image/jpeg' });
+
+            // Check if Web Share API is available and supports file sharing
+            // const canShare = navigator.share && navigator.canShare({ files: [file] });
+
+            if (navigator.share) {
                 await navigator.share({
                     files: [file],
-                    title: reportName,
                     text: text,
                 });
             } else {
-                const downloadText = `${text}\n{{ __('You can download it here') }}: ${reportUrl}`;
-                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(downloadText)}`;
+                // Fallback: Try to copy to clipboard if on Desktop/unsupported browser
+                let copied = false;
+                if (navigator.clipboard && window.ClipboardItem) {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ [blob.type]: blob })
+                        ]);
+                        copied = true;
+                    } catch (e) {
+                        console.warn('Clipboard write failed, falling back to link sharing only.', e);
+                    }
+                }
+
+                let shareText = text;
+                if (copied) {
+                    shareText += `\n\n✅ {{ __('Image copied to clipboard. You can now paste it into WhatsApp.') }}`;
+                }
+                shareText += `\n\n{{ __('Link') }}: ${absoluteUrl}`;
+
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
                 window.open(whatsappUrl, '_blank');
             }
         } catch (error) {
             console.error('Error sharing:', error);
-            const downloadText = `${text}\n{{ __('You can download it here') }}: ${reportUrl}`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(downloadText)}`;
+            const fallbackText = `${text}\n\n{{ __('Link') }}: ${absoluteUrl}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fallbackText)}`;
             window.open(whatsappUrl, '_blank');
         }
     }

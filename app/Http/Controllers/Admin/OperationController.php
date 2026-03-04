@@ -29,6 +29,13 @@ class OperationController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
+        if ($request->filled('car_number')) {
+            $carNumber = $request->car_number;
+            $query->whereHas('distribution.supplier', function ($q) use ($carNumber) {
+                $q->where('car_number', 'like', '%' . $carNumber . '%');
+            });
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -39,6 +46,9 @@ class OperationController extends Controller
                   })
                   ->orWhereHas('distribution.product', function($pq) use ($search) {
                       $pq->where('name', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('distribution.supplier', function($sq) use ($search) {
+                      $sq->where('car_number', 'like', '%' . $search . '%');
                   });
             });
         }

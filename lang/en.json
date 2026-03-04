@@ -110,5 +110,10 @@
     "Pending": "Pending",
     "Completed": "Completed",
     "Failed": "Failed",
-    "Report generation started in the background. Please wait.": "Report generation started in the background. Please wait."
+    "Report generation started in the background. Please wait.": "Report generation started in the background. Please wait.",
+    "Report": "Report",
+    "Link": "Link",
+    "Image copied to clipboard, you can paste it!": "Image copied to clipboard, you can paste it!",
+    "Image copied to clipboard. You can now paste it into WhatsApp.": "Image copied to clipboard. You can now paste it into WhatsApp.",
+    "You can download it here": "You can download it here"
 }
