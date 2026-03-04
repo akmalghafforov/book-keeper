@@ -16,6 +16,7 @@ class Distribution extends Model
     protected $fillable = [
         'supplier_id',
         'client_id',
+        'shop_id',
         'credit_client_id',
         'product_id',
         'quantity_unit',
@@ -141,6 +142,11 @@ class Distribution extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function shop(): BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
     }
 
     public function client(): BelongsTo

@@ -17,7 +17,7 @@ class DistributionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Distribution::with(['client', 'product', 'supplier']);
+        $query = Distribution::with(['client', 'shop', 'product', 'supplier']);
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
@@ -62,7 +62,7 @@ class DistributionController extends Controller
      */
     public function create()
     {
-        $clients = Client::all();
+        $clients = Client::with('shops')->get();
         $products = Product::all();
         $suppliers = Supplier::all();
         return view('admin.distributions.create', compact('clients', 'products', 'suppliers'));
@@ -76,6 +76,7 @@ class DistributionController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
+            'shop_id' => 'nullable|exists:shops,id',
             'credit_client_id' => 'nullable|exists:clients,id',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
@@ -98,7 +99,7 @@ class DistributionController extends Controller
      */
     public function show(Distribution $distribution)
     {
-        $distribution->load(['client', 'product', 'supplier']);
+        $distribution->load(['client', 'shop', 'product', 'supplier']);
         return view('admin.distributions.show', compact('distribution'));
     }
 
@@ -107,7 +108,7 @@ class DistributionController extends Controller
      */
     public function edit(Distribution $distribution)
     {
-        $clients = Client::all();
+        $clients = Client::with('shops')->get();
         $products = Product::all();
         $suppliers = Supplier::all();
         return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'suppliers'));
@@ -121,6 +122,7 @@ class DistributionController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
+            'shop_id' => 'nullable|exists:shops,id',
             'credit_client_id' => 'nullable|exists:clients,id',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',

@@ -24,6 +24,7 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('admin.debt-ledgers.index');
         });
         Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class)->except(['destroy']);
+        Route::resource('shops', \App\Http\Controllers\Admin\ShopController::class)->only(['store']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);

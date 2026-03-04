@@ -21,6 +21,11 @@ class Client extends Model
         return $this->hasMany(Distribution::class);
     }
 
+    public function shops(): HasMany
+    {
+        return $this->hasMany(Shop::class);
+    }
+
     public function debtLedgers(): HasMany
     {
         return $this->hasMany(DebtLedger::class);
