@@ -59,8 +59,8 @@ class GenerateClientDebtReport implements ShouldQueue
             $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
 
             $allLedgers = $client->debtLedgers;
-            $client->recentLedgers = $allLedgers->take(10);
-            $remainingLedgers = $allLedgers->slice(10);
+            $client->recentLedgers = $allLedgers->take(5);
+            $remainingLedgers = $allLedgers->slice(5);
 
             $client->previous_balance = $remainingLedgers->reduce(function ($carry, $item) {
                 if ($item->type === 'charge') {
@@ -69,7 +69,7 @@ class GenerateClientDebtReport implements ShouldQueue
                     return $carry - (float) $item->amount;
                 }
             }, 0);
-            
+
             $pdf = Pdf::loadView('admin.reports.pdf.single-client-debt', compact('client'));
             $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
         } else {
