@@ -44,13 +44,13 @@
                             {{ $ledger->distribution->product->name ?? '' }}
                             ({{ (float) $ledger->distribution->quantity == (int) $ledger->distribution->quantity ? number_format((float) $ledger->distribution->quantity, 0) : number_format((float) $ledger->distribution->quantity, 2) }} {{ __($ledger->distribution->quantity_unit ?? '') }} × {{ (float) $ledger->distribution->price == (int) $ledger->distribution->price ? number_format((float) $ledger->distribution->price, 0) : number_format((float) $ledger->distribution->price, 2) }})
                             @if($ledger->distribution->supplier?->car_number)
-                                <br><small>{{ __('Car') }}: {{ $ledger->distribution->supplier->car_number }}</small>
+                                , <small>{{ __('Car') }}: {{ $ledger->distribution->supplier->car_number }}</small>
                             @endif
                             @if($ledger->distribution->shop)
-                                <br><small>{{ __('Shop') }}: {{ $ledger->distribution->shop->name }}</small>
+                                , <small>{{ __('Shop') }}: {{ $ledger->distribution->shop->name }}</small>
                             @endif
                             @if($ledger->type === 'credit_note' && $ledger->distribution->client && $ledger->distribution->client_id !== $client->id)
-                                <br><small>{{ __('Client') }}: {{ $ledger->distribution->client->name }}</small>
+                                , <small>{{ __('Client') }}: {{ $ledger->distribution->client->name }}</small>
                             @endif
                         @else
                             {{ $ledger->notes }}
