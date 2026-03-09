@@ -27,6 +27,9 @@
     newShop: { name: '', address: '' },
     isSavingShop: false,
     shopError: '',
+    products: @js($products->map(fn($p) => ['id' => $p->id, 'default_unit' => $p->default_unit])->keyBy('id')),
+    productId: '{{ old('product_id') }}',
+    unit: '{{ old('quantity_unit', 'per_ton') }}',
     get subtotal() {
         return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
     },
@@ -288,6 +291,12 @@
                             <div>
                                 <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product') }}</label>
                                 <select name="product_id" id="product_id" required
+                                    x-model="productId"
+                                    @change="
+                                        if (productId && products[productId] && products[productId].default_unit) {
+                                            unit = products[productId].default_unit;
+                                        }
+                                    "
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">Select Product</option>
                                     @foreach($products as $product)
@@ -341,6 +350,7 @@
                             <div>
                                 <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
                                 <select name="quantity_unit" id="quantity_unit" required
+                                    x-model="unit"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="per_ton" {{ old('quantity_unit') == 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
                                     <option value="per_bag" {{ old('quantity_unit') == 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>

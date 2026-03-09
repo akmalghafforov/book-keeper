@@ -13,6 +13,7 @@ class Product extends Model
 
     protected $fillable = [
         'name',
+        'default_unit',
     ];
 
     public function distributions(): HasMany

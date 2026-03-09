@@ -32,6 +32,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'default_unit' => 'nullable|in:per_ton,per_bag,per_piece',
         ]);
 
         Product::create($validated);
@@ -63,6 +64,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'default_unit' => 'nullable|in:per_ton,per_bag,per_piece',
         ]);
 
         $product->update($validated);

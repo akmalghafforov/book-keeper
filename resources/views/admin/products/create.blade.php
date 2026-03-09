@@ -28,6 +28,20 @@
                     @enderror
                 </div>
 
+                <div>
+                    <label for="default_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Default Unit (Optional)') }}</label>
+                    <select name="default_unit" id="default_unit"
+                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                        <option value="">None</option>
+                        <option value="per_ton" {{ old('default_unit') === 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
+                        <option value="per_bag" {{ old('default_unit') === 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>
+                        <option value="per_piece" {{ old('default_unit') === 'per_piece' ? 'selected' : '' }}>{{ __('per_piece') }}</option>
+                    </select>
+                    @error('default_unit')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <div class="flex justify-end pt-4 border-t border-gray-100 dark:border-[#3E3E3A] space-x-3">
                     <a href="{{ route('admin.products.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-[#2A2A28] border border-transparent rounded-lg font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-[#3E3E3A] focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-700 transition ease-in-out duration-150">
                         Cancel
