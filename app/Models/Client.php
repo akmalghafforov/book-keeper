@@ -33,28 +33,22 @@ class Client extends Model
 
     public function scopeWithBalance($query)
     {
-        $charges = DebtLedger::selectRaw('SUM(amount)')
-            ->whereColumn('client_id', 'clients.id')
-            ->where('type', 'charge')
-            ->getQuery();
+        $charges = DebtLedger::whereColumn('debt_ledgers.client_id', 'clients.id')
+            ->where('type', 'charge');
 
-        $payments = DebtLedger::selectRaw('SUM(amount)')
-            ->whereColumn('client_id', 'clients.id')
-            ->where('type', 'payment')
-            ->getQuery();
+        $payments = DebtLedger::whereColumn('debt_ledgers.client_id', 'clients.id')
+            ->where('type', 'payment');
 
-        $creditNotes = DebtLedger::selectRaw('SUM(amount)')
-            ->whereColumn('client_id', 'clients.id')
-            ->where('type', 'credit_note')
-            ->getQuery();
+        $creditNotes = DebtLedger::whereColumn('debt_ledgers.client_id', 'clients.id')
+            ->where('type', 'credit_note');
 
         return $query->select('clients.*')
-            ->selectSub($charges, 'total_charges')
-            ->selectSub($payments, 'total_payments')
-            ->selectSub($creditNotes, 'total_credit_notes')
-            ->selectRaw("COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'charge'), 0) - 
-                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'payment'), 0) - 
-                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'credit_note'), 0) as balance");
+            ->selectSub($charges->selectRaw('SUM(amount)'), 'total_charges')
+            ->selectSub($payments->selectRaw('SUM(amount)'), 'total_payments')
+            ->selectSub($creditNotes->selectRaw('SUM(amount)'), 'total_credit_notes')
+            ->selectRaw("COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'charge' AND deleted_at IS NULL), 0) - 
+                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'payment' AND deleted_at IS NULL), 0) - 
+                         COALESCE((SELECT SUM(amount) FROM debt_ledgers WHERE client_id = clients.id AND type = 'credit_note' AND deleted_at IS NULL), 0) as balance");
     }
 
     public function getTotalDebtAttribute(): float
