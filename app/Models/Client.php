@@ -31,6 +31,15 @@ class Client extends Model
         return $this->hasMany(DebtLedger::class);
     }
 
+    public function getLatestReportAttribute()
+    {
+        return GeneratedReport::where('parameters->client_id', $this->id)
+            ->where('type', 'single_client_debt')
+            ->where('status', 'completed')
+            ->latest()
+            ->first();
+    }
+
     public function scopeWithBalance($query)
     {
         $charges = DebtLedger::whereColumn('debt_ledgers.client_id', 'clients.id')

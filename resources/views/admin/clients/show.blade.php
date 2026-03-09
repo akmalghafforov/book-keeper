@@ -23,6 +23,20 @@
                 </button>
             </form>
 
+            @if($client->latestReport)
+                <div class="h-4 w-px bg-gray-300 dark:bg-[#3E3E3A]"></div>
+                <button
+                    onclick="copyReportToClipboard(this, '{{ $client->latestReport->name }}', '{{ Storage::url($client->latestReport->file_path) }}')"
+                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm"
+                    title="{{ __('Copy Last Report') }}"
+                >
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    <span class="btn-text">{{ __('Copy') }}</span>
+                </button>
+            @endif
+
             <div class="h-4 w-px bg-gray-300 dark:bg-[#3E3E3A]"></div>
             <a href="{{ route('admin.clients.edit', $client) }}" class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 active:bg-yellow-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md shadow-yellow-500/20">
                 {{ __('Edit') }}
@@ -130,4 +144,5 @@
         </div>
     </div>
 </div>
+@include('partials.copy-report-js')
 @endsection
