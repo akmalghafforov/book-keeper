@@ -70,7 +70,16 @@ class GenerateClientDebtReport implements ShouldQueue
                 }
             }, 0);
 
-            $pdf = Pdf::loadView('admin.reports.pdf.single-client-debt', compact('client'))->setPaper('a4', 'landscape');
+            // Two-pass rendering for accurate "auto" height calculation
+            $html = view('admin.reports.pdf.single-client-debt', compact('client'))->render();
+            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, 50]);
+            $pdfTemp->render();
+            $pages = $pdfTemp->getDomPDF()->getCanvas()->get_page_count();
+
+            $calcHeight = $pages * 25;
+            $height = max(595.28, $calcHeight); // At least A4 landscape height
+
+            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, $height]);
             $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
         } else {
             $clients = Client::query()
@@ -91,7 +100,15 @@ class GenerateClientDebtReport implements ShouldQueue
                 ->filter(fn($c) => $c->calculated_total_debt != 0)
                 ->sortBy('name');
 
-            $pdf = Pdf::loadView('admin.reports.pdf.client-debt', compact('clients'))->setPaper('a4', 'landscape');
+            $html = view('admin.reports.pdf.client-debt', compact('clients'))->render();
+            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, 50]);
+            $pdfTemp->render();
+            $pages = $pdfTemp->getDomPDF()->getCanvas()->get_page_count();
+
+            $calcHeight = $pages * 25;
+            $height = max(595.28, $calcHeight);
+
+            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, $height]);
             $fileNamePrefix = 'all-clients-debt-';
         }
 
