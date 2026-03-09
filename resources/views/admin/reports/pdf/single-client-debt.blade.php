@@ -37,7 +37,7 @@
         <tbody>
             @foreach ($client->recentLedgers as $ledger)
                 <tr>
-                    <td>{{ $ledger->distribution->distribution_date?->format('d/m/Y') ?? $ledger->created_at->format('Y-m-d H:i') }}</td>
+                    <td>{{ $ledger?->distribution?->distribution_date?->format('d/m/Y') ?? $ledger->created_at->format('Y-m-d H:i') }}</td>
                     <td>{{ __($ledger->type) }}</td>
                     <td>
                         @if($ledger->distribution)
