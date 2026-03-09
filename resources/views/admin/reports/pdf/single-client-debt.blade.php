@@ -37,7 +37,7 @@
         <tbody>
             @foreach ($client->recentLedgers as $ledger)
                 <tr>
-                    <td>{{ $ledger->created_at->format('Y-m-d H:i') }}</td>
+                    <td>{{ $ledger->distribution->distribution_date?->format('d/m/Y') ?? $ledger->created_at->format('Y-m-d H:i') }}</td>
                     <td>{{ __($ledger->type) }}</td>
                     <td>
                         @if($ledger->distribution)
@@ -52,7 +52,6 @@
                             @if($ledger->type === 'credit_note' && $ledger->distribution->client && $ledger->distribution->client_id !== $client->id)
                                 <br><small>{{ __('Client') }}: {{ $ledger->distribution->client->name }}</small>
                             @endif
-                            <br><small>{{ $ledger->distribution->distribution_date?->format('d/m/Y') }}</small>
                         @else
                             {{ $ledger->notes }}
                         @endif
