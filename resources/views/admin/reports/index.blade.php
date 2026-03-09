@@ -56,9 +56,20 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 @if($report->status === 'completed' && $report->file_path)
-                                    <a href="{{ Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                    <a href="{{ Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300" title="{{ __('Download') }}">
                                         {{ __('Download') }}
                                     </a>
+
+                                    <button
+                                        onclick="copyReportToClipboard(this, '{{ $report->name }}', '{{ Storage::url($report->file_path) }}')"
+                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center"
+                                        title="{{ __('Copy for WhatsApp') }}"
+                                    >
+                                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                                        </svg>
+                                        <span class="btn-text">{{ __('Copy') }}</span>
+                                    </button>
 
                                     <button
                                         onclick="shareOnWhatsApp('{{ $report->name }}', '{{ Storage::url($report->file_path) }}')"
@@ -92,6 +103,81 @@
 </div>
 
 <script>
+    async function copyReportToClipboard(button, reportName, reportUrl) {
+        const originalHtml = button.innerHTML;
+        const btnText = button.querySelector('.btn-text');
+        
+        // Extract client name from report name: "Debt Report: Client Name (Date)"
+        let clientName = reportName;
+        const match = reportName.match(/Debt Report: (.*) \(/);
+        if (match && match[1]) {
+            clientName = match[1];
+        } else if (reportName.includes(':')) {
+            clientName = reportName.split(':')[1].split('(')[0].trim();
+        }
+
+        const whatsappText = `{{ __('Report') }}: *${clientName}*`;
+
+        // Ensure we use the current origin for fetch
+        const fetchUrl = reportUrl.startsWith('http')
+            ? reportUrl.replace(/^https?:\/\/[^\/]+/, window.location.origin)
+            : reportUrl;
+
+        try {
+            button.disabled = true;
+            if (btnText) btnText.innerText = '...';
+
+            console.log('Fetching report from:', fetchUrl);
+            const response = await fetch(fetchUrl);
+            if (!response.ok) {
+                console.error('Fetch failed:', response.status, response.statusText);
+                throw new Error('{{ __('Failed to fetch report image.') }}');
+            }
+            const blob = await response.blob();
+            console.log('Fetched blob:', blob.type, blob.size);
+
+            if (navigator.clipboard && window.ClipboardItem) {
+                try {
+                    // Try to copy both image and text
+                    console.log('Attempting to copy image and text...');
+                    const data = [new ClipboardItem({ 
+                        [blob.type]: blob,
+                        'text/plain': new Blob([whatsappText], { type: 'text/plain' })
+                    })];
+                    await navigator.clipboard.write(data);
+                } catch (combinedError) {
+                    console.warn('Failed to copy combined data, trying image only...', combinedError);
+                    // Fallback: Try image only
+                    const data = [new ClipboardItem({ 
+                        [blob.type]: blob
+                    })];
+                    await navigator.clipboard.write(data);
+                    
+                    // If image only succeeded, notify user text wasn't copied
+                    console.log('Image only copy succeeded');
+                }
+                
+                button.classList.remove('text-blue-600', 'dark:text-blue-400');
+                button.classList.add('text-green-600', 'dark:text-green-400');
+                if (btnText) btnText.innerText = '{{ __('Copied!') }}';
+
+                setTimeout(() => {
+                    button.innerHTML = originalHtml;
+                    button.classList.add('text-blue-600', 'dark:text-blue-400');
+                    button.classList.remove('text-green-600', 'dark:text-green-400');
+                    button.disabled = false;
+                }, 2000);
+            } else {
+                throw new Error('Clipboard API or ClipboardItem not supported/available (must be over HTTPS or localhost)');
+            }
+        } catch (error) {
+            console.error('Final clipboard error:', error);
+            alert('{{ __('Failed to copy to clipboard.') }} ' + error.message);
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        }
+    }
+
     async function shareOnWhatsApp(reportName, reportUrl) {
         // Sanitize filename for the File object
         const sanitizedName = reportName.replace(/[:\\/*?<>|]/g, '_');
@@ -110,7 +196,7 @@
         try {
             const response = await fetch(fetchUrl);
             const blob = await response.blob();
-            const file = new File([blob], `${sanitizedName}.jpg`, { type: 'image/jpeg' });
+            const file = new File([blob], `${sanitizedName}.png`, { type: 'image/png' });
 
             // Check if Web Share API is available and supports file sharing
             // const canShare = navigator.share && navigator.canShare({ files: [file] });

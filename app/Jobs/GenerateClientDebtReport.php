@@ -116,26 +116,30 @@ class GenerateClientDebtReport implements ShouldQueue
         $pdfContent = $pdf->output();
         $fileName = 'reports/' . $fileNamePrefix . now()->timestamp;
 
-        if ($this->report->format === 'jpg') {
-            $path = $fileName . '.jpg';
+        if ($this->report->format === 'jpg' || $this->report->format === 'png') {
+            $format = $this->report->format;
+            $path = $fileName . '.' . $format;
 
             $imagick = new Imagick();
-            $imagick->setResolution(100, 100);
+            $imagick->setResolution(150, 150); // Improved resolution
             $imagick->readImageBlob($pdfContent);
 
             foreach ($imagick as $page) {
-                $page->setImageFormat('jpg');
+                $page->setImageFormat($format);
                 $page->setImageBackgroundColor('white');
                 $page->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
             }
 
             $imagick->resetIterator();
             $combined = $imagick->appendImages(true);
-            $combined->setImageFormat('jpg');
-            $combined->setImageCompressionQuality(100);
+            $combined->setImageFormat($format);
+            
+            if ($format === 'jpg') {
+                $combined->setImageCompressionQuality(100);
+            }
 
-            $jpgContent = $combined->getImageBlob();
-            Storage::disk('public')->put($path, $jpgContent);
+            $imageContent = $combined->getImageBlob();
+            Storage::disk('public')->put($path, $imageContent);
 
             $imagick->clear();
             $combined->clear();

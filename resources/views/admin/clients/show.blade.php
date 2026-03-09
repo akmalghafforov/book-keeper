@@ -14,12 +14,12 @@
             </a>
             <div class="h-4 w-px bg-gray-300 dark:bg-[#3E3E3A]"></div>
             
-            <form action="{{ route('admin.reports.export-client-debt', $client) }}" method="POST" class="inline-block">
+            <form action="{{ route('admin.reports.export-client-debt', $client) }}" method="POST" class="inline-block" target="_blank">
                 @csrf
-                <input type="hidden" name="format" value="jpg">
-                <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm" title="{{ __('Export JPG') }}">
+                <input type="hidden" name="format" value="png">
+                <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm" title="{{ __('Export PNG') }}">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h14a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    JPG
+                    PNG
                 </button>
             </form>
 

@@ -20,7 +20,7 @@ class ReportController extends Controller
     public function export(Request $request)
     {
         $request->validate([
-            'format' => 'required|in:jpg',
+            'format' => 'required|in:png,jpg',
         ]);
 
         $report = GeneratedReport::create([
@@ -40,7 +40,7 @@ class ReportController extends Controller
     public function exportClientDebt(Request $request, Client $client)
     {
         $request->validate([
-            'format' => 'required|in:jpg',
+            'format' => 'required|in:png,jpg',
         ]);
 
         $report = GeneratedReport::create([
