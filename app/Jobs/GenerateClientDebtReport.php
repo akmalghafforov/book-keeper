@@ -59,12 +59,8 @@ class GenerateClientDebtReport implements ShouldQueue
             $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
 
             $allLedgers = $client->debtLedgers;
-            $client->recentLedgers = $allLedgers->filter(function ($ledger) {
-                return $ledger->created_at->isToday();
-            });
-            $remainingLedgers = $allLedgers->reject(function ($ledger) {
-                return $ledger->created_at->isToday();
-            });
+            $client->recentLedgers = $allLedgers->take(20);
+            $remainingLedgers = $allLedgers->skip(20);
 
             $client->previous_balance = $remainingLedgers->reduce(function ($carry, $item) {
                 if ($item->type === 'charge') {
@@ -74,7 +70,7 @@ class GenerateClientDebtReport implements ShouldQueue
                 }
             }, 0);
 
-            $pdf = Pdf::loadView('admin.reports.pdf.single-client-debt', compact('client'));
+            $pdf = Pdf::loadView('admin.reports.pdf.single-client-debt', compact('client'))->setPaper('a4', 'landscape');
             $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
         } else {
             $clients = Client::query()
@@ -95,7 +91,7 @@ class GenerateClientDebtReport implements ShouldQueue
                 ->filter(fn($c) => $c->calculated_total_debt != 0)
                 ->sortBy('name');
 
-            $pdf = Pdf::loadView('admin.reports.pdf.client-debt', compact('clients'));
+            $pdf = Pdf::loadView('admin.reports.pdf.client-debt', compact('clients'))->setPaper('a4', 'landscape');
             $fileNamePrefix = 'all-clients-debt-';
         }
 
