@@ -132,7 +132,7 @@ class GenerateClientDebtReport implements ShouldQueue
             $imagick->resetIterator();
             $combined = $imagick->appendImages(true);
             $combined->setImageFormat($format);
-            
+
             if ($format === 'jpg') {
                 $combined->setImageCompressionQuality(100);
             }

@@ -35,6 +35,15 @@
             </tr>
         </thead>
         <tbody>
+            @if(isset($client->previous_balance) && $client->previous_balance != 0)
+                <tr class="font-bold" style="background-color: #f9f9f9;">
+                    <td colspan="3" class="text-right">{{ __('Previous Balance') }}</td>
+                    <td class="text-right {{ $client->previous_balance > 0 ? 'debt-positive' : 'debt-negative' }}">
+                        {{ (float) $client->previous_balance == (int) $client->previous_balance ? number_format((float) $client->previous_balance, 0) : number_format((float) $client->previous_balance, 2) }}
+                    </td>
+                </tr>
+            @endif
+
             @foreach ($client->recentLedgers as $ledger)
                 <tr>
                     <td>{{ $ledger?->distribution?->distribution_date?->format('d/m/Y') ?? $ledger->created_at->format('d/m/Y') }}</td>
@@ -62,14 +71,6 @@
                 </tr>
             @endforeach
 
-            @if(isset($client->previous_balance) && $client->previous_balance != 0)
-                <tr class="font-bold" style="background-color: #f9f9f9;">
-                    <td colspan="3" class="text-right">{{ __('Previous Balance') }}</td>
-                    <td class="text-right {{ $client->previous_balance > 0 ? 'debt-positive' : 'debt-negative' }}">
-                        {{ (float) $client->previous_balance == (int) $client->previous_balance ? number_format((float) $client->previous_balance, 0) : number_format((float) $client->previous_balance, 2) }}
-                    </td>
-                </tr>
-            @endif
         </tbody>
         <tfoot>
             <tr class="font-bold">
