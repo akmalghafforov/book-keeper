@@ -37,7 +37,9 @@
         <tbody>
             @if(!empty($client->has_older_transactions))
                 <tr class="font-bold" style="background-color: #f9f9f9;">
-                    <td colspan="3" class="text-right">{{ __('Older Transactions Total') }}</td>
+                    <td>-</td>
+                    <td>{{ __('Older Transaction Totals') }}</td>
+                    <td>{{ __('Aggregated total for transactions older than the latest 25') }}</td>
                     <td class="text-right {{ $client->older_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
                         {{ (float) $client->older_transactions_total == (int) $client->older_transactions_total ? number_format((float) $client->older_transactions_total, 0) : number_format((float) $client->older_transactions_total, 2) }}
                     </td>

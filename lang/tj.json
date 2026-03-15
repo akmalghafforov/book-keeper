@@ -122,5 +122,7 @@
     "Generated on": "Санаи сохташуда",
     "Car": "Мошин",
     "Shop": "Мағоза",
-    "Previous Balance": "Баланси қаблӣ"
+    "Previous Balance": "Баланси қаблӣ",
+    "Older Transaction Totals": "Ҷамъи амалиётҳои кӯҳна",
+    "Aggregated total for transactions older than the latest 25": "Ҷамъи умумӣ барои амалиётҳое, ки аз 25 амалиёти охирин кӯҳнаанд"
 }

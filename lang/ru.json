@@ -122,5 +122,7 @@
     "Generated on": "Сгенерировано",
     "Car": "Машина",
     "Shop": "Магазин",
-    "Previous Balance": "Предыдущий баланс"
+    "Previous Balance": "Предыдущий баланс",
+    "Older Transaction Totals": "Итог по старым транзакциям",
+    "Aggregated total for transactions older than the latest 25": "Суммарный итог по транзакциям старше последних 25"
 }
