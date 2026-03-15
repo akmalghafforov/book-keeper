@@ -59,8 +59,8 @@ class GenerateClientDebtReport implements ShouldQueue
             $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
 
             $allLedgers = $client->debtLedgers;
-            $client->recentLedgers = $allLedgers->take(30);
-            $remainingLedgers = $allLedgers->slice(30);
+            $client->recentLedgers = $allLedgers->take(25);
+            $remainingLedgers = $allLedgers->slice(25);
 
             $client->previous_balance = $remainingLedgers->reduce(function ($carry, $item) {
                 if ($item->type === 'charge') {
