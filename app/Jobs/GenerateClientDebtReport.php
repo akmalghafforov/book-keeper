@@ -58,16 +58,20 @@ class GenerateClientDebtReport implements ShouldQueue
 
             $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
 
-            $allLedgers = $client->debtLedgers;
-            $client->recentLedgers = $allLedgers->take(25);
-            $remainingLedgers = $allLedgers->slice(25);
+            $allLedgers = $client->debtLedgers->values();
+            $recentLimit = 25;
+            $olderCount = max($allLedgers->count() - $recentLimit, 0);
 
-            $client->previous_balance = $remainingLedgers->reduce(function ($carry, $item) {
+            $client->recentLedgers = $allLedgers->slice($olderCount)->values();
+            $olderLedgers = $allLedgers->take($olderCount);
+
+            $client->has_older_transactions = $olderCount > 0;
+            $client->older_transactions_total = $olderLedgers->reduce(function ($carry, $item) {
                 if ($item->type === 'charge') {
                     return $carry + (float) $item->amount;
-                } else {
-                    return $carry - (float) $item->amount;
                 }
+
+                return $carry - (float) $item->amount;
             }, 0);
 
             // Two-pass rendering for accurate "auto" height calculation
