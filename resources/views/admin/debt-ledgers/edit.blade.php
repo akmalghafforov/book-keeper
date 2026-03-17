@@ -3,6 +3,11 @@
 @section('title', __('Edit Debt Ledger Entry'))
 @section('header_title', __('Edit Debt Ledger Entry'))
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+@endpush
+
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6" x-data="{ clientId: '{{ old('client_id') ?? $debtLedger->client_id }}' }">
     <div class="flex items-center justify-between">
@@ -68,10 +73,24 @@
                     @enderror
                 </div>
 
-                <div>
+                <div x-data="{
+                    init() {
+                        flatpickr($refs.datepicker, {
+                            dateFormat: 'd/m/Y',
+                            defaultDate: '{{ old('transaction_date', optional($debtLedger->transaction_date)?->format('d/m/Y')) }}',
+                            allowInput: true,
+                        });
+                    }
+                }">
                     <label for="transaction_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Transaction Date') }}</label>
-                    <input type="date" name="transaction_date" id="transaction_date" value="{{ old('transaction_date', optional($debtLedger->transaction_date)->toDateString()) }}" required
-                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <input type="text" name="transaction_date" id="transaction_date" x-ref="datepicker" required
+                            class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                            placeholder="dd/mm/yyyy">
+                    </div>
                     @error('transaction_date')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
@@ -108,3 +127,7 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@endpush

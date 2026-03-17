@@ -33,7 +33,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 250.50,
-            'transaction_date' => '2026-03-10',
+            'transaction_date' => '10/03/2026',
             'notes' => 'Cash payment received',
         ]);
 
@@ -54,7 +54,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'charge',
             'amount' => 100.00,
-            'transaction_date' => '2026-03-11',
+            'transaction_date' => '11/03/2026',
             'notes' => 'Manual charge',
         ]);
 
@@ -72,7 +72,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'credit_note',
             'amount' => 75.00,
-            'transaction_date' => '2026-03-12',
+            'transaction_date' => '12/03/2026',
         ]);
 
         $this->assertDatabaseHas('debt_ledgers', [
@@ -96,7 +96,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 0,
-            'transaction_date' => '2026-03-10',
+            'transaction_date' => '10/03/2026',
         ]);
 
         $response->assertSessionHasErrors(['amount']);
@@ -117,7 +117,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 200.00,
-            'transaction_date' => '2026-03-15',
+            'transaction_date' => '15/03/2026',
             'notes' => 'Updated amount',
         ]);
 

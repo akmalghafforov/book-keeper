@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DebtLedger;
 use App\Models\Client;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DebtLedgerController extends Controller
@@ -67,10 +68,12 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'amount' => 'required|numeric|min:0.01',
-            'transaction_date' => 'required|date',
+            'transaction_date' => 'required|date_format:d/m/Y',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);
+
+        $validated['transaction_date'] = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d');
 
         DebtLedger::create($validated);
 
@@ -105,10 +108,12 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'amount' => 'required|numeric|min:0.01',
-            'transaction_date' => 'required|date',
+            'transaction_date' => 'required|date_format:d/m/Y',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);
+
+        $validated['transaction_date'] = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d');
 
         $debtLedger->update($validated);
 
