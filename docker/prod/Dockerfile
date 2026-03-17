@@ -8,7 +8,8 @@ RUN composer install \
     --no-interaction \
     --no-progress \
     --prefer-dist \
-    --optimize-autoloader
+    --optimize-autoloader \
+    --no-scripts
 
 FROM node:22-alpine AS frontend
 
@@ -43,6 +44,7 @@ COPY --from=frontend /app/public/build ./public/build
 COPY docker/prod/entrypoint.sh /usr/local/bin/book-keeper-entrypoint
 
 RUN chmod +x /usr/local/bin/book-keeper-entrypoint \
+    && php artisan package:discover --ansi \
     && chown -R www-data:www-data /var/www/html/bootstrap/cache /var/www/html/storage
 
 ENTRYPOINT ["book-keeper-entrypoint"]
