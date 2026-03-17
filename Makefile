@@ -1,7 +1,11 @@
 # Makefile for Laravel project
 
 SAIL := ./vendor/bin/sail
-PHP_FPM := $(shell systemctl list-units --type=service --state=running | grep -oE 'php[0-9.]+-fpm' | head -n 1)
+DOCKER_COMPOSE := docker compose
+DEV_COMPOSE_FILE := compose.dev.yaml
+PROD_COMPOSE_FILE := compose.prod.yaml
+DEV_SERVICE := laravel.test
+PHP_FPM := $(shell sh -lc "command -v systemctl >/dev/null 2>&1 && systemctl list-units --type=service --state=running 2>/dev/null | grep -oE 'php[0-9.]+-fpm' | head -n 1 || true")
 
 .DEFAULT_GOAL := help
 
@@ -9,11 +13,21 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  up            Start the Docker containers (Sail)"
-	@echo "  down          Stop the Docker containers (Sail)"
-	@echo "  restart       Restart the Docker containers (Sail)"
+	@echo "  up            Start the development Docker containers"
+	@echo "  down          Stop the development Docker containers"
+	@echo "  restart       Restart the development Docker containers"
+	@echo "  up-dev        Start the development Docker containers"
+	@echo "  down-dev      Stop the development Docker containers"
+	@echo "  restart-dev   Restart the development Docker containers"
+	@echo "  build-dev     Build the development Docker containers"
+	@echo "  up-prod       Start the production Docker containers"
+	@echo "  down-prod     Stop the production Docker containers"
+	@echo "  restart-prod  Restart the production Docker containers"
+	@echo "  build-prod    Build the production Docker containers"
+	@echo "  logs-dev      Tail development container logs"
+	@echo "  logs-prod     Tail production container logs"
 	@echo "  restart-local Restart local Nginx and PHP-FPM daemons"
-	@echo "  build         Build the Docker containers"
+	@echo "  build         Build the development Docker containers"
 	@echo "  setup         Initial project setup (composer, env, key, migrate, npm)"
 	@echo "  test          Run PHPUnit tests"
 	@echo "  lint          Run Laravel Pint for code formatting"
@@ -27,13 +41,43 @@ help:
 	@echo "  npm c=        Run an npm command"
 
 up:
-	$(SAIL) up -d
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) up -d
 
 down:
-	$(SAIL) down
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) down
 
 restart:
-	$(SAIL) restart
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) restart
+
+up-dev:
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) up -d
+
+down-dev:
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) down
+
+restart-dev:
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) restart
+
+build-dev:
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) build --no-cache
+
+up-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) up -d --build
+
+down-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) down
+
+restart-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) restart
+
+build-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build --no-cache
+
+logs-dev:
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) logs -f
+
+logs-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) logs -f
 
 restart-local:
 	@echo "Restarting local services..."
@@ -46,13 +90,13 @@ restart-local:
 	fi
 
 build:
-	$(SAIL) build --no-cache
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) build --no-cache
 
 setup:
 	composer install
 	php -r "file_exists('.env') || copy('.env.example', '.env');"
 	php artisan key:generate
-	$(SAIL) up -d
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) up -d
 	$(SAIL) artisan migrate:fresh --seed
 	$(SAIL) npm install
 	$(SAIL) npm run build
@@ -76,7 +120,7 @@ vite:
 	$(SAIL) npm run dev
 
 shell:
-	$(SAIL) shell
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) exec $(DEV_SERVICE) bash || $(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) exec $(DEV_SERVICE) sh
 
 artisan:
 	$(SAIL) artisan $(c)
@@ -87,4 +131,4 @@ composer:
 npm:
 	$(SAIL) npm $(c)
 
-.PHONY: help up down restart restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm
+.PHONY: help up down restart up-dev down-dev restart-dev build-dev up-prod down-prod restart-prod build-prod logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm
