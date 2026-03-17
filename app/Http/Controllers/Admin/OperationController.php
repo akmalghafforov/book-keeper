@@ -11,7 +11,9 @@ class OperationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = DebtLedger::with(['client', 'distribution.product', 'distribution.supplier'])->latest();
+        $query = DebtLedger::with(['client', 'distribution.product', 'distribution.supplier'])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id');
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
@@ -22,11 +24,11 @@ class OperationController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $query->whereDate('transaction_date', '>=', $request->date_from);
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $query->whereDate('transaction_date', '<=', $request->date_to);
         }
 
         if ($request->filled('car_number')) {

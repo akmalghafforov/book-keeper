@@ -15,12 +15,14 @@ class DebtLedger extends Model
         'client_id',
         'type',
         'amount',
+        'transaction_date',
         'reference_id',
         'notes',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'transaction_date' => 'date',
     ];
 
     public function client(): BelongsTo

@@ -33,6 +33,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 250.50,
+            'transaction_date' => '2026-03-10',
             'notes' => 'Cash payment received',
         ]);
 
@@ -42,6 +43,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 250.50,
+            'transaction_date' => '2026-03-10 00:00:00',
             'notes' => 'Cash payment received',
         ]);
     }
@@ -52,6 +54,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'charge',
             'amount' => 100.00,
+            'transaction_date' => '2026-03-11',
             'notes' => 'Manual charge',
         ]);
 
@@ -59,6 +62,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'charge',
             'amount' => 100.00,
+            'transaction_date' => '2026-03-11 00:00:00',
         ]);
     }
 
@@ -68,12 +72,14 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'credit_note',
             'amount' => 75.00,
+            'transaction_date' => '2026-03-12',
         ]);
 
         $this->assertDatabaseHas('debt_ledgers', [
             'client_id' => $this->client->id,
             'type' => 'credit_note',
             'amount' => 75.00,
+            'transaction_date' => '2026-03-12 00:00:00',
         ]);
     }
 
@@ -81,7 +87,7 @@ class DebtLedgerControllerTest extends TestCase
     {
         $response = $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), []);
 
-        $response->assertSessionHasErrors(['client_id', 'type', 'amount']);
+        $response->assertSessionHasErrors(['client_id', 'type', 'amount', 'transaction_date']);
     }
 
     public function test_store_validates_minimum_amount(): void
@@ -90,6 +96,7 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 0,
+            'transaction_date' => '2026-03-10',
         ]);
 
         $response->assertSessionHasErrors(['amount']);
@@ -110,12 +117,14 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 200.00,
+            'transaction_date' => '2026-03-15',
             'notes' => 'Updated amount',
         ]);
 
         $this->assertDatabaseHas('debt_ledgers', [
             'id' => $ledger->id,
             'amount' => 200.00,
+            'transaction_date' => '2026-03-15 00:00:00',
             'notes' => 'Updated amount',
         ]);
     }

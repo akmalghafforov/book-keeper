@@ -43,6 +43,10 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->reference_id ?? __('N/A') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Transaction Date') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ optional($debtLedger->transaction_date)->format('F d, Y') ?? $debtLedger->created_at->format('F d, Y') }}</dd>
+                </div>
+                <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $debtLedger->created_at->format('F d, Y H:i') }}</dd>
                 </div>

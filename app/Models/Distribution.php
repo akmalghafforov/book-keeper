@@ -62,6 +62,7 @@ class Distribution extends Model
             'client_id' => $this->client_id,
             'type' => 'charge',
             'amount' => $this->subtotal,
+            'transaction_date' => $this->distribution_date,
             'reference_id' => $this->id,
             'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
         ]);
@@ -71,6 +72,7 @@ class Distribution extends Model
                 'client_id' => $this->credit_client_id,
                 'type' => 'credit_note',
                 'amount' => $this->subtotal,
+                'transaction_date' => $this->distribution_date,
                 'reference_id' => $this->id,
                 'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
             ]);
@@ -87,6 +89,7 @@ class Distribution extends Model
             $ledger->update([
                 'client_id' => $this->client_id,
                 'amount' => $this->subtotal,
+                'transaction_date' => $this->distribution_date,
                 'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
             ]);
         } else {
@@ -94,6 +97,7 @@ class Distribution extends Model
                 'client_id' => $this->client_id,
                 'type' => 'charge',
                 'amount' => $this->subtotal,
+                'transaction_date' => $this->distribution_date,
                 'reference_id' => $this->id,
                 'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
             ]);
@@ -108,6 +112,7 @@ class Distribution extends Model
                 $creditLedger->update([
                     'client_id' => $this->credit_client_id,
                     'amount' => $this->subtotal,
+                    'transaction_date' => $this->distribution_date,
                     'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
                 ]);
             } else {
@@ -115,6 +120,7 @@ class Distribution extends Model
                     'client_id' => $this->credit_client_id,
                     'type' => 'credit_note',
                     'amount' => $this->subtotal,
+                    'transaction_date' => $this->distribution_date,
                     'reference_id' => $this->id,
                     'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
                 ]);

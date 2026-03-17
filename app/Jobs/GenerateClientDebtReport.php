@@ -43,7 +43,9 @@ class GenerateClientDebtReport implements ShouldQueue
         if ($clientId) {
             $client = Client::query()
                 ->with(['debtLedgers' => function ($query) {
-                    $query->with(['distribution.product', 'distribution.supplier', 'distribution.shop', 'distribution.client'])->orderBy('created_at', 'asc');
+                    $query->with(['distribution.product', 'distribution.supplier', 'distribution.shop', 'distribution.client'])
+                        ->orderBy('transaction_date', 'asc')
+                        ->orderBy('id', 'asc');
                 }])
                 ->withSum(['debtLedgers as total_charges' => function ($query) {
                     $query->where('type', 'charge');

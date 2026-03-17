@@ -19,6 +19,7 @@ class DebtLedgerFactory extends Factory
             'client_id' => Client::factory(),
             'type' => fake()->randomElement(['charge', 'payment', 'credit_note']),
             'amount' => fake()->randomFloat(2, 10, 5000),
+            'transaction_date' => fake()->dateTimeBetween('-1 year', 'now')->format('Y-m-d'),
             'reference_id' => null,
             'notes' => fake()->sentence(),
         ];

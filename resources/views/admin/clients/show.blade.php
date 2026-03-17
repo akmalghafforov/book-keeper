@@ -118,9 +118,9 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-[#3E3E3A]">
-                            @foreach($client->debtLedgers->sortByDesc('created_at')->take(10) as $ledger)
+                            @foreach($client->debtLedgers->sortByDesc('transaction_date')->take(10) as $ledger)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-[#1C1C1B] transition-colors duration-150">
-                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $ledger->created_at->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{{ $ledger->transaction_date?->format('M d, Y') ?? $ledger->created_at->format('M d, Y') }}</td>
                                     <td class="px-6 py-4 text-sm">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                             {{ $ledger->type === 'charge' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">

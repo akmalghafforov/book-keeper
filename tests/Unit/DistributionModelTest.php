@@ -31,6 +31,7 @@ class DistributionModelTest extends TestCase
             'client_id' => $distribution->client_id,
             'type' => 'charge',
             'amount' => 500.00,
+            'transaction_date' => $distribution->distribution_date->toDateString() . ' 00:00:00',
             'reference_id' => $distribution->id,
         ]);
     }
@@ -55,6 +56,7 @@ class DistributionModelTest extends TestCase
             'client_id' => $creditClient->id,
             'type' => 'credit_note',
             'amount' => 750.00,
+            'transaction_date' => $distribution->distribution_date->toDateString() . ' 00:00:00',
             'reference_id' => $distribution->id,
         ]);
     }
@@ -77,12 +79,16 @@ class DistributionModelTest extends TestCase
     {
         $distribution = $this->createDistribution(['subtotal' => 500.00]);
 
-        $distribution->update(['subtotal' => 800.00]);
+        $distribution->update([
+            'subtotal' => 800.00,
+            'distribution_date' => '2026-03-17',
+        ]);
 
         $this->assertDatabaseHas('debt_ledgers', [
             'reference_id' => $distribution->id,
             'type' => 'charge',
             'amount' => 800.00,
+            'transaction_date' => '2026-03-17 00:00:00',
         ]);
     }
 
@@ -120,6 +126,7 @@ class DistributionModelTest extends TestCase
             'type' => 'credit_note',
             'client_id' => $creditClient->id,
             'amount' => 400.00,
+            'transaction_date' => $distribution->fresh()->distribution_date->toDateString() . ' 00:00:00',
         ]);
     }
 
@@ -159,6 +166,7 @@ class DistributionModelTest extends TestCase
             'reference_id' => $distribution->id,
             'type' => 'charge',
             'amount' => 500.00,
+            'transaction_date' => $distribution->distribution_date->toDateString() . ' 00:00:00',
         ]);
     }
 

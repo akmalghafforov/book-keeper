@@ -56,6 +56,7 @@ class DistributionControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'charge',
             'amount' => 500.0,
+            'transaction_date' => '2026-01-15 00:00:00',
             'reference_id' => $distribution->id,
         ]);
     }
@@ -82,6 +83,7 @@ class DistributionControllerTest extends TestCase
             'client_id' => $creditClient->id,
             'type' => 'credit_note',
             'amount' => 500.0,
+            'transaction_date' => '2026-02-20 00:00:00',
             'reference_id' => $distribution->id,
         ]);
     }
@@ -117,6 +119,7 @@ class DistributionControllerTest extends TestCase
             'reference_id' => $distribution->id,
             'type' => 'charge',
             'amount' => 1000.0,
+            'transaction_date' => '2026-01-15 00:00:00',
         ]);
     }
 

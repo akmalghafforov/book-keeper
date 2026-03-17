@@ -14,7 +14,9 @@ class DebtLedgerController extends Controller
      */
     public function index(Request $request)
     {
-        $query = DebtLedger::with('client')->latest();
+        $query = DebtLedger::with('client')
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id');
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
@@ -33,11 +35,11 @@ class DebtLedgerController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $query->whereDate('transaction_date', '>=', $request->date_from);
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $query->whereDate('transaction_date', '<=', $request->date_to);
         }
 
         $debtLedgers = $query->paginate(15)->withQueryString();
@@ -65,6 +67,7 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'amount' => 'required|numeric|min:0.01',
+            'transaction_date' => 'required|date',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);
@@ -102,6 +105,7 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'amount' => 'required|numeric|min:0.01',
+            'transaction_date' => 'required|date',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);

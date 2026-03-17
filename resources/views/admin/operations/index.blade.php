@@ -95,7 +95,7 @@
                     @forelse ($operations as $operation)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $operation->created_at->format('Y-m-d H:i') }}
+                                {{ optional($operation->transaction_date)->format('Y-m-d') ?? $operation->created_at->format('Y-m-d') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                 {{ $operation->client->name }}
