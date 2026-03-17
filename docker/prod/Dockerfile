@@ -30,9 +30,10 @@ WORKDIR /var/www/html
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
+        libsqlite3-dev \
         libzip-dev \
         unzip \
-    && docker-php-ext-install pdo pdo_sqlite zip \
+    && docker-php-ext-install pdo_sqlite zip \
     && a2enmod rewrite \
     && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && sed -ri -e 's!/var/www/!/var/www/html/public/!g' /etc/apache2/apache2.conf \
