@@ -37,6 +37,8 @@ DEV_VITE_PORT=5173
 PROD_DOMAIN=taqsimot.test
 PROD_HTTP_PORT=80
 PROD_HTTPS_PORT=443
+PROD_SSL_CERT_FILE=
+PROD_SSL_KEY_FILE=
 ```
 
 The two stacks use different Compose project names, networks, containers, and runtime storage. The production container also keeps its SQLite database in its own Docker volume-backed storage directory, so it does not clash with the development environment.
@@ -47,7 +49,17 @@ For local domain resolution, add this line to your hosts file:
 127.0.0.1 taqsimot.test
 ```
 
-The production proxy generates a self-signed certificate for `taqsimot.test` automatically on first start. Your browser will show a warning until you trust that certificate locally.
+For trusted local HTTPS, install `mkcert`, trust its local CA once, and generate a certificate for your domain:
+
+```bash
+mkcert -install
+make cert-prod
+make up-prod
+```
+
+By default, the proxy will use `docker/certs/taqsimot.test.pem` and `docker/certs/taqsimot.test-key.pem` if they exist. You can also point `PROD_SSL_CERT_FILE` and `PROD_SSL_KEY_FILE` at alternate certificate files inside the mounted cert directory.
+
+If no trusted certificate is available, the production proxy falls back to a self-signed certificate automatically, and the browser will continue to show a warning.
 
 Useful commands:
 
@@ -55,3 +67,4 @@ Useful commands:
 - `make down-prod`
 - `make logs-dev`
 - `make logs-prod`
+- `make cert-prod`

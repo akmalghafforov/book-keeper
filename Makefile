@@ -24,6 +24,7 @@ help:
 	@echo "  down-prod     Stop the production Docker containers"
 	@echo "  restart-prod  Restart the production Docker containers"
 	@echo "  build-prod    Build the production Docker containers"
+	@echo "  cert-prod     Generate a trusted local cert with mkcert for the production domain"
 	@echo "  logs-dev      Tail development container logs"
 	@echo "  logs-prod     Tail production container logs"
 	@echo "  restart-local Restart local Nginx and PHP-FPM daemons"
@@ -72,6 +73,10 @@ restart-prod:
 
 build-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build --no-cache
+
+cert-prod:
+	mkdir -p docker/certs
+	mkcert -cert-file docker/certs/$(or $(PROD_DOMAIN),taqsimot.test).pem -key-file docker/certs/$(or $(PROD_DOMAIN),taqsimot.test)-key.pem $(or $(PROD_DOMAIN),taqsimot.test)
 
 logs-dev:
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) logs -f
@@ -131,4 +136,4 @@ composer:
 npm:
 	$(SAIL) npm $(c)
 
-.PHONY: help up down restart up-dev down-dev restart-dev build-dev up-prod down-prod restart-prod build-prod logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm
+.PHONY: help up down restart up-dev down-dev restart-dev build-dev up-prod down-prod restart-prod build-prod cert-prod logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm

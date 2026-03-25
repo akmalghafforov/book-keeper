@@ -12,11 +12,33 @@ services:
             APP_DEBUG: 'false'
             APP_URL: 'https://${PROD_DOMAIN:-taqsimot.test}'
             DB_CONNECTION: sqlite
-            DB_DATABASE: /var/www/html/storage/app-db/database.sqlite
+            DB_DATABASE: /var/www/html/database/database.sqlite
         env_file:
             - .env
         volumes:
             - prod-storage:/var/www/html/storage
+            - ./database/database.sqlite:/var/www/html/database/database.sqlite
+        networks:
+            - prod
+
+    queue:
+        build:
+            context: .
+            dockerfile: docker/prod/Dockerfile
+        command: php artisan queue:work --verbose --tries=3 --timeout=600
+        depends_on:
+            - app
+        environment:
+            APP_ENV: production
+            APP_DEBUG: 'false'
+            APP_URL: 'https://${PROD_DOMAIN:-taqsimot.test}'
+            DB_CONNECTION: sqlite
+            DB_DATABASE: /var/www/html/database/database.sqlite
+        env_file:
+            - .env
+        volumes:
+            - prod-storage:/var/www/html/storage
+            - ./database/database.sqlite:/var/www/html/database/database.sqlite
         networks:
             - prod
 
@@ -31,8 +53,11 @@ services:
             - '${PROD_HTTPS_PORT:-443}:443'
         environment:
             PROD_DOMAIN: '${PROD_DOMAIN:-taqsimot.test}'
+            PROD_SSL_CERT_FILE: '${PROD_SSL_CERT_FILE:-}'
+            PROD_SSL_KEY_FILE: '${PROD_SSL_KEY_FILE:-}'
         volumes:
             - prod-certs:/etc/nginx/certs
+            - ./docker/certs:/usr/local/share/book-keeper-certs:ro
         networks:
             - prod
 
