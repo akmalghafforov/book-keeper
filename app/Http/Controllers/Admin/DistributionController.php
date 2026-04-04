@@ -7,17 +7,17 @@ use App\Models\Distribution;
 use App\Models\Client;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Services\PotentialDuplicateDetector;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DistributionController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request, PotentialDuplicateDetector $potentialDuplicateDetector)
     {
-        $query = Distribution::with(['client', 'shop', 'product', 'supplier']);
+        $query = Distribution::with(['client', 'shop', 'product', 'supplier', 'creditClient']);
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
@@ -45,6 +45,10 @@ class DistributionController extends Controller
             $query->where('distribution_date', '<=', $endDate);
         }
 
+        $potentialDuplicateGroups = $potentialDuplicateDetector->detectDistributions(
+            (clone $query)->get()
+        );
+
         $distributions = $query->latest('distribution_date')
             ->latest('id')
             ->paginate(10)
@@ -54,7 +58,7 @@ class DistributionController extends Controller
         $products = Product::orderBy('name')->get();
         $suppliers = Supplier::orderBy('name')->get();
 
-        return view('admin.distributions.index', compact('distributions', 'clients', 'products', 'suppliers'));
+        return view('admin.distributions.index', compact('distributions', 'clients', 'products', 'suppliers', 'potentialDuplicateGroups'));
     }
 
     /**

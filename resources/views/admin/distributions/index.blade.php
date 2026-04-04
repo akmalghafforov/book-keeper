@@ -23,6 +23,8 @@
         </div>
     @endif
 
+    @include('admin.distributions.partials.potential-duplicates')
+
     <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-6 mb-6">
         <form action="{{ route('admin.distributions.index') }}" method="GET" x-data="{
             init() {

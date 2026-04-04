@@ -102,6 +102,34 @@ class DebtLedgerControllerTest extends TestCase
         $response->assertSessionHasErrors(['amount']);
     }
 
+    public function test_index_exposes_potential_duplicate_groups(): void
+    {
+        DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'amount' => 250.50,
+            'transaction_date' => '2026-03-10',
+            'notes' => 'Cash payment received',
+        ]);
+
+        DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'amount' => 250.50,
+            'transaction_date' => '2026-03-10',
+            'notes' => 'Cash payment received',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('admin.debt-ledgers.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('Potential Duplicate Entries')
+            ->assertViewHas('potentialDuplicateGroups', function ($groups) {
+                return $groups->count() === 1
+                    && $groups->first()['count'] === 2
+                    && $groups->first()['confidence'] === 'high';
+            });
+    }
+
     // ---------------------------------------------------------------
     // Update
     // ---------------------------------------------------------------

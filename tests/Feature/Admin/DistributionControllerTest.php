@@ -95,6 +95,42 @@ class DistributionControllerTest extends TestCase
         $response->assertSessionHasErrors(['client_id', 'product_id', 'quantity_unit', 'quantity', 'price', 'distribution_date']);
     }
 
+    public function test_index_exposes_potential_duplicate_groups(): void
+    {
+        Distribution::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'subtotal' => 500,
+            'distribution_date' => '2026-01-15',
+        ]);
+
+        Distribution::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'subtotal' => 500,
+            'distribution_date' => '2026-01-15',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('admin.distributions.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('Potential Duplicate Distributions')
+            ->assertViewHas('potentialDuplicateGroups', function ($groups) {
+                return $groups->count() === 1
+                    && $groups->first()['count'] === 2
+                    && $groups->first()['confidence'] === 'high';
+            });
+    }
+
     public function test_update_syncs_ledger_amount(): void
     {
         $distribution = Distribution::factory()->create([

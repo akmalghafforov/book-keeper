@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DebtLedger;
 use App\Models\Client;
+use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,7 @@ class DebtLedgerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request, PotentialDuplicateDetector $potentialDuplicateDetector)
     {
         $query = DebtLedger::with('client')
             ->orderByDesc('transaction_date')
@@ -43,10 +44,14 @@ class DebtLedgerController extends Controller
             $query->whereDate('transaction_date', '<=', $request->date_to);
         }
 
+        $potentialDuplicateGroups = $potentialDuplicateDetector->detectDebtLedgers(
+            (clone $query)->get()
+        );
+
         $debtLedgers = $query->paginate(15)->withQueryString();
         $clients = Client::orderBy('name')->get();
 
-        return view('admin.debt-ledgers.index', compact('debtLedgers', 'clients'));
+        return view('admin.debt-ledgers.index', compact('debtLedgers', 'clients', 'potentialDuplicateGroups'));
     }
 
     /**
