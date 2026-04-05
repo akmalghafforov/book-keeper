@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Client;
 use App\Models\DebtLedger;
 use App\Models\User;
+use App\Services\PotentialDuplicateDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -128,6 +129,43 @@ class DebtLedgerControllerTest extends TestCase
                     && $groups->first()['count'] === 2
                     && $groups->first()['confidence'] === 'high';
             });
+    }
+
+    public function test_resolve_potential_duplicate_hides_false_positive_group(): void
+    {
+        $firstLedger = DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'amount' => 250.50,
+            'transaction_date' => '2026-03-10',
+            'notes' => 'Cash payment received',
+        ]);
+
+        $secondLedger = DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'amount' => 250.50,
+            'transaction_date' => '2026-03-10',
+            'notes' => 'Cash payment received',
+        ]);
+
+        $resolutionResponse = $this->actingAs($this->user)
+            ->from(route('admin.debt-ledgers.index'))
+            ->post(route('admin.debt-ledgers.potential-duplicates.resolve'), [
+                'record_ids' => [$firstLedger->id, $secondLedger->id],
+            ]);
+
+        $resolutionResponse
+            ->assertRedirect(route('admin.debt-ledgers.index'))
+            ->assertSessionHas('success', 'Potential duplicate group marked as resolved.');
+
+        $this->assertDatabaseHas('potential_duplicate_resolutions', [
+            'context' => PotentialDuplicateDetector::CONTEXT_DEBT_LEDGER,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.debt-ledgers.index'))
+            ->assertOk()
+            ->assertDontSee('Potential Duplicate Entries')
+            ->assertViewHas('potentialDuplicateGroups', fn ($groups) => $groups->isEmpty());
     }
 
     // ---------------------------------------------------------------

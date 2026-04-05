@@ -8,6 +8,7 @@ use App\Models\Distribution;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\PotentialDuplicateDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -129,6 +130,51 @@ class DistributionControllerTest extends TestCase
                     && $groups->first()['count'] === 2
                     && $groups->first()['confidence'] === 'high';
             });
+    }
+
+    public function test_resolve_potential_duplicate_hides_false_positive_group(): void
+    {
+        $firstDistribution = Distribution::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'subtotal' => 500,
+            'distribution_date' => '2026-01-15',
+        ]);
+
+        $secondDistribution = Distribution::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'subtotal' => 500,
+            'distribution_date' => '2026-01-15',
+        ]);
+
+        $resolutionResponse = $this->actingAs($this->user)
+            ->from(route('admin.distributions.index'))
+            ->post(route('admin.distributions.potential-duplicates.resolve'), [
+                'record_ids' => [$firstDistribution->id, $secondDistribution->id],
+            ]);
+
+        $resolutionResponse
+            ->assertRedirect(route('admin.distributions.index'))
+            ->assertSessionHas('success', 'Potential duplicate group marked as resolved.');
+
+        $this->assertDatabaseHas('potential_duplicate_resolutions', [
+            'context' => PotentialDuplicateDetector::CONTEXT_DISTRIBUTION,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.index'))
+            ->assertOk()
+            ->assertDontSee('Potential Duplicate Distributions')
+            ->assertViewHas('potentialDuplicateGroups', fn ($groups) => $groups->isEmpty());
     }
 
     public function test_update_syncs_ledger_amount(): void

@@ -27,7 +27,11 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('shops', \App\Http\Controllers\Admin\ShopController::class)->only(['store']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
+        Route::post('distributions/potential-duplicates/resolve', [\App\Http\Controllers\Admin\DistributionController::class, 'resolvePotentialDuplicate'])
+            ->name('distributions.potential-duplicates.resolve');
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);
+        Route::post('debt-ledgers/potential-duplicates/resolve', [\App\Http\Controllers\Admin\DebtLedgerController::class, 'resolvePotentialDuplicate'])
+            ->name('debt-ledgers.potential-duplicates.resolve');
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
         Route::get('operations', [\App\Http\Controllers\Admin\OperationController::class, 'index'])->name('operations.index');
 

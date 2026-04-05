@@ -29,8 +29,17 @@
                                 @endforeach
                             </div>
                         </div>
-                        <div class="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                            {{ $group['count'] }} {{ __('entries') }}
+                        <div class="flex flex-col items-start gap-3 text-sm font-semibold text-amber-900 dark:text-amber-100 lg:items-end">
+                            <div>{{ $group['count'] }} {{ __('entries') }}</div>
+                            <form action="{{ route('admin.distributions.potential-duplicates.resolve') }}" method="POST">
+                                @csrf
+                                @foreach($group['record_ids'] as $recordId)
+                                    <input type="hidden" name="record_ids[]" value="{{ $recordId }}">
+                                @endforeach
+                                <button type="submit" class="inline-flex items-center rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-100 dark:bg-amber-950 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-100 hover:bg-amber-200 dark:hover:bg-amber-900">
+                                    {{ __('Mark as Not Duplicate') }}
+                                </button>
+                            </form>
                         </div>
                     </div>
 

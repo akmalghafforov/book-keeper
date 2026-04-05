@@ -54,6 +54,27 @@ class DebtLedgerController extends Controller
         return view('admin.debt-ledgers.index', compact('debtLedgers', 'clients', 'potentialDuplicateGroups'));
     }
 
+    public function resolvePotentialDuplicate(Request $request, PotentialDuplicateDetector $potentialDuplicateDetector)
+    {
+        $validated = $request->validate([
+            'record_ids' => ['required', 'array', 'min:2'],
+            'record_ids.*' => ['integer', 'distinct', 'exists:debt_ledgers,id'],
+        ]);
+
+        $records = DebtLedger::with('client')
+            ->whereKey($validated['record_ids'])
+            ->get();
+
+        $resolved = $potentialDuplicateDetector->resolveDebtLedgers($records, $request->user()?->id);
+
+        return back()->with(
+            'success',
+            $resolved
+                ? 'Potential duplicate group marked as resolved.'
+                : 'The selected records no longer match a potential duplicate group.',
+        );
+    }
+
     /**
      * Show the form for creating a new resource.
      */

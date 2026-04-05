@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Distribution;
 use App\Models\Client;
+use App\Models\Distribution;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Services\PotentialDuplicateDetector;
@@ -59,6 +59,27 @@ class DistributionController extends Controller
         $suppliers = Supplier::orderBy('name')->get();
 
         return view('admin.distributions.index', compact('distributions', 'clients', 'products', 'suppliers', 'potentialDuplicateGroups'));
+    }
+
+    public function resolvePotentialDuplicate(Request $request, PotentialDuplicateDetector $potentialDuplicateDetector)
+    {
+        $validated = $request->validate([
+            'record_ids' => ['required', 'array', 'min:2'],
+            'record_ids.*' => ['integer', 'distinct', 'exists:distributions,id'],
+        ]);
+
+        $records = Distribution::with(['client', 'product'])
+            ->whereKey($validated['record_ids'])
+            ->get();
+
+        $resolved = $potentialDuplicateDetector->resolveDistributions($records, $request->user()?->id);
+
+        return back()->with(
+            'success',
+            $resolved
+                ? 'Potential duplicate group marked as resolved.'
+                : 'The selected records no longer match a potential duplicate group.',
+        );
     }
 
     /**
