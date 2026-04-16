@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'log_channel' => env('WHATSAPP_LOG_CHANNEL', env('LOG_CHANNEL', 'stack')),
+    ],
+
 ];

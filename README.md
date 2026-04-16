@@ -74,3 +74,23 @@ Useful commands:
 - `make cert-prod`
 
 `make build-dev` only ensures the generic Sail runtime image is available. If `sail-8.5/app` already exists locally, it will not force a rebuild. Use `make rebuild-dev` when you intentionally want to rebuild that runtime from `vendor/laravel/sail/runtimes/8.5/Dockerfile`, which requires Docker Hub access to `ubuntu:24.04`.
+
+## WhatsApp Webhook
+
+The app exposes an official Meta webhook endpoint at `GET|POST /webhooks/whatsapp`.
+
+Add these values to `.env`:
+
+```dotenv
+WHATSAPP_APP_SECRET=your_meta_app_secret
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=choose_a_random_verify_token
+WHATSAPP_LOG_CHANNEL=stack
+```
+
+Setup in Meta:
+
+1. Set the callback URL to `https://your-domain/webhooks/whatsapp`.
+2. Set the verify token to the same value as `WHATSAPP_WEBHOOK_VERIFY_TOKEN`.
+3. Subscribe your app to the WhatsApp Business Account.
+
+The webhook verifies Meta's challenge request, validates the `X-Hub-Signature-256` signature with your app secret, and stores each accepted payload in the `whatsapp_webhook_events` table.
