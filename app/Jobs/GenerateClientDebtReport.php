@@ -34,6 +34,8 @@ class GenerateClientDebtReport implements ShouldQueue
     {
         \Log::info('Starting report generation for report ID: ' . $this->report->id);
 
+        $reportWidth = 420;
+
         if (isset($this->report->parameters['locale'])) {
             app()->setLocale($this->report->parameters['locale']);
         }
@@ -41,6 +43,14 @@ class GenerateClientDebtReport implements ShouldQueue
         $clientId = $this->report->parameters['client_id'] ?? null;
 
         if ($clientId) {
+            $ledgerBalanceDelta = static function ($ledger): float {
+                if ($ledger->type === 'charge') {
+                    return (float) $ledger->amount;
+                }
+
+                return -(float) $ledger->amount;
+            };
+
             $client = Client::query()
                 ->with(['debtLedgers' => function ($query) {
                     $query->with(['distribution.product', 'distribution.supplier', 'distribution.shop', 'distribution.client'])
@@ -64,28 +74,31 @@ class GenerateClientDebtReport implements ShouldQueue
             $recentLimit = 25;
             $olderCount = max($allLedgers->count() - $recentLimit, 0);
 
-            $client->recentLedgers = $allLedgers->slice($olderCount)->values();
             $olderLedgers = $allLedgers->take($olderCount);
 
             $client->has_older_transactions = $olderCount > 0;
-            $client->older_transactions_total = $olderLedgers->reduce(function ($carry, $item) {
-                if ($item->type === 'charge') {
-                    return $carry + (float) $item->amount;
-                }
+            $client->older_transactions_total = $olderLedgers->reduce(function ($carry, $item) use ($ledgerBalanceDelta) {
+                return $carry + $ledgerBalanceDelta($item);
+            }, 0.0);
 
-                return $carry - (float) $item->amount;
-            }, 0);
+            $runningBalance = (float) $client->older_transactions_total;
+            $client->recentLedgers = $allLedgers->slice($olderCount)->values()->map(function ($ledger) use (&$runningBalance, $ledgerBalanceDelta) {
+                $runningBalance += $ledgerBalanceDelta($ledger);
+                $ledger->running_balance = $runningBalance;
+
+                return $ledger;
+            });
 
             // Two-pass rendering for accurate "auto" height calculation
             $html = view('admin.reports.pdf.single-client-debt', compact('client'))->render();
-            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, 50]);
+            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, 50]);
             $pdfTemp->render();
             $pages = $pdfTemp->getDomPDF()->getCanvas()->get_page_count();
 
             $calcHeight = $pages * 25;
             $height = max(595.28, $calcHeight); // At least A4 landscape height
 
-            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, $height]);
+            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
             $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
         } else {
             $clients = Client::query()
@@ -107,14 +120,14 @@ class GenerateClientDebtReport implements ShouldQueue
                 ->sortBy('name');
 
             $html = view('admin.reports.pdf.client-debt', compact('clients'))->render();
-            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, 50]);
+            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, 50]);
             $pdfTemp->render();
             $pages = $pdfTemp->getDomPDF()->getCanvas()->get_page_count();
 
             $calcHeight = $pages * 25;
             $height = max(595.28, $calcHeight);
 
-            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, 841.89, $height]);
+            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
             $fileNamePrefix = 'all-clients-debt-';
         }
 

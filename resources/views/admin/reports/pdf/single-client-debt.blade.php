@@ -25,20 +25,23 @@
     </div>
 
     <h3>{{ __('Transaction History') }}</h3>
-    <table>
+    <table class="ledger-table">
         <thead>
             <tr>
-                <th>{{ __('Date') }}</th>
-                <th>{{ __('Type') }}</th>
+                <th class="col-date">{{ __('Date') }}</th>
                 <th>{{ __('Details') }}</th>
-                <th class="text-right">{{ __('Amount') }}</th>
+                <th class="text-right col-amount">{{ __('Amount') }}</th>
+                <th class="text-right col-balance">{{ __('Balance') }}</th>
             </tr>
         </thead>
         <tbody>
             @if(!empty($client->has_older_transactions))
                 <tr class="font-bold" style="background-color: #f9f9f9;">
-                    <td colspan="3" class="text-right">{{ __('Aggregated total for transactions older than the latest 25') }}</td>
-                    <td class="text-right {{ $client->older_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                    <td colspan="2" class="text-right">{{ __('Aggregated total for transactions older than the latest 25') }}</td>
+                    <td class="text-right number-cell {{ $client->older_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                        {{ (float) $client->older_transactions_total == (int) $client->older_transactions_total ? number_format((float) $client->older_transactions_total, 0) : number_format((float) $client->older_transactions_total, 2) }}
+                    </td>
+                    <td class="text-right number-cell {{ $client->older_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
                         {{ (float) $client->older_transactions_total == (int) $client->older_transactions_total ? number_format((float) $client->older_transactions_total, 0) : number_format((float) $client->older_transactions_total, 2) }}
                     </td>
                 </tr>
@@ -46,27 +49,29 @@
 
             @foreach ($client->recentLedgers as $ledger)
                 <tr>
-                    <td>{{ $ledger->transaction_date?->format('d/m/Y') ?? $ledger?->distribution?->distribution_date?->format('d/m/Y') ?? $ledger->created_at->format('d/m/Y') }}</td>
-                    <td>{{ __($ledger->type) }}</td>
-                    <td>
+                    <td>{{ $ledger->transaction_date?->format('d/m') ?? $ledger?->distribution?->distribution_date?->format('d/m') ?? $ledger->created_at->format('d/m') }}</td>
+                    <td class="details-cell">
                         @if($ledger->distribution)
                             {{ $ledger->distribution->product->name ?? '' }}
-                            ({{ (float) $ledger->distribution->quantity == (int) $ledger->distribution->quantity ? number_format((float) $ledger->distribution->quantity, 0) : number_format((float) $ledger->distribution->quantity, 2) }} {{ __($ledger->distribution->quantity_unit ?? '') }} × {{ (float) $ledger->distribution->price == (int) $ledger->distribution->price ? number_format((float) $ledger->distribution->price, 0) : number_format((float) $ledger->distribution->price, 2) }})
+                            ({{ (float) $ledger->distribution->quantity == (int) $ledger->distribution->quantity ? number_format((float) $ledger->distribution->quantity, 0) : number_format((float) $ledger->distribution->quantity, 2) }} × {{ (float) $ledger->distribution->price == (int) $ledger->distribution->price ? number_format((float) $ledger->distribution->price, 0) : number_format((float) $ledger->distribution->price, 2) }})
                             @if($ledger->distribution->supplier?->car_number)
-                                , <small>{{ __('Car') }}: {{ $ledger->distribution->supplier->car_number }}</small>
+                                , <small>{{ $ledger->distribution->supplier->car_number }}</small>
                             @endif
                             @if($ledger->distribution->shop)
-                                , <small>{{ __('Shop') }}: {{ $ledger->distribution->shop->name }}</small>
+                                , <small>{{ $ledger->distribution->shop->name }}</small>
                             @endif
                             @if($ledger->type === 'credit_note' && $ledger->distribution->client && $ledger->distribution->client_id !== $client->id)
-                                , <small>{{ __('Client') }}: {{ $ledger->distribution->client->name }}</small>
+                                , <small>{{ $ledger->distribution->client->name }}</small>
                             @endif
                         @else
-                            {{ $ledger->notes }}
+                            {{ __($ledger->type) }}@if($ledger->notes), {{ $ledger->notes }}@endif
                         @endif
                     </td>
-                    <td class="text-right font-bold {{ in_array($ledger->type, ['charge']) ? 'debt-positive' : 'debt-negative' }}">
+                    <td class="text-right font-bold number-cell {{ in_array($ledger->type, ['charge']) ? 'debt-positive' : 'debt-negative' }}">
                         {{ in_array($ledger->type, ['charge']) ? '' : '-' }}{{ (float) $ledger->amount == (int) $ledger->amount ? number_format((float) $ledger->amount, 0) : number_format((float) $ledger->amount, 2) }}
+                    </td>
+                    <td class="text-right number-cell {{ $ledger->running_balance > 0 ? 'debt-positive' : 'debt-negative' }}">
+                        {{ (float) $ledger->running_balance == (int) $ledger->running_balance ? number_format((float) $ledger->running_balance, 0) : number_format((float) $ledger->running_balance, 2) }}
                     </td>
                 </tr>
             @endforeach

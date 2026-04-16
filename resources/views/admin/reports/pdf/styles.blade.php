@@ -33,14 +33,32 @@
         border-collapse: collapse;
         margin-bottom: 10px;
     }
+    .ledger-table {
+        table-layout: fixed;
+    }
     th, td {
         border: 1px solid #ddd;
         padding: 6px;
         text-align: left;
+        vertical-align: top;
     }
     th {
         background-color: #f5f5f5;
         font-weight: bold;
+    }
+    .ledger-table .col-date {
+        width: 42px;
+    }
+    .ledger-table .col-amount,
+    .ledger-table .col-balance {
+        width: 82px;
+    }
+    .ledger-table .details-cell {
+        word-break: break-word;
+    }
+    .ledger-table .number-cell {
+        white-space: nowrap;
+        font-size: 12px;
     }
     .text-right {
         text-align: right;
