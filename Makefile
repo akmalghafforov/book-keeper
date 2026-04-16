@@ -150,4 +150,14 @@ composer:
 npm:
 	$(SAIL) npm $(c)
 
-.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev up-prod down-prod restart-prod build-prod rebuild-prod cert-prod logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm
+supervisor-install:
+	@echo "Installing Supervisor configurations..."
+	sudo cp supervisor/*.conf /etc/supervisor/conf.d/
+	sudo supervisorctl reread
+	sudo supervisorctl update
+	sudo supervisorctl status
+
+supervisor-status:
+	sudo supervisorctl status
+
+.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev up-prod down-prod restart-prod build-prod rebuild-prod cert-prod logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status
