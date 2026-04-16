@@ -64,7 +64,13 @@ If no trusted certificate is available, the production proxy falls back to a sel
 Useful commands:
 
 - `make down-dev`
+- `make build-dev`
+- `make rebuild-dev`
 - `make down-prod`
+- `make build-prod`
+- `make rebuild-prod`
 - `make logs-dev`
 - `make logs-prod`
 - `make cert-prod`
+
+`make build-dev` only ensures the generic Sail runtime image is available. If `sail-8.5/app` already exists locally, it will not force a rebuild. Use `make rebuild-dev` when you intentionally want to rebuild that runtime from `vendor/laravel/sail/runtimes/8.5/Dockerfile`, which requires Docker Hub access to `ubuntu:24.04`.
