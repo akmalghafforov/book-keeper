@@ -18,6 +18,10 @@ class GenerateClientDebtReport implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    private const MEASURE_PAGE_HEIGHT = 10;
+    private const MAX_HEIGHT_ATTEMPTS = 6;
+    private const HEIGHT_PRECISION = 1.0;
+
     public $timeout = 600; // Increase timeout to 10 minutes
 
     /**
@@ -89,16 +93,8 @@ class GenerateClientDebtReport implements ShouldQueue
                 return $ledger;
             });
 
-            // Two-pass rendering for accurate "auto" height calculation
             $html = view('admin.reports.pdf.single-client-debt', compact('client'))->render();
-            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, 50]);
-            $pdfTemp->render();
-            $pages = $pdfTemp->getDomPDF()->getCanvas()->get_page_count();
-
-            $calcHeight = $pages * 25;
-            $height = max(595.28, $calcHeight); // At least A4 landscape height
-
-            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
+            $pdf = $this->buildSinglePagePdf($html, $reportWidth);
             $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
         } else {
             $clients = Client::query()
@@ -120,14 +116,7 @@ class GenerateClientDebtReport implements ShouldQueue
                 ->sortBy('name');
 
             $html = view('admin.reports.pdf.client-debt', compact('clients'))->render();
-            $pdfTemp = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, 50]);
-            $pdfTemp->render();
-            $pages = $pdfTemp->getDomPDF()->getCanvas()->get_page_count();
-
-            $calcHeight = $pages * 25;
-            $height = max(595.28, $calcHeight);
-
-            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
+            $pdf = $this->buildSinglePagePdf($html, $reportWidth);
             $fileNamePrefix = 'all-clients-debt-';
         }
 
@@ -181,5 +170,61 @@ class GenerateClientDebtReport implements ShouldQueue
             'status' => 'failed',
             'error_message' => $exception->getMessage(),
         ]);
+    }
+
+    private function buildSinglePagePdf(string $html, float $reportWidth)
+    {
+        $height = $this->estimateReportHeight($html, $reportWidth);
+        $lastFailingHeight = 0.0;
+
+        for ($attempt = 0; $attempt < self::MAX_HEIGHT_ATTEMPTS; $attempt++) {
+            $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
+            $pdf->render();
+
+            if ($pdf->getDomPDF()->getCanvas()->get_page_count() <= 1) {
+                $height = $this->refineSinglePageHeight($html, $reportWidth, $lastFailingHeight, $height);
+
+                return Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
+            }
+
+            $lastFailingHeight = $height;
+            $height *= $pdf->getDomPDF()->getCanvas()->get_page_count();
+        }
+
+        return Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
+    }
+
+    private function estimateReportHeight(string $html, float $reportWidth): float
+    {
+        $pages = $this->getPageCount($html, $reportWidth, self::MEASURE_PAGE_HEIGHT);
+
+        return max(self::MEASURE_PAGE_HEIGHT, $pages * self::MEASURE_PAGE_HEIGHT);
+    }
+
+    private function refineSinglePageHeight(string $html, float $reportWidth, float $minHeight, float $maxHeight): float
+    {
+        if ($minHeight <= 0) {
+            return $maxHeight;
+        }
+
+        while (($maxHeight - $minHeight) > self::HEIGHT_PRECISION) {
+            $midpoint = ($minHeight + $maxHeight) / 2;
+
+            if ($this->getPageCount($html, $reportWidth, $midpoint) <= 1) {
+                $maxHeight = $midpoint;
+            } else {
+                $minHeight = $midpoint;
+            }
+        }
+
+        return ceil($maxHeight);
+    }
+
+    private function getPageCount(string $html, float $reportWidth, float $height): int
+    {
+        $pdf = Pdf::loadHTML($html)->setPaper([0, 0, $reportWidth, $height]);
+        $pdf->render();
+
+        return max(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
     }
 }

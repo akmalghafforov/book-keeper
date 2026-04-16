@@ -20,32 +20,34 @@
         </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>{{ __('Client') }}</th>
-                <th class="text-right">{{ __('Current Debt') }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($clients as $client)
+    <div class="report-table-wrapper">
+        <table class="report-table">
+            <thead>
                 <tr>
-                    <td>{{ $client->name }}</td>
-                    <td class="text-right font-bold {{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
-                        {{ number_format((float) $client->calculated_total_debt, 2) }}
+                    <th>{{ __('Client') }}</th>
+                    <th class="text-right">{{ __('Current Debt') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($clients as $client)
+                    <tr>
+                        <td>{{ $client->name }}</td>
+                        <td class="text-right font-bold {{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ number_format((float) $client->calculated_total_debt, 2) }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="font-bold">
+                    <td class="text-right">{{ __('Total') }}:</td>
+                    <td class="text-right {{ $clients->sum('calculated_total_debt') > 0 ? 'debt-positive' : 'debt-negative' }}">
+                        {{ number_format((float) $clients->sum('calculated_total_debt'), 2) }}
                     </td>
                 </tr>
-            @endforeach
-        </tbody>
-        <tfoot>
-            <tr class="font-bold">
-                <td class="text-right">{{ __('Total') }}:</td>
-                <td class="text-right {{ $clients->sum('calculated_total_debt') > 0 ? 'debt-positive' : 'debt-negative' }}">
-                    {{ number_format((float) $clients->sum('calculated_total_debt'), 2) }}
-                </td>
-            </tr>
-        </tfoot>
-    </table>
+            </tfoot>
+        </table>
+    </div>
 
     <div class="summary">
         <div class="summary-item">

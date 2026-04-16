@@ -33,6 +33,17 @@
         border-collapse: collapse;
         margin-bottom: 10px;
     }
+    .report-table-wrapper,
+    .report-table,
+    .report-table thead,
+    .report-table tbody,
+    .report-table tfoot,
+    .report-table tr,
+    .report-table td,
+    .report-table th {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
     .ledger-table {
         table-layout: fixed;
     }
@@ -47,11 +58,23 @@
         font-weight: bold;
     }
     .ledger-table .col-date {
-        width: 42px;
+        width: 58px;
     }
     .ledger-table .col-amount,
     .ledger-table .col-balance {
         width: 82px;
+    }
+    .ledger-table .date-cell {
+        white-space: nowrap;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    .ledger-table .date-meta {
+        display: block;
+        margin-top: 2px;
+        font-size: 10px;
+        font-weight: normal;
+        color: #666;
     }
     .ledger-table .details-cell {
         word-break: break-word;
