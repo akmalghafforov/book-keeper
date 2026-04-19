@@ -9,6 +9,7 @@
     <div class="header">
         <h1>{{ __('Client Debt Report') }}</h1>
         <p>{{ __('Date') }}: {{ now()->format('M d, Y H:i') }}</p>
+        <p>{{ __('Serial Number') }}: {{ $report->formatted_serial_number }}</p>
     </div>
 
     <div class="client-info">
@@ -36,19 +37,24 @@
                 </tr>
             </thead>
             <tbody>
-                @if(!empty($client->has_older_transactions))
+                @if(!empty($client->has_previously_reported_transactions))
                     <tr class="font-bold" style="background-color: #f9f9f9;">
-                        <td colspan="2" class="text-right">{{ __('Aggregated total for transactions older than the latest 25') }}</td>
-                        <td class="text-right number-cell {{ $client->older_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
-                            {{ (float) $client->older_transactions_total == (int) $client->older_transactions_total ? number_format((float) $client->older_transactions_total, 0) : number_format((float) $client->older_transactions_total, 2) }}
+                        <td colspan="2" class="text-right">
+                            {{ __('Total for transactions shown in previous reports') }}
+                            @if(($client->previous_report_count ?? 0) > 0)
+                                <small class="date-meta">{{ __('Reports') }}: {{ $client->previous_report_count }}</small>
+                            @endif
                         </td>
-                        <td class="text-right number-cell {{ $client->older_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
-                            {{ (float) $client->older_transactions_total == (int) $client->older_transactions_total ? number_format((float) $client->older_transactions_total, 0) : number_format((float) $client->older_transactions_total, 2) }}
+                        <td class="text-right number-cell {{ $client->previously_reported_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ (float) $client->previously_reported_total == (int) $client->previously_reported_total ? number_format((float) $client->previously_reported_total, 0) : number_format((float) $client->previously_reported_total, 2) }}
+                        </td>
+                        <td class="text-right number-cell {{ $client->previously_reported_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ (float) $client->previously_reported_total == (int) $client->previously_reported_total ? number_format((float) $client->previously_reported_total, 0) : number_format((float) $client->previously_reported_total, 2) }}
                         </td>
                     </tr>
                 @endif
 
-                @foreach ($client->recentLedgers as $ledger)
+                @forelse ($client->recentLedgers as $ledger)
                     <tr>
                         <td class="date-cell">
                             {{ $ledger->transaction_date?->format('d/m') ?? $ledger?->distribution?->distribution_date?->format('d/m') ?? $ledger->created_at->format('d/m') }}
@@ -77,7 +83,11 @@
                             {{ (float) $ledger->running_balance == (int) $ledger->running_balance ? number_format((float) $ledger->running_balance, 0) : number_format((float) $ledger->running_balance, 2) }}
                         </td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="4" class="text-center">{{ __('No new transactions since the previous report.') }}</td>
+                    </tr>
+                @endforelse
 
             </tbody>
             <tfoot>

@@ -114,6 +114,7 @@
     "Report Name": "Report Name",
     "Format": "Format",
     "Download": "Download",
+    "Serial Number": "Serial Number",
     "Pending": "Pending",
     "Completed": "Completed",
     "Failed": "Failed",
@@ -126,5 +127,7 @@
     "Car": "Car",
     "Shop": "Shop",
     "Older Transaction Totals": "Older Transaction Totals",
-    "Aggregated total for transactions older than the latest 25": "Aggregated total for transactions older than the latest 25"
+    "Aggregated total for transactions older than the latest 25": "Aggregated total for transactions older than the latest 25",
+    "Total for transactions shown in previous reports": "Total for transactions shown in previous reports",
+    "No new transactions since the previous report.": "No new transactions since the previous report."
 }

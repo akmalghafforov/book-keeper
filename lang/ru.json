@@ -114,6 +114,7 @@
     "Report Name": "Название отчета",
     "Format": "Формат",
     "Download": "Скачать",
+    "Serial Number": "Серийный номер",
     "Pending": "В ожидании",
     "Completed": "Завершено",
     "Failed": "Ошибка",
@@ -131,5 +132,7 @@
     "Shop": "Магазин",
     "Previous Balance": "Предыдущий баланс",
     "Older Transaction Totals": "Итог по старым транзакциям",
-    "Aggregated total for transactions older than the latest 25": "Суммарный итог по транзакциям старше последних 25"
+    "Aggregated total for transactions older than the latest 25": "Суммарный итог по транзакциям старше последних 25",
+    "Total for transactions shown in previous reports": "Итог по транзакциям, показанным в предыдущих отчетах",
+    "No new transactions since the previous report.": "С момента предыдущего отчета новых транзакций нет."
 }

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Client;
 use App\Models\GeneratedReport;
+use App\Services\ClientDebtReportDataBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +20,9 @@ class GenerateClientDebtReport implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private const MEASURE_PAGE_HEIGHT = 10;
+
     private const MAX_HEIGHT_ATTEMPTS = 6;
+
     private const HEIGHT_PRECISION = 1.0;
 
     public $timeout = 600; // Increase timeout to 10 minutes
@@ -27,16 +30,14 @@ class GenerateClientDebtReport implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public GeneratedReport $report)
-    {
-    }
+    public function __construct(public GeneratedReport $report) {}
 
     /**
      * Execute the job.
      */
     public function handle(): void
     {
-        \Log::info('Starting report generation for report ID: ' . $this->report->id);
+        \Log::info('Starting report generation for report ID: '.$this->report->id);
 
         $reportWidth = 420;
 
@@ -45,57 +46,18 @@ class GenerateClientDebtReport implements ShouldQueue
         }
 
         $clientId = $this->report->parameters['client_id'] ?? null;
+        $lastIncludedLedgerId = null;
 
         if ($clientId) {
-            $ledgerBalanceDelta = static function ($ledger): float {
-                if ($ledger->type === 'charge') {
-                    return (float) $ledger->amount;
-                }
+            $client = app(ClientDebtReportDataBuilder::class)->build($this->report);
+            $lastIncludedLedgerId = $client->last_included_ledger_id;
 
-                return -(float) $ledger->amount;
-            };
-
-            $client = Client::query()
-                ->with(['debtLedgers' => function ($query) {
-                    $query->with(['distribution.product', 'distribution.supplier', 'distribution.shop', 'distribution.client'])
-                        ->orderBy('transaction_date', 'asc')
-                        ->orderBy('id', 'asc');
-                }])
-                ->withSum(['debtLedgers as total_charges' => function ($query) {
-                    $query->where('type', 'charge');
-                }], 'amount')
-                ->withSum(['debtLedgers as total_payments' => function ($query) {
-                    $query->where('type', 'payment');
-                }], 'amount')
-                ->withSum(['debtLedgers as total_credit_notes' => function ($query) {
-                    $query->where('type', 'credit_note');
-                }], 'amount')
-                ->findOrFail($clientId);
-
-            $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
-
-            $allLedgers = $client->debtLedgers->values();
-            $recentLimit = 25;
-            $olderCount = max($allLedgers->count() - $recentLimit, 0);
-
-            $olderLedgers = $allLedgers->take($olderCount);
-
-            $client->has_older_transactions = $olderCount > 0;
-            $client->older_transactions_total = $olderLedgers->reduce(function ($carry, $item) use ($ledgerBalanceDelta) {
-                return $carry + $ledgerBalanceDelta($item);
-            }, 0.0);
-
-            $runningBalance = (float) $client->older_transactions_total;
-            $client->recentLedgers = $allLedgers->slice($olderCount)->values()->map(function ($ledger) use (&$runningBalance, $ledgerBalanceDelta) {
-                $runningBalance += $ledgerBalanceDelta($ledger);
-                $ledger->running_balance = $runningBalance;
-
-                return $ledger;
-            });
-
-            $html = view('admin.reports.pdf.single-client-debt', compact('client'))->render();
+            $html = view('admin.reports.pdf.single-client-debt', [
+                'client' => $client,
+                'report' => $this->report,
+            ])->render();
             $pdf = $this->buildSinglePagePdf($html, $reportWidth);
-            $fileNamePrefix = 'client-debt-report-' . str_replace(' ', '-', strtolower($client->name)) . '-';
+            $fileNamePrefix = 'client-debt-report-'.str_replace(' ', '-', strtolower($client->name)).'-';
         } else {
             $clients = Client::query()
                 ->withSum(['debtLedgers as total_charges' => function ($query) {
@@ -110,24 +72,28 @@ class GenerateClientDebtReport implements ShouldQueue
                 ->get()
                 ->map(function ($client) {
                     $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
+
                     return $client;
                 })
-                ->filter(fn($c) => $c->calculated_total_debt != 0)
+                ->filter(fn ($c) => $c->calculated_total_debt != 0)
                 ->sortBy('name');
 
-            $html = view('admin.reports.pdf.client-debt', compact('clients'))->render();
+            $html = view('admin.reports.pdf.client-debt', [
+                'clients' => $clients,
+                'report' => $this->report,
+            ])->render();
             $pdf = $this->buildSinglePagePdf($html, $reportWidth);
             $fileNamePrefix = 'all-clients-debt-';
         }
 
         $pdfContent = $pdf->output();
-        $fileName = 'reports/' . $fileNamePrefix . now()->timestamp;
+        $fileName = 'reports/'.$fileNamePrefix.now()->timestamp;
 
         if ($this->report->format === 'jpg' || $this->report->format === 'png') {
             $format = $this->report->format;
-            $path = $fileName . '.' . $format;
+            $path = $fileName.'.'.$format;
 
-            $imagick = new Imagick();
+            $imagick = new Imagick;
             $imagick->setResolution(150, 150); // Improved resolution
             $imagick->readImageBlob($pdfContent);
 
@@ -151,13 +117,19 @@ class GenerateClientDebtReport implements ShouldQueue
             $imagick->clear();
             $combined->clear();
 
-            $this->report->update([
+            $reportUpdates = [
                 'status' => 'completed',
                 'file_path' => $path,
-            ]);
+            ];
+
+            if ($lastIncludedLedgerId !== null) {
+                $reportUpdates['last_included_ledger_id'] = $lastIncludedLedgerId;
+            }
+
+            $this->report->update($reportUpdates);
         }
 
-        \Log::info('Report generation completed for report ID: ' . $this->report->id);
+        \Log::info('Report generation completed for report ID: '.$this->report->id);
     }
 
     /**
@@ -165,7 +137,7 @@ class GenerateClientDebtReport implements ShouldQueue
      */
     public function failed(Throwable $exception): void
     {
-        \Log::error('Report generation failed: ' . $exception->getMessage());
+        \Log::error('Report generation failed: '.$exception->getMessage());
         $this->report->update([
             'status' => 'failed',
             'error_message' => $exception->getMessage(),

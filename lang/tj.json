@@ -114,6 +114,7 @@
     "Report Name": "Номи ҳисобот",
     "Format": "Формат",
     "Download": "Боргирӣ",
+    "Serial Number": "Рақами силсилавӣ",
     "Pending": "Дар интизорӣ",
     "Completed": "Иҷро шуд",
     "Failed": "Хатогӣ",
@@ -131,5 +132,7 @@
     "Shop": "Мағоза",
     "Previous Balance": "Баланси қаблӣ",
     "Older Transaction Totals": "Ҷамъи амалиётҳои кӯҳна",
-    "Aggregated total for transactions older than the latest 25": "Ҷамъи умумӣ барои амалиётҳое, ки аз 25 амалиёти охирин кӯҳнаанд"
+    "Aggregated total for transactions older than the latest 25": "Ҷамъи умумӣ барои амалиётҳое, ки аз 25 амалиёти охирин кӯҳнаанд",
+    "Total for transactions shown in previous reports": "Ҷамъи амалиётҳое, ки дар ҳисоботҳои қаблӣ нишон дода шудаанд",
+    "No new transactions since the previous report.": "Аз ҳисоботи қаблӣ то ҳоло амалиёти нав нест."
 }

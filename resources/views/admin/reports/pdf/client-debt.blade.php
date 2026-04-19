@@ -9,6 +9,7 @@
     <div class="header">
         <h1>{{ __('Client Debt Report') }}</h1>
         <p>{{ __('Date') }}: {{ now()->format('M d, Y H:i') }}</p>
+        <p>{{ __('Serial Number') }}: {{ $report->formatted_serial_number }}</p>
     </div>
 
     <div class="summary">
