@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Throwable;
 
 class GeneratedReport extends Model
 {
@@ -43,5 +45,20 @@ class GeneratedReport extends Model
     public function getFormattedSerialNumberAttribute(): string
     {
         return str_pad((string) ($this->serial_number ?? $this->id), 6, '0', STR_PAD_LEFT);
+    }
+
+    public function getReportGeneratedAtAttribute(): ?Carbon
+    {
+        $cutoff = ($this->parameters ?? [])['cutoff_at'] ?? null;
+
+        if ($cutoff) {
+            try {
+                return Carbon::parse($cutoff);
+            } catch (Throwable) {
+                // Fall back to the original report timestamp for malformed legacy parameters.
+            }
+        }
+
+        return $this->created_at;
     }
 }

@@ -76,6 +76,19 @@
                                     </button>
 
                                 @endif
+
+                                @if($report->status !== 'pending')
+                                    <form action="{{ route('admin.reports.regenerate', $report) }}" method="POST" class="inline-block">
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            class="text-amber-600 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300"
+                                            title="{{ __('Regenerate') }}"
+                                        >
+                                            {{ __('Regenerate') }}
+                                        </button>
+                                    </form>
+                                @endif
                             </td>
                         </tr>
                     @empty

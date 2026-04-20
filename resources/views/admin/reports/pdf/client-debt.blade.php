@@ -6,9 +6,11 @@
     @include('admin.reports.pdf.styles')
 </head>
 <body>
+    @php($reportDate = $report->report_generated_at ?? now())
+
     <div class="header">
         <h1>{{ __('Client Debt Report') }}</h1>
-        <p>{{ __('Date') }}: {{ now()->format('M d, Y H:i') }}</p>
+        <p>{{ __('Date') }}: {{ $reportDate->format('M d, Y H:i') }}</p>
         <p>{{ __('Serial Number') }}: {{ $report->formatted_serial_number }}</p>
     </div>
 
@@ -60,7 +62,7 @@
     </div>
 
     <div class="footer">
-        {{ config('app.name') }} - {{ __('Generated on') }} {{ now()->format('Y-m-d H:i:s') }}
+        {{ config('app.name') }} - {{ __('Generated on') }} {{ $reportDate->format('Y-m-d H:i:s') }}
     </div>
 </body>
 </html>

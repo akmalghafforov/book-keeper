@@ -2,9 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Models\Client;
 use App\Models\GeneratedReport;
 use App\Services\ClientDebtReportDataBuilder;
+use App\Services\GeneratedReportLedgerBoundaryService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,10 +46,12 @@ class GenerateClientDebtReport implements ShouldQueue
         }
 
         $clientId = $this->report->parameters['client_id'] ?? null;
-        $lastIncludedLedgerId = null;
+        $ledgerBoundaryService = app(GeneratedReportLedgerBoundaryService::class);
+        $lastIncludedLedgerId = $ledgerBoundaryService->resolveReportLastIncludedLedgerId($this->report);
+        $reportDataBuilder = app(ClientDebtReportDataBuilder::class);
 
         if ($clientId) {
-            $client = app(ClientDebtReportDataBuilder::class)->build($this->report);
+            $client = $reportDataBuilder->build($this->report);
             $lastIncludedLedgerId = $client->last_included_ledger_id;
 
             $html = view('admin.reports.pdf.single-client-debt', [
@@ -59,24 +61,7 @@ class GenerateClientDebtReport implements ShouldQueue
             $pdf = $this->buildSinglePagePdf($html, $reportWidth);
             $fileNamePrefix = 'client-debt-report-'.str_replace(' ', '-', strtolower($client->name)).'-';
         } else {
-            $clients = Client::query()
-                ->withSum(['debtLedgers as total_charges' => function ($query) {
-                    $query->where('type', 'charge');
-                }], 'amount')
-                ->withSum(['debtLedgers as total_payments' => function ($query) {
-                    $query->where('type', 'payment');
-                }], 'amount')
-                ->withSum(['debtLedgers as total_credit_notes' => function ($query) {
-                    $query->where('type', 'credit_note');
-                }], 'amount')
-                ->get()
-                ->map(function ($client) {
-                    $client->calculated_total_debt = ($client->total_charges ?? 0) - ($client->total_payments ?? 0) - ($client->total_credit_notes ?? 0);
-
-                    return $client;
-                })
-                ->filter(fn ($c) => $c->calculated_total_debt != 0)
-                ->sortBy('name');
+            $clients = $reportDataBuilder->buildAll($this->report);
 
             $html = view('admin.reports.pdf.client-debt', [
                 'clients' => $clients,
@@ -122,7 +107,7 @@ class GenerateClientDebtReport implements ShouldQueue
                 'file_path' => $path,
             ];
 
-            if ($lastIncludedLedgerId !== null) {
+            if ($ledgerBoundaryService->supportsLedgerBoundary($this->report)) {
                 $reportUpdates['last_included_ledger_id'] = $lastIncludedLedgerId;
             }
 

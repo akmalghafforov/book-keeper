@@ -33,6 +33,9 @@ class ReportGenerationTest extends TestCase
         Bus::fake();
 
         $client = Client::factory()->create();
+        $ledger = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+        ]);
 
         $response = $this->actingAs($this->user)->post(route('admin.reports.export-client-debt', $client), [
             'format' => 'png',
@@ -43,6 +46,8 @@ class ReportGenerationTest extends TestCase
         $report = GeneratedReport::query()->firstOrFail();
 
         $this->assertSame($report->id, $report->serial_number);
+        $this->assertSame($ledger->id, $report->last_included_ledger_id);
+        $this->assertNotEmpty($report->parameters['cutoff_at']);
         Bus::assertDispatched(GenerateClientDebtReport::class);
     }
 
@@ -257,5 +262,165 @@ class ReportGenerationTest extends TestCase
 
         $this->assertSame(0, $updatedCount);
         $this->assertSame($ledger->id, $report->fresh()->last_included_ledger_id);
+    }
+
+    public function test_regenerating_single_client_report_keeps_the_original_report_window(): void
+    {
+        Bus::fake();
+
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-04-01 09:00:00');
+        $previousLedger = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-04-01 10:00:00');
+        GeneratedReport::create([
+            'name' => 'Debt Report: Window Client (2026-04-01 10:00)',
+            'type' => 'single_client_debt',
+            'format' => 'png',
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => 'en',
+            ],
+            'status' => 'completed',
+            'last_included_ledger_id' => $previousLedger->id,
+        ]);
+
+        Carbon::setTestNow('2026-04-02 09:00:00');
+        $includedLedger = DebtLedger::factory()->payment()->create([
+            'client_id' => $client->id,
+            'amount' => 30,
+            'transaction_date' => '2026-04-02',
+        ]);
+
+        Carbon::setTestNow('2026-04-02 10:00:00');
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: Window Client (2026-04-02 10:00)',
+            'type' => 'single_client_debt',
+            'format' => 'png',
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => 'en',
+            ],
+            'status' => 'completed',
+            'last_included_ledger_id' => $includedLedger->id,
+        ]);
+
+        Carbon::setTestNow('2026-04-03 09:00:00');
+        DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 200,
+            'transaction_date' => '2026-04-03',
+        ]);
+
+        Carbon::setTestNow('2026-04-04 10:00:00');
+        $response = $this->actingAs($this->user)->post(route('admin.reports.regenerate', $report));
+
+        $response->assertRedirect(route('admin.reports.index'));
+
+        $report->refresh();
+        $payload = app(ClientDebtReportDataBuilder::class)->build($report);
+
+        $this->assertSame('pending', $report->status);
+        $this->assertSame($includedLedger->id, $report->last_included_ledger_id);
+        $this->assertSame([$includedLedger->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertEquals(70.0, (float) $payload->calculated_total_debt);
+        $this->assertSame($previousLedger->id, $payload->reported_through_ledger_id);
+        Bus::assertDispatched(GenerateClientDebtReport::class);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_regenerating_legacy_report_resolves_the_cutoff_before_marking_it_pending(): void
+    {
+        Bus::fake();
+
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-04-01 09:00:00');
+        $includedLedger = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-04-02 10:00:00');
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: Legacy Regeneration Client (2026-04-02 10:00)',
+            'type' => 'single_client_debt',
+            'format' => 'png',
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => 'en',
+            ],
+            'status' => 'completed',
+        ]);
+
+        Carbon::setTestNow('2026-04-03 09:00:00');
+        DebtLedger::factory()->payment()->create([
+            'client_id' => $client->id,
+            'amount' => 40,
+            'transaction_date' => '2026-04-03',
+        ]);
+
+        Carbon::setTestNow('2026-04-04 10:00:00');
+        $response = $this->actingAs($this->user)->post(route('admin.reports.regenerate', $report));
+
+        $response->assertRedirect(route('admin.reports.index'));
+
+        $report->refresh();
+        $payload = app(ClientDebtReportDataBuilder::class)->build($report);
+
+        $this->assertSame('pending', $report->status);
+        $this->assertSame($includedLedger->id, $report->last_included_ledger_id);
+        $this->assertSame('2026-04-02 10:00:00', $report->parameters['cutoff_at']);
+        $this->assertSame([$includedLedger->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertEquals(100.0, (float) $payload->calculated_total_debt);
+        Bus::assertDispatched(GenerateClientDebtReport::class);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_all_clients_report_builder_uses_the_report_ledger_boundary(): void
+    {
+        $includedClient = Client::factory()->create(['name' => 'Included Client']);
+        $excludedClient = Client::factory()->create(['name' => 'Excluded Client']);
+
+        Carbon::setTestNow('2026-04-01 09:00:00');
+        $includedLedger = DebtLedger::factory()->charge()->create([
+            'client_id' => $includedClient->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-04-02 10:00:00');
+        $report = GeneratedReport::create([
+            'name' => 'All Clients Debt Report (2026-04-02 10:00)',
+            'type' => 'client_debt',
+            'format' => 'png',
+            'parameters' => [
+                'locale' => 'en',
+            ],
+            'status' => 'completed',
+            'last_included_ledger_id' => $includedLedger->id,
+        ]);
+
+        Carbon::setTestNow('2026-04-03 09:00:00');
+        DebtLedger::factory()->charge()->create([
+            'client_id' => $excludedClient->id,
+            'amount' => 50,
+            'transaction_date' => '2026-04-03',
+        ]);
+
+        Carbon::setTestNow();
+
+        $clients = app(ClientDebtReportDataBuilder::class)->buildAll($report);
+
+        $this->assertSame([$includedClient->id], $clients->pluck('id')->all());
+        $this->assertSame([100.0], $clients->pluck('calculated_total_debt')->map(fn ($value) => (float) $value)->all());
     }
 }

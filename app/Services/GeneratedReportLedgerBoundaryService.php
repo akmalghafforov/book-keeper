@@ -4,30 +4,81 @@ namespace App\Services;
 
 use App\Models\DebtLedger;
 use App\Models\GeneratedReport;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
+use Throwable;
 
 class GeneratedReportLedgerBoundaryService
 {
+    private const BOUNDARY_REPORT_TYPES = [
+        'client_debt',
+        'single_client_debt',
+    ];
+
     public function resolveReportLastIncludedLedgerId(GeneratedReport $report): int
     {
         if ($report->last_included_ledger_id !== null) {
             return (int) $report->last_included_ledger_id;
         }
 
-        if ($report->type !== 'single_client_debt' || $report->status !== 'completed') {
+        if (! $this->supportsLedgerBoundary($report)) {
             return 0;
         }
 
-        $clientId = (int) ($report->parameters['client_id'] ?? 0);
-        $cutoff = $report->updated_at ?? $report->created_at;
+        return $this->snapshotLastIncludedLedgerId(
+            $report->type,
+            $report->parameters ?? [],
+            $this->resolveReportCutoffAt($report),
+        );
+    }
 
-        if ($clientId <= 0 || $cutoff === null) {
+    public function snapshotLastIncludedLedgerId(string $type, array $parameters = [], ?CarbonInterface $cutoff = null): int
+    {
+        if (! in_array($type, self::BOUNDARY_REPORT_TYPES, true)) {
             return 0;
         }
 
-        return (int) (DebtLedger::query()
-            ->where('client_id', $clientId)
-            ->where('created_at', '<=', $cutoff)
-            ->max('id') ?? 0);
+        $query = DebtLedger::query();
+
+        if ($type === 'single_client_debt') {
+            $clientId = (int) ($parameters['client_id'] ?? 0);
+
+            if ($clientId <= 0) {
+                return 0;
+            }
+
+            $query->where('client_id', $clientId);
+        }
+
+        if ($cutoff !== null) {
+            $query->where('created_at', '<=', $cutoff);
+        }
+
+        return (int) ($query->max('id') ?? 0);
+    }
+
+    public function resolveReportCutoffAt(GeneratedReport $report): ?CarbonInterface
+    {
+        $cutoff = ($report->parameters ?? [])['cutoff_at'] ?? null;
+
+        if ($cutoff) {
+            try {
+                return Carbon::parse($cutoff);
+            } catch (Throwable) {
+                // Fall back to the timestamps below for malformed legacy parameters.
+            }
+        }
+
+        if ($report->status === 'completed') {
+            return $report->updated_at ?? $report->created_at;
+        }
+
+        return $report->created_at ?? $report->updated_at;
+    }
+
+    public function supportsLedgerBoundary(GeneratedReport $report): bool
+    {
+        return in_array($report->type, self::BOUNDARY_REPORT_TYPES, true);
     }
 
     public function backfillMissingLastIncludedLedgerIds(): int
@@ -35,7 +86,7 @@ class GeneratedReportLedgerBoundaryService
         $updatedCount = 0;
 
         GeneratedReport::query()
-            ->where('type', 'single_client_debt')
+            ->whereIn('type', self::BOUNDARY_REPORT_TYPES)
             ->where('status', 'completed')
             ->whereNull('last_included_ledger_id')
             ->orderBy('id')
