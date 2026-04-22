@@ -47,15 +47,31 @@ class ClientSortingTest extends TestCase
         $client3->save();
 
         // Expected order: Client 2 (now), Client 1 (1 day ago), Client 3 (2 days ago)
-        
+
         $response = $this->actingAs($this->user)->get(route('admin.clients.index'));
 
         $response->assertStatus(200);
-        
+
         $response->assertSeeInOrder([
             'Client 2',
             'Client 1',
             'Client 3',
         ]);
+    }
+
+    public function test_clients_index_exposes_date_range_report_controls()
+    {
+        Client::factory()->create(['name' => 'Range Report Client']);
+
+        $response = $this->actingAs($this->user)->get(route('admin.clients.index'));
+
+        $response->assertStatus(200);
+        $response->assertSee('export-client-debt-range', false);
+        $response->assertSee('range_report_start_date', false);
+        $response->assertSee('range_report_end_date', false);
+        $response->assertSee('x-ref="rangeReportStartDate"', false);
+        $response->assertSee('x-ref="rangeReportEndDate"', false);
+        $response->assertSee('name="start_date"', false);
+        $response->assertSee('name="end_date"', false);
     }
 }

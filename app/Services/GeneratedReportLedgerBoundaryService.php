@@ -13,6 +13,7 @@ class GeneratedReportLedgerBoundaryService
     private const BOUNDARY_REPORT_TYPES = [
         'client_debt',
         'single_client_debt',
+        'single_client_debt_range',
     ];
 
     public function resolveReportLastIncludedLedgerId(GeneratedReport $report): int
@@ -40,7 +41,7 @@ class GeneratedReportLedgerBoundaryService
 
         $query = DebtLedger::query();
 
-        if ($type === 'single_client_debt') {
+        if (in_array($type, ['single_client_debt', 'single_client_debt_range'], true)) {
             $clientId = (int) ($parameters['client_id'] ?? 0);
 
             if ($clientId <= 0) {

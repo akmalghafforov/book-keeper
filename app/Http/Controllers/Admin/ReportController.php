@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\GeneratedReport;
 use App\Services\GeneratedReportLedgerBoundaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
@@ -18,6 +19,7 @@ class ReportController extends Controller
     public function index()
     {
         $reports = GeneratedReport::latest()->paginate(10);
+
         return view('admin.reports.index', compact('reports'));
     }
 
@@ -34,7 +36,7 @@ class ReportController extends Controller
         ];
 
         $report = GeneratedReport::create([
-            'name' => 'All Clients Debt Report (' . $cutoff->format('Y-m-d H:i') . ')',
+            'name' => 'All Clients Debt Report ('.$cutoff->format('Y-m-d H:i').')',
             'type' => 'client_debt',
             'format' => $request->format,
             'parameters' => $parameters,
@@ -62,7 +64,7 @@ class ReportController extends Controller
         ];
 
         $report = GeneratedReport::create([
-            'name' => 'Debt Report: ' . $client->name . ' (' . $cutoff->format('Y-m-d H:i') . ')',
+            'name' => 'Debt Report: '.$client->name.' ('.$cutoff->format('Y-m-d H:i').')',
             'type' => 'single_client_debt',
             'format' => $request->format,
             'parameters' => $parameters,
@@ -73,7 +75,46 @@ class ReportController extends Controller
         GenerateClientDebtReport::dispatch($report);
 
         return redirect()->route('admin.reports.index')
-            ->with('success', 'Report generation started for ' . $client->name . '. Please wait.');
+            ->with('success', 'Report generation started for '.$client->name.'. Please wait.');
+    }
+
+    public function exportClientDebtRange(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'format' => 'required|in:png,jpg',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        $rangeStart = Carbon::parse($validated['start_date'])->startOfDay();
+        $rangeEnd = $request->filled('end_date')
+            ? Carbon::parse($validated['end_date'])->startOfDay()
+            : null;
+        $cutoff = now();
+        $parameters = [
+            'client_id' => $client->id,
+            'locale' => app()->getLocale(),
+            'cutoff_at' => $cutoff->toDateTimeString(),
+            'range_start_date' => $rangeStart->toDateString(),
+            'range_end_date' => $rangeEnd?->toDateString(),
+        ];
+        $rangeLabel = $rangeEnd
+            ? $rangeStart->format('Y-m-d').' - '.$rangeEnd->format('Y-m-d')
+            : 'from '.$rangeStart->format('Y-m-d');
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Range Report: '.$client->name.' ('.$rangeLabel.')',
+            'type' => 'single_client_debt_range',
+            'format' => $validated['format'],
+            'parameters' => $parameters,
+            'last_included_ledger_id' => $this->ledgerBoundaryService->snapshotLastIncludedLedgerId('single_client_debt_range', $parameters, $cutoff),
+            'status' => 'pending',
+        ]);
+
+        GenerateClientDebtReport::dispatch($report);
+
+        return redirect()->route('admin.reports.index')
+            ->with('success', 'Date range report generation started for '.$client->name.'. Please wait.');
     }
 
     public function regenerate(GeneratedReport $report)

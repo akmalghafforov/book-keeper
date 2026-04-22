@@ -7,6 +7,7 @@ Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ru', 'tj'])) {
         session(['locale' => $locale]);
     }
+
     return redirect()->back();
 })->name('set-locale');
 
@@ -39,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
             Route::post('/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])->name('export');
             Route::post('/export-client-debt/{client}', [\App\Http\Controllers\Admin\ReportController::class, 'exportClientDebt'])->name('export-client-debt');
+            Route::post('/export-client-debt-range/{client}', [\App\Http\Controllers\Admin\ReportController::class, 'exportClientDebtRange'])->name('export-client-debt-range');
             Route::post('/{report}/regenerate', [\App\Http\Controllers\Admin\ReportController::class, 'regenerate'])->name('regenerate');
         });
     });

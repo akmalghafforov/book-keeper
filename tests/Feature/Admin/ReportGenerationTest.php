@@ -423,4 +423,189 @@ class ReportGenerationTest extends TestCase
         $this->assertSame([$includedClient->id], $clients->pluck('id')->all());
         $this->assertSame([100.0], $clients->pluck('calculated_total_debt')->map(fn ($value) => (float) $value)->all());
     }
+
+    public function test_export_client_debt_range_stores_selected_dates_and_dispatches_report_job(): void
+    {
+        Bus::fake();
+
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-04-10 12:00:00');
+        $ledger = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-09',
+        ]);
+
+        $response = $this->actingAs($this->user)->post(route('admin.reports.export-client-debt-range', $client), [
+            'format' => 'png',
+            'start_date' => '2026-04-01',
+            'end_date' => '2026-04-30',
+        ]);
+
+        $response->assertRedirect(route('admin.reports.index'));
+
+        $report = GeneratedReport::query()->firstOrFail();
+
+        $this->assertSame('single_client_debt_range', $report->type);
+        $this->assertSame($client->id, $report->parameters['client_id']);
+        $this->assertSame('2026-04-01', $report->parameters['range_start_date']);
+        $this->assertSame('2026-04-30', $report->parameters['range_end_date']);
+        $this->assertSame('2026-04-10 12:00:00', $report->parameters['cutoff_at']);
+        $this->assertSame($ledger->id, $report->last_included_ledger_id);
+        Bus::assertDispatched(GenerateClientDebtReport::class);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_export_client_debt_range_allows_open_ended_date_range(): void
+    {
+        Bus::fake();
+
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-04-10 12:00:00');
+        DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-09',
+        ]);
+
+        $response = $this->actingAs($this->user)->post(route('admin.reports.export-client-debt-range', $client), [
+            'format' => 'png',
+            'start_date' => '2026-04-01',
+            'end_date' => '',
+        ]);
+
+        $response->assertRedirect(route('admin.reports.index'));
+
+        $report = GeneratedReport::query()->firstOrFail();
+
+        $this->assertSame('single_client_debt_range', $report->type);
+        $this->assertSame('2026-04-01', $report->parameters['range_start_date']);
+        $this->assertNull($report->parameters['range_end_date']);
+        $this->assertSame('Debt Range Report: '.$client->name.' (from 2026-04-01)', $report->name);
+        Bus::assertDispatched(GenerateClientDebtReport::class);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_date_range_report_builder_lists_selected_transactions_and_summarizes_later_transactions(): void
+    {
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-03-31 09:00:00');
+        DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-03-31',
+        ]);
+
+        Carbon::setTestNow('2026-04-01 09:00:00');
+        $rangePayment = DebtLedger::factory()->payment()->create([
+            'client_id' => $client->id,
+            'amount' => 40,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-04-15 09:00:00');
+        $rangeCharge = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 70,
+            'transaction_date' => '2026-04-15',
+        ]);
+
+        Carbon::setTestNow('2026-05-01 09:00:00');
+        $laterPayment = DebtLedger::factory()->payment()->create([
+            'client_id' => $client->id,
+            'amount' => 20,
+            'transaction_date' => '2026-05-01',
+        ]);
+
+        Carbon::setTestNow('2026-05-02 10:00:00');
+        $report = GeneratedReport::create([
+            'name' => 'Debt Range Report: Test Client (2026-04-01 - 2026-04-30)',
+            'type' => 'single_client_debt_range',
+            'format' => 'png',
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => 'en',
+                'range_start_date' => '2026-04-01',
+                'range_end_date' => '2026-04-30',
+            ],
+            'status' => 'pending',
+            'last_included_ledger_id' => $laterPayment->id,
+        ]);
+
+        Carbon::setTestNow();
+
+        $payload = app(ClientDebtReportDataBuilder::class)->build($report);
+
+        $this->assertTrue($payload->is_date_range_report);
+        $this->assertSame('2026-04-01', $payload->range_start_date->toDateString());
+        $this->assertSame('2026-04-30', $payload->range_end_date->toDateString());
+        $this->assertSame(1, $payload->opening_balance_transactions_count);
+        $this->assertEquals(100.0, (float) $payload->opening_balance_total);
+        $this->assertSame([$rangePayment->id, $rangeCharge->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
+        $this->assertSame(1, $payload->later_transactions_count);
+        $this->assertEquals(-20.0, (float) $payload->later_transactions_total);
+        $this->assertEquals(110.0, (float) $payload->calculated_total_debt);
+        $this->assertSame($laterPayment->id, $payload->last_included_ledger_id);
+    }
+
+    public function test_open_ended_date_range_report_builder_lists_transactions_from_start_date_forward(): void
+    {
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-03-31 09:00:00');
+        DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-03-31',
+        ]);
+
+        Carbon::setTestNow('2026-04-01 09:00:00');
+        $rangePayment = DebtLedger::factory()->payment()->create([
+            'client_id' => $client->id,
+            'amount' => 40,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-05-01 09:00:00');
+        $futureCharge = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 70,
+            'transaction_date' => '2026-05-01',
+        ]);
+
+        Carbon::setTestNow('2026-05-02 10:00:00');
+        $report = GeneratedReport::create([
+            'name' => 'Debt Range Report: Test Client (from 2026-04-01)',
+            'type' => 'single_client_debt_range',
+            'format' => 'png',
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => 'en',
+                'range_start_date' => '2026-04-01',
+                'range_end_date' => null,
+            ],
+            'status' => 'pending',
+            'last_included_ledger_id' => $futureCharge->id,
+        ]);
+
+        Carbon::setTestNow();
+
+        $payload = app(ClientDebtReportDataBuilder::class)->build($report);
+
+        $this->assertTrue($payload->is_date_range_report);
+        $this->assertSame('2026-04-01', $payload->range_start_date->toDateString());
+        $this->assertNull($payload->range_end_date);
+        $this->assertEquals(100.0, (float) $payload->opening_balance_total);
+        $this->assertSame([$rangePayment->id, $futureCharge->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
+        $this->assertSame(0, $payload->later_transactions_count);
+        $this->assertFalse($payload->has_later_transactions);
+        $this->assertEquals(130.0, (float) $payload->calculated_total_debt);
+    }
 }

@@ -6,11 +6,29 @@
     @include('admin.reports.pdf.styles')
 </head>
 <body>
-    @php($reportDate = $report->report_generated_at ?? now())
+    @php
+        $reportDate = $report->report_generated_at ?? now();
+        $isDateRangeReport = ! empty($client->is_date_range_report);
+        $formatReportAmount = static function ($amount) {
+            $amount = (float) $amount;
+
+            return $amount == (int) $amount ? number_format($amount, 0) : number_format($amount, 2);
+        };
+    @endphp
 
     <div class="header">
         <h1>{{ __('Client Debt Report') }}</h1>
         <p>{{ __('Date') }}: {{ $reportDate->format('M d, Y H:i') }}</p>
+        @if($isDateRangeReport)
+            <p>
+                {{ __('Report Period') }}:
+                @if($client->range_end_date)
+                    {{ $client->range_start_date->format('M d, Y') }} - {{ $client->range_end_date->format('M d, Y') }}
+                @else
+                    {{ __('From') }} {{ $client->range_start_date->format('M d, Y') }}
+                @endif
+            </p>
+        @endif
         <p>{{ __('Serial Number') }}: {{ $report->formatted_serial_number }}</p>
     </div>
 
@@ -39,7 +57,20 @@
                 </tr>
             </thead>
             <tbody>
-                @if(!empty($client->has_previously_reported_transactions))
+                @if($isDateRangeReport && !empty($client->has_opening_balance_transactions))
+                    <tr class="font-bold" style="background-color: #f9f9f9;">
+                        <td colspan="2" class="text-right">
+                            {{ __('Total before selected date range') }}
+                            <small class="date-meta">{{ __('Transactions') }}: {{ $client->opening_balance_transactions_count }}</small>
+                        </td>
+                        <td class="text-right number-cell {{ $client->opening_balance_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ $formatReportAmount($client->opening_balance_total) }}
+                        </td>
+                        <td class="text-right number-cell {{ $client->opening_balance_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ $formatReportAmount($client->opening_balance_total) }}
+                        </td>
+                    </tr>
+                @elseif(!empty($client->has_previously_reported_transactions))
                     <tr class="font-bold" style="background-color: #f9f9f9;">
                         <td colspan="2" class="text-right">
                             {{ __('Total for transactions shown in previous reports') }}
@@ -87,9 +118,26 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center">{{ __('No new transactions since the previous report.') }}</td>
+                        <td colspan="4" class="text-center">
+                            {{ $isDateRangeReport ? __('No transactions in the selected date range.') : __('No new transactions since the previous report.') }}
+                        </td>
                     </tr>
                 @endforelse
+
+                @if($isDateRangeReport && !empty($client->has_later_transactions))
+                    <tr class="font-bold" style="background-color: #f9f9f9;">
+                        <td colspan="2" class="text-right">
+                            {{ __('Total after selected date range') }}
+                            <small class="date-meta">{{ __('Transactions') }}: {{ $client->later_transactions_count }}</small>
+                        </td>
+                        <td class="text-right number-cell {{ $client->later_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ $formatReportAmount($client->later_transactions_total) }}
+                        </td>
+                        <td class="text-right number-cell {{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ $formatReportAmount($client->calculated_total_debt) }}
+                        </td>
+                    </tr>
+                @endif
 
             </tbody>
             <tfoot>

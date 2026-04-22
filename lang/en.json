@@ -132,5 +132,13 @@
     "Older Transaction Totals": "Older Transaction Totals",
     "Aggregated total for transactions older than the latest 25": "Aggregated total for transactions older than the latest 25",
     "Total for transactions shown in previous reports": "Total for transactions shown in previous reports",
-    "No new transactions since the previous report.": "No new transactions since the previous report."
+    "No new transactions since the previous report.": "No new transactions since the previous report.",
+    "Close": "Close",
+    "Generate Report": "Generate Report",
+    "Date Range Report": "Date Range Report",
+    "Report Period": "Report Period",
+    "Transactions": "Transactions",
+    "Total before selected date range": "Total before selected date range",
+    "Total after selected date range": "Total after selected date range",
+    "No transactions in the selected date range.": "No transactions in the selected date range."
 }

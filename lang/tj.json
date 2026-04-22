@@ -137,5 +137,13 @@
     "Older Transaction Totals": "Ҷамъи амалиётҳои кӯҳна",
     "Aggregated total for transactions older than the latest 25": "Ҷамъи умумӣ барои амалиётҳое, ки аз 25 амалиёти охирин кӯҳнаанд",
     "Total for transactions shown in previous reports": "Ҷамъи амалиётҳое, ки дар ҳисоботҳои қаблӣ нишон дода шудаанд",
-    "No new transactions since the previous report.": "Аз ҳисоботи қаблӣ то ҳоло амалиёти нав нест."
+    "No new transactions since the previous report.": "Аз ҳисоботи қаблӣ то ҳоло амалиёти нав нест.",
+    "Close": "Пӯшидан",
+    "Generate Report": "Сохтани ҳисобот",
+    "Date Range Report": "Ҳисобот барои давра",
+    "Report Period": "Давраи ҳисобот",
+    "Transactions": "Амалиётҳо",
+    "Total before selected date range": "Ҷамъ то давраи интихобшуда",
+    "Total after selected date range": "Ҷамъ баъд аз давраи интихобшуда",
+    "No transactions in the selected date range.": "Дар давраи интихобшуда амалиёт нест."
 }

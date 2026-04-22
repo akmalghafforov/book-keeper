@@ -137,5 +137,13 @@
     "Older Transaction Totals": "Итог по старым транзакциям",
     "Aggregated total for transactions older than the latest 25": "Суммарный итог по транзакциям старше последних 25",
     "Total for transactions shown in previous reports": "Итог по транзакциям, показанным в предыдущих отчетах",
-    "No new transactions since the previous report.": "С момента предыдущего отчета новых транзакций нет."
+    "No new transactions since the previous report.": "С момента предыдущего отчета новых транзакций нет.",
+    "Close": "Закрыть",
+    "Generate Report": "Создать отчет",
+    "Date Range Report": "Отчет за период",
+    "Report Period": "Период отчета",
+    "Transactions": "Операции",
+    "Total before selected date range": "Итог до выбранного периода",
+    "Total after selected date range": "Итог после выбранного периода",
+    "No transactions in the selected date range.": "В выбранном периоде операций нет."
 }
