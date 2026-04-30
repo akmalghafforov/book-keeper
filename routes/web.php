@@ -35,6 +35,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('debt-ledgers.potential-duplicates.resolve');
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
         Route::get('operations', [\App\Http\Controllers\Admin\OperationController::class, 'index'])->name('operations.index');
+        Route::get('whatsapp-imports', [\App\Http\Controllers\Admin\WhatsAppImportController::class, 'index'])->name('whatsapp-imports.index');
+        Route::post('whatsapp-imports', [\App\Http\Controllers\Admin\WhatsAppImportController::class, 'store'])->name('whatsapp-imports.store');
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
