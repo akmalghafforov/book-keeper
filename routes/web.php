@@ -40,6 +40,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('whatsapp-tasks', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'index'])->name('whatsapp-tasks.index');
         Route::get('whatsapp-tasks/created', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'created'])->name('whatsapp-tasks.created');
         Route::post('whatsapp-tasks', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'store'])->name('whatsapp-tasks.store');
+        Route::post('whatsapp-tasks/{whatsappTask}/extracted-goods-pieces', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'storeExtractedGoodsPieces'])->name('whatsapp-tasks.extracted-goods-pieces.store');
+        Route::post('whatsapp-tasks/{whatsappTask}/extracted-payment', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'storeExtractedPayment'])->name('whatsapp-tasks.extracted-payment.store');
+        Route::post('whatsapp-tasks/{whatsappTask}/extracted-client-transfer', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'storeExtractedClientTransfer'])->name('whatsapp-tasks.extracted-client-transfer.store');
         Route::post('whatsapp-tasks/messages/delete', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'destroyMessages'])->name('whatsapp-tasks.messages.destroy');
 
         Route::prefix('reports')->name('reports.')->group(function () {

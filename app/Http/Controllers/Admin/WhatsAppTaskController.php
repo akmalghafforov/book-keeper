@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\DebtLedger;
+use App\Models\Distribution;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppTask;
+use App\Services\WhatsAppTaskDataExtractor;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,16 +61,22 @@ class WhatsAppTaskController extends Controller
         ]);
     }
 
-    public function created(): View
+    public function created(WhatsAppTaskDataExtractor $extractor): View
     {
+        $tasks = WhatsAppTask::query()
+            ->with(['client', 'creditClient', 'creator', 'messages' => function ($query) {
+                $query->orderByDesc('message_at')->orderByDesc('whatsapp_messages.id');
+            }])
+            ->withCount('messages')
+            ->latest()
+            ->paginate(20);
+
+        $tasks->getCollection()->each(function (WhatsAppTask $task) use ($extractor) {
+            $task->extractedData = $extractor->extract($task);
+        });
+
         return view('admin.whatsapp-tasks.created', [
-            'tasks' => WhatsAppTask::query()
-                ->with(['client', 'creditClient', 'creator', 'messages' => function ($query) {
-                    $query->orderByDesc('message_at')->orderByDesc('whatsapp_messages.id');
-                }])
-                ->withCount('messages')
-                ->latest()
-                ->paginate(20),
+            'tasks' => $tasks,
         ]);
     }
 
@@ -112,6 +121,124 @@ class WhatsAppTaskController extends Controller
         return redirect()
             ->route('admin.whatsapp-tasks.index')
             ->with('success', __('WhatsApp task #:id created successfully.', ['id' => $task->id]));
+    }
+
+    public function storeExtractedGoodsPieces(Request $request, WhatsAppTask $whatsappTask): RedirectResponse
+    {
+        abort_unless($whatsappTask->task_type === WhatsAppTask::TYPE_GOODS_PIECES, 404);
+
+        $validated = $request->validate([
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'client_id' => ['required', 'exists:clients,id'],
+            'product_id' => [
+                'required',
+                Rule::exists('products', 'id')->where(function ($query) {
+                    $query->whereNull('default_unit')
+                        ->orWhere('default_unit', '!=', 'per_ton');
+                }),
+            ],
+            'quantity' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $subtotal = $validated['quantity'] * $validated['price'];
+
+        DB::transaction(function () use ($validated, $subtotal, $whatsappTask) {
+            Distribution::query()->create([
+                'supplier_id' => $validated['supplier_id'] ?? null,
+                'client_id' => $validated['client_id'],
+                'product_id' => $validated['product_id'],
+                'quantity_unit' => 'per_piece',
+                'quantity' => $validated['quantity'],
+                'price' => $validated['price'],
+                'subtotal' => $subtotal,
+                'distribution_date' => ($whatsappTask->task_date ?? now())->format('Y-m-d'),
+            ]);
+
+            $whatsappTask->update([
+                'status' => 'completed',
+                'client_id' => $validated['client_id'],
+                'amount' => $subtotal,
+            ]);
+        });
+
+        return redirect()
+            ->route('admin.whatsapp-tasks.created')
+            ->with('success', __('Extracted WhatsApp task values saved successfully.'));
+    }
+
+    public function storeExtractedPayment(Request $request, WhatsAppTask $whatsappTask): RedirectResponse
+    {
+        abort_unless($whatsappTask->task_type === WhatsAppTask::TYPE_PAYMENT, 404);
+
+        $validated = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+        ]);
+
+        DB::transaction(function () use ($validated, $whatsappTask) {
+            DebtLedger::query()->create([
+                'client_id' => $validated['client_id'],
+                'type' => 'payment',
+                'amount' => $validated['amount'],
+                'transaction_date' => ($whatsappTask->task_date ?? now())->format('Y-m-d'),
+                'notes' => 'Auto-generated payment from WhatsApp Task #' . $whatsappTask->id,
+            ]);
+
+            $whatsappTask->update([
+                'status' => 'completed',
+                'client_id' => $validated['client_id'],
+                'amount' => $validated['amount'],
+            ]);
+        });
+
+        return redirect()
+            ->route('admin.whatsapp-tasks.created')
+            ->with('success', __('Extracted WhatsApp payment saved successfully.'));
+    }
+
+    public function storeExtractedClientTransfer(Request $request, WhatsAppTask $whatsappTask): RedirectResponse
+    {
+        abort_unless($whatsappTask->task_type === WhatsAppTask::TYPE_CLIENT_TRANSFER, 404);
+
+        $validated = $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'credit_client_id' => ['required', 'exists:clients,id', 'different:client_id'],
+            'quantity' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $amount = $validated['quantity'] * $validated['price'];
+        $transactionDate = ($whatsappTask->task_date ?? now())->format('Y-m-d');
+
+        DB::transaction(function () use ($validated, $amount, $transactionDate, $whatsappTask) {
+            DebtLedger::query()->create([
+                'client_id' => $validated['client_id'],
+                'type' => 'charge',
+                'amount' => $amount,
+                'transaction_date' => $transactionDate,
+                'notes' => 'Auto-generated client transfer charge from WhatsApp Task #' . $whatsappTask->id,
+            ]);
+
+            DebtLedger::query()->create([
+                'client_id' => $validated['credit_client_id'],
+                'type' => 'credit_note',
+                'amount' => $amount,
+                'transaction_date' => $transactionDate,
+                'notes' => 'Auto-generated client transfer credit from WhatsApp Task #' . $whatsappTask->id,
+            ]);
+
+            $whatsappTask->update([
+                'status' => 'completed',
+                'client_id' => $validated['client_id'],
+                'credit_client_id' => $validated['credit_client_id'],
+                'amount' => $amount,
+            ]);
+        });
+
+        return redirect()
+            ->route('admin.whatsapp-tasks.created')
+            ->with('success', __('Extracted WhatsApp client transfer saved successfully.'));
     }
 
     public function destroyMessages(Request $request): RedirectResponse

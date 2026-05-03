@@ -3,6 +3,8 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Client;
+use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppTask;
@@ -62,6 +64,287 @@ class WhatsAppTaskControllerTest extends TestCase
             ->assertSee('Created page note.')
             ->assertSee('first attached task message')
             ->assertSee('second attached task message');
+    }
+
+    public function test_created_goods_pieces_task_shows_extracted_value_selection_form(): void
+    {
+        $client = Client::factory()->create(['name' => 'Ahmad Market']);
+        $product = Product::factory()->create([
+            'name' => 'Mohir Cement',
+            'default_unit' => 'per_piece',
+        ]);
+        $tonProduct = Product::factory()->create([
+            'name' => 'Mohir Tons',
+            'default_unit' => 'per_ton',
+        ]);
+        $supplier = Supplier::factory()->create([
+            'car_number' => 'AA-1234',
+            'car_color' => 'white',
+        ]);
+        $message = $this->createMessage([
+            'body' => 'Ahmad bozori Mohir 500 ta narx 12.50 moshin AA-1234',
+        ]);
+
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_GOODS_PIECES,
+            'status' => 'pending',
+        ]);
+        $task->messages()->attach($message);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->get(route('admin.whatsapp-tasks.created'));
+
+        $response
+            ->assertOk()
+            ->assertSee('name="client_id"', false)
+            ->assertSee('name="product_id"', false)
+            ->assertSee('name="quantity"', false)
+            ->assertSee('name="price"', false)
+            ->assertSee('name="supplier_id"', false)
+            ->assertSee($client->name)
+            ->assertSee($product->name)
+            ->assertDontSee($tonProduct->name)
+            ->assertSee('<option value="500">500</option>', false)
+            ->assertSee('<option value="12.50">12.50</option>', false)
+            ->assertSee($supplier->car_number);
+    }
+
+    public function test_admin_can_save_extracted_goods_pieces_values(): void
+    {
+        $client = Client::factory()->create();
+        $product = Product::factory()->create(['default_unit' => 'per_piece']);
+        $supplier = Supplier::factory()->create();
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_GOODS_PIECES,
+            'status' => 'pending',
+            'task_date' => '2026-05-04',
+        ]);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->post(route('admin.whatsapp-tasks.extracted-goods-pieces.store', $task), [
+                'supplier_id' => $supplier->id,
+                'client_id' => $client->id,
+                'product_id' => $product->id,
+                'quantity' => '500',
+                'price' => '12.50',
+            ]);
+
+        $response
+            ->assertRedirect(route('admin.whatsapp-tasks.created'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('distributions', [
+            'supplier_id' => $supplier->id,
+            'client_id' => $client->id,
+            'product_id' => $product->id,
+            'quantity_unit' => 'per_piece',
+            'quantity' => 500,
+            'price' => 12.50,
+            'subtotal' => 6250,
+            'distribution_date' => '2026-05-04 00:00:00',
+        ]);
+
+        $this->assertDatabaseHas('whatsapp_tasks', [
+            'id' => $task->id,
+            'status' => 'completed',
+            'client_id' => $client->id,
+            'amount' => 6250,
+        ]);
+    }
+
+    public function test_admin_cannot_save_extracted_goods_pieces_with_per_ton_product(): void
+    {
+        $client = Client::factory()->create();
+        $product = Product::factory()->create(['default_unit' => 'per_ton']);
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_GOODS_PIECES,
+            'status' => 'pending',
+        ]);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->from(route('admin.whatsapp-tasks.created'))
+            ->post(route('admin.whatsapp-tasks.extracted-goods-pieces.store', $task), [
+                'client_id' => $client->id,
+                'product_id' => $product->id,
+                'quantity' => '500',
+                'price' => '12.50',
+            ]);
+
+        $response
+            ->assertRedirect(route('admin.whatsapp-tasks.created'))
+            ->assertSessionHasErrors('product_id');
+
+        $this->assertDatabaseCount('distributions', 0);
+    }
+
+    public function test_created_payment_task_shows_extracted_client_and_editable_amount(): void
+    {
+        $client = Client::factory()->create(['name' => 'Rahim Store']);
+        $message = $this->createMessage([
+            'body' => 'Rahim magazin oplata 750 somoni',
+        ]);
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_PAYMENT,
+            'status' => 'pending',
+        ]);
+        $task->messages()->attach($message);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->get(route('admin.whatsapp-tasks.created'));
+
+        $response
+            ->assertOk()
+            ->assertSee(route('admin.whatsapp-tasks.extracted-payment.store', $task), false)
+            ->assertSee('name="client_id"', false)
+            ->assertSee('name="amount"', false)
+            ->assertSee('value="750"', false)
+            ->assertSee($client->name);
+    }
+
+    public function test_created_payment_task_extracts_amount_when_number_touches_text(): void
+    {
+        $client = Client::factory()->create(['name' => 'Rahim Store']);
+        $message = $this->createMessage([
+            'body' => 'Rahim 70хаз',
+        ]);
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_PAYMENT,
+            'status' => 'pending',
+        ]);
+        $task->messages()->attach($message);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->get(route('admin.whatsapp-tasks.created'));
+
+        $response
+            ->assertOk()
+            ->assertSee(route('admin.whatsapp-tasks.extracted-payment.store', $task), false)
+            ->assertSee('name="amount"', false)
+            ->assertSee('value="70"', false)
+            ->assertSee($client->name);
+    }
+
+    public function test_admin_can_save_extracted_payment_values(): void
+    {
+        $client = Client::factory()->create();
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_PAYMENT,
+            'status' => 'pending',
+            'task_date' => '2026-05-04',
+        ]);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->post(route('admin.whatsapp-tasks.extracted-payment.store', $task), [
+                'client_id' => $client->id,
+                'amount' => '750.25',
+            ]);
+
+        $response
+            ->assertRedirect(route('admin.whatsapp-tasks.created'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('debt_ledgers', [
+            'client_id' => $client->id,
+            'type' => 'payment',
+            'amount' => 750.25,
+            'transaction_date' => '2026-05-04 00:00:00',
+            'notes' => 'Auto-generated payment from WhatsApp Task #' . $task->id,
+        ]);
+
+        $this->assertDatabaseHas('whatsapp_tasks', [
+            'id' => $task->id,
+            'status' => 'completed',
+            'client_id' => $client->id,
+            'amount' => 750.25,
+        ]);
+    }
+
+    public function test_created_client_transfer_task_shows_two_clients_and_editable_quantity_price(): void
+    {
+        $fromClient = Client::factory()->create(['name' => 'Said Shop']);
+        $toClient = Client::factory()->create(['name' => 'Karim Market']);
+        $message = $this->createMessage([
+            'body' => 'Said qarz Karim ga 20 ta narx 35',
+        ]);
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_CLIENT_TRANSFER,
+            'status' => 'pending',
+        ]);
+        $task->messages()->attach($message);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->get(route('admin.whatsapp-tasks.created'));
+
+        $response
+            ->assertOk()
+            ->assertSee(route('admin.whatsapp-tasks.extracted-client-transfer.store', $task), false)
+            ->assertSee('name="client_id"', false)
+            ->assertSee('name="credit_client_id"', false)
+            ->assertSee('name="quantity"', false)
+            ->assertSee('name="price"', false)
+            ->assertSeeInOrder([
+                'name="quantity"',
+                'value="20"',
+                'name="price"',
+                'value="35"',
+            ], false)
+            ->assertSee($fromClient->name)
+            ->assertSee($toClient->name);
+    }
+
+    public function test_admin_can_save_extracted_client_transfer_values(): void
+    {
+        $fromClient = Client::factory()->create();
+        $toClient = Client::factory()->create();
+        $task = WhatsAppTask::query()->create([
+            'task_type' => WhatsAppTask::TYPE_CLIENT_TRANSFER,
+            'status' => 'pending',
+            'task_date' => '2026-05-04',
+        ]);
+
+        $response = $this
+            ->actingAs(User::factory()->create())
+            ->post(route('admin.whatsapp-tasks.extracted-client-transfer.store', $task), [
+                'client_id' => $fromClient->id,
+                'credit_client_id' => $toClient->id,
+                'quantity' => '20',
+                'price' => '35',
+            ]);
+
+        $response
+            ->assertRedirect(route('admin.whatsapp-tasks.created'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('debt_ledgers', [
+            'client_id' => $fromClient->id,
+            'type' => 'charge',
+            'amount' => 700,
+            'transaction_date' => '2026-05-04 00:00:00',
+            'notes' => 'Auto-generated client transfer charge from WhatsApp Task #' . $task->id,
+        ]);
+
+        $this->assertDatabaseHas('debt_ledgers', [
+            'client_id' => $toClient->id,
+            'type' => 'credit_note',
+            'amount' => 700,
+            'transaction_date' => '2026-05-04 00:00:00',
+            'notes' => 'Auto-generated client transfer credit from WhatsApp Task #' . $task->id,
+        ]);
+
+        $this->assertDatabaseHas('whatsapp_tasks', [
+            'id' => $task->id,
+            'status' => 'completed',
+            'client_id' => $fromClient->id,
+            'credit_client_id' => $toClient->id,
+            'amount' => 700,
+        ]);
     }
 
     public function test_admin_whatsapp_tasks_page_shows_recent_messages_first(): void

@@ -162,5 +162,18 @@
     "messages": "сообщений",
     "pending": "в ожидании",
     "completed": "выполнено",
-    "cancelled": "отменено"
+    "cancelled": "отменено",
+    "Extracted task values": "Извлеченные значения задачи",
+    "Review and select the values detected from WhatsApp messages.": "Проверьте и выберите значения, найденные в сообщениях WhatsApp.",
+    "Select quantity": "Выберите количество",
+    "Select price": "Выберите цену",
+    "Supplier car": "Машина поставщика",
+    "Select supplier car": "Выберите машину поставщика",
+    "Save selected values": "Сохранить выбранные значения",
+    "Extracted WhatsApp task values saved successfully.": "Извлеченные значения задачи WhatsApp успешно сохранены.",
+    "Extracted payment values": "Извлеченные значения оплаты",
+    "Review and edit the values detected from WhatsApp messages.": "Проверьте и измените значения, найденные в сообщениях WhatsApp.",
+    "Extracted WhatsApp payment saved successfully.": "Извлеченная оплата WhatsApp успешно сохранена.",
+    "Extracted client transfer values": "Извлеченные значения перевода между клиентами",
+    "Extracted WhatsApp client transfer saved successfully.": "Извлеченный перевод между клиентами WhatsApp успешно сохранен."
 }

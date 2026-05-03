@@ -157,5 +157,18 @@
     "messages": "messages",
     "pending": "pending",
     "completed": "completed",
-    "cancelled": "cancelled"
+    "cancelled": "cancelled",
+    "Extracted task values": "Extracted task values",
+    "Review and select the values detected from WhatsApp messages.": "Review and select the values detected from WhatsApp messages.",
+    "Select quantity": "Select quantity",
+    "Select price": "Select price",
+    "Supplier car": "Supplier car",
+    "Select supplier car": "Select supplier car",
+    "Save selected values": "Save selected values",
+    "Extracted WhatsApp task values saved successfully.": "Extracted WhatsApp task values saved successfully.",
+    "Extracted payment values": "Extracted payment values",
+    "Review and edit the values detected from WhatsApp messages.": "Review and edit the values detected from WhatsApp messages.",
+    "Extracted WhatsApp payment saved successfully.": "Extracted WhatsApp payment saved successfully.",
+    "Extracted client transfer values": "Extracted client transfer values",
+    "Extracted WhatsApp client transfer saved successfully.": "Extracted WhatsApp client transfer saved successfully."
 }

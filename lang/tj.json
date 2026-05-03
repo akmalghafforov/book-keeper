@@ -162,5 +162,18 @@
     "messages": "паём",
     "pending": "дар интизор",
     "completed": "иҷро шуд",
-    "cancelled": "бекор шуд"
+    "cancelled": "бекор шуд",
+    "Extracted task values": "Қиматҳои ҷудошудаи вазифа",
+    "Review and select the values detected from WhatsApp messages.": "Қиматҳои аз паёмҳои WhatsApp ёфтшударо санҷед ва интихоб кунед.",
+    "Select quantity": "Миқдорро интихоб кунед",
+    "Select price": "Нархро интихоб кунед",
+    "Supplier car": "Мошини таъминкунанда",
+    "Select supplier car": "Мошини таъминкунандаро интихоб кунед",
+    "Save selected values": "Қиматҳои интихобшударо сабт кунед",
+    "Extracted WhatsApp task values saved successfully.": "Қиматҳои ҷудошудаи вазифаи WhatsApp бомуваффақият сабт шуданд.",
+    "Extracted payment values": "Қиматҳои ҷудошудаи пардохт",
+    "Review and edit the values detected from WhatsApp messages.": "Қиматҳои аз паёмҳои WhatsApp ёфтшударо санҷед ва таҳрир кунед.",
+    "Extracted WhatsApp payment saved successfully.": "Пардохти ҷудошудаи WhatsApp бомуваффақият сабт шуд.",
+    "Extracted client transfer values": "Қиматҳои ҷудошудаи интиқоли байни мизоҷон",
+    "Extracted WhatsApp client transfer saved successfully.": "Интиқоли ҷудошудаи WhatsApp байни мизоҷон бомуваффақият сабт шуд."
 }
