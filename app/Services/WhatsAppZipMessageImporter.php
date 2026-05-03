@@ -6,6 +6,7 @@ use App\Models\WhatsAppMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use ZipArchive;
 
@@ -69,6 +70,7 @@ class WhatsAppZipMessageImporter
         }
 
         try {
+            $sourceArchiveName = $sourceArchive ?? basename($zipPath);
             $textFileIndex = $this->findTextFileIndex($zip);
             $textFileName = (string) $zip->getNameIndex($textFileIndex);
             $contents = $zip->getFromIndex($textFileIndex);
@@ -76,12 +78,15 @@ class WhatsAppZipMessageImporter
             if ($contents === false) {
                 throw new RuntimeException("Unable to read WhatsApp text export from ZIP: {$zipPath}");
             }
+
+            $messages = $this->parseText($contents, $sourceArchiveName, $textFileName);
+            $this->extractAttachments($zip, $messages, $sourceArchiveName);
         } finally {
             $zip->close();
         }
 
         return [
-            'messages' => $this->parseText($contents, $sourceArchive ?? basename($zipPath), $textFileName),
+            'messages' => $messages,
             'text_file' => $textFileName,
         ];
     }
@@ -136,6 +141,52 @@ class WhatsAppZipMessageImporter
         }
 
         throw new RuntimeException('WhatsApp ZIP file does not contain a text export.');
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $messages
+     */
+    private function extractAttachments(ZipArchive $zip, Collection $messages, string $sourceArchive): void
+    {
+        $attachmentFilenames = $messages
+            ->pluck('attachment_filename')
+            ->filter(fn ($filename) => is_string($filename) && $filename !== '')
+            ->unique()
+            ->values();
+
+        if ($attachmentFilenames->isEmpty()) {
+            return;
+        }
+
+        $zipFileIndexesByBasename = [];
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $name = (string) $zip->getNameIndex($index);
+            $basename = basename(str_replace('\\', '/', $name));
+
+            if ($basename !== '') {
+                $zipFileIndexesByBasename[$basename] = $index;
+            }
+        }
+
+        foreach ($attachmentFilenames as $attachmentFilename) {
+            $zipFileIndex = $zipFileIndexesByBasename[$attachmentFilename] ?? null;
+
+            if ($zipFileIndex === null) {
+                continue;
+            }
+
+            $contents = $zip->getFromIndex($zipFileIndex);
+
+            if ($contents === false) {
+                continue;
+            }
+
+            Storage::disk('public')->put(
+                WhatsAppMessage::attachmentStoragePathFor($sourceArchive, $attachmentFilename),
+                $contents,
+            );
+        }
     }
 
     /**

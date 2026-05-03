@@ -145,5 +145,22 @@
     "Transactions": "Операции",
     "Total before selected date range": "Итог до выбранного периода",
     "Total after selected date range": "Итог после выбранного периода",
-    "No transactions in the selected date range.": "В выбранном периоде операций нет."
+    "No transactions in the selected date range.": "В выбранном периоде операций нет.",
+    "Debt for goods paid by pieces": "Долг за товар, расчет по штукам",
+    "Debt for goods paid by tons": "Долг за товар, расчет по тоннам",
+    "Debt transfer between clients": "Перевод долга между клиентами",
+    "Debt payment of a client": "Оплата долга клиента",
+    "Created WhatsApp Tasks": "Созданные задачи WhatsApp",
+    "Created tasks": "Созданные задачи",
+    "All tasks created from imported WhatsApp messages.": "Все задачи, созданные из импортированных сообщений WhatsApp.",
+    "Task": "Задача",
+    "Task date": "Дата задачи",
+    "Messages": "Сообщения",
+    "Created": "Создано",
+    "Credit": "Кредит",
+    "No tasks created yet.": "Задачи еще не созданы.",
+    "messages": "сообщений",
+    "pending": "в ожидании",
+    "completed": "выполнено",
+    "cancelled": "отменено"
 }

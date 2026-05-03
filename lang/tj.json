@@ -145,5 +145,22 @@
     "Transactions": "Амалиётҳо",
     "Total before selected date range": "Ҷамъ то давраи интихобшуда",
     "Total after selected date range": "Ҷамъ баъд аз давраи интихобшуда",
-    "No transactions in the selected date range.": "Дар давраи интихобшуда амалиёт нест."
+    "No transactions in the selected date range.": "Дар давраи интихобшуда амалиёт нест.",
+    "Debt for goods paid by pieces": "Қарз донаги",
+    "Debt for goods paid by tons": "Қарз рассипной",
+    "Debt transfer between clients": "Қарз байни мизоҷон",
+    "Debt payment of a client": "Пардохти қарз",
+    "Created WhatsApp Tasks": "Вазифаҳои сохташудаи WhatsApp",
+    "Created tasks": "Вазифаҳои сохташуда",
+    "All tasks created from imported WhatsApp messages.": "Ҳамаи вазифаҳое, ки аз паёмҳои воридшудаи WhatsApp сохта шудаанд.",
+    "Task": "Вазифа",
+    "Task date": "Санаи вазифа",
+    "Messages": "Паёмҳо",
+    "Created": "Сохта шуд",
+    "Credit": "Кредит",
+    "No tasks created yet.": "Ҳоло вазифа сохта нашудааст.",
+    "messages": "паём",
+    "pending": "дар интизор",
+    "completed": "иҷро шуд",
+    "cancelled": "бекор шуд"
 }

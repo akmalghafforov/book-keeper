@@ -140,5 +140,22 @@
     "Transactions": "Transactions",
     "Total before selected date range": "Total before selected date range",
     "Total after selected date range": "Total after selected date range",
-    "No transactions in the selected date range.": "No transactions in the selected date range."
+    "No transactions in the selected date range.": "No transactions in the selected date range.",
+    "Debt for goods paid by pieces": "Debt for goods paid by pieces",
+    "Debt for goods paid by tons": "Debt for goods paid by tons",
+    "Debt transfer between clients": "Debt transfer between clients",
+    "Debt payment of a client": "Debt payment of a client",
+    "Created WhatsApp Tasks": "Created WhatsApp Tasks",
+    "Created tasks": "Created tasks",
+    "All tasks created from imported WhatsApp messages.": "All tasks created from imported WhatsApp messages.",
+    "Task": "Task",
+    "Task date": "Task date",
+    "Messages": "Messages",
+    "Created": "Created",
+    "Credit": "Credit",
+    "No tasks created yet.": "No tasks created yet.",
+    "messages": "messages",
+    "pending": "pending",
+    "completed": "completed",
+    "cancelled": "cancelled"
 }

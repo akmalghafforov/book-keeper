@@ -7,6 +7,7 @@ use App\Models\WhatsAppMessage;
 use App\Services\WhatsAppZipMessageImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -92,6 +93,27 @@ class WhatsAppZipImportTest extends TestCase
         $this->assertDatabaseCount('whatsapp_messages', 2);
     }
 
+    public function test_import_extracts_attached_images_for_preview(): void
+    {
+        Storage::fake('public');
+
+        $zipPath = storage_path('framework/testing/whatsapp-image-export.zip');
+        $this->createZip($zipPath, implode("\n", [
+            '02.03.2026, 08:41 - Амаки Хайруллоҳ: ‎IMG-20260302-WA0001.jpg (файл добавлен)',
+            '32.08',
+        ]), [
+            'IMG-20260302-WA0001.jpg' => 'image-bytes',
+        ]);
+
+        app(WhatsAppZipMessageImporter::class)->import($zipPath);
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        Storage::disk('public')->assertExists($message->attachmentStoragePath());
+        $this->assertSame('IMG-20260302-WA0001.jpg', $message->attachment_filename);
+        $this->assertNotNull($message->attachmentUrl());
+    }
+
     public function test_admin_can_upload_zip_and_run_import_from_ui(): void
     {
         $zipPath = storage_path('framework/testing/ui-export.zip');
@@ -123,11 +145,19 @@ class WhatsAppZipImportTest extends TestCase
         $this->assertDatabaseCount('whatsapp_messages', 2);
     }
 
-    private function createZip(string $path, string $text): void
+    /**
+     * @param  array<string, string>  $files
+     */
+    private function createZip(string $path, string $text, array $files = []): void
     {
         $zip = new ZipArchive;
         $this->assertTrue($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE));
         $this->assertTrue($zip->addFromString('chat.txt', $text));
+
+        foreach ($files as $name => $contents) {
+            $this->assertTrue($zip->addFromString($name, $contents));
+        }
+
         $this->assertTrue($zip->close());
     }
 }

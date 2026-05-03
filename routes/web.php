@@ -37,6 +37,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('operations', [\App\Http\Controllers\Admin\OperationController::class, 'index'])->name('operations.index');
         Route::get('whatsapp-imports', [\App\Http\Controllers\Admin\WhatsAppImportController::class, 'index'])->name('whatsapp-imports.index');
         Route::post('whatsapp-imports', [\App\Http\Controllers\Admin\WhatsAppImportController::class, 'store'])->name('whatsapp-imports.store');
+        Route::get('whatsapp-tasks', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'index'])->name('whatsapp-tasks.index');
+        Route::get('whatsapp-tasks/created', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'created'])->name('whatsapp-tasks.created');
+        Route::post('whatsapp-tasks', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'store'])->name('whatsapp-tasks.store');
+        Route::post('whatsapp-tasks/messages/delete', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'destroyMessages'])->name('whatsapp-tasks.messages.destroy');
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
