@@ -22,7 +22,7 @@
         >
             <form method="POST" :action="rangeReportAction" class="space-y-5">
                 @csrf
-                <input type="hidden" name="format" value="png">
+                <input type="hidden" name="format" value="jpg">
 
                 <div class="space-y-1">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ __('Date Range Report') }}</h3>

@@ -86,15 +86,15 @@ class GenerateClientDebtReport implements ShouldQueue
                 $page->setImageFormat($format);
                 $page->setImageBackgroundColor('white');
                 $page->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+                $this->applyMobileShareImageCompatibility($page, $format);
             }
 
             $imagick->resetIterator();
             $combined = $imagick->appendImages(true);
             $combined->setImageFormat($format);
-
-            if ($format === 'jpg') {
-                $combined->setImageCompressionQuality(100);
-            }
+            $combined->setImageBackgroundColor('white');
+            $combined->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+            $this->applyMobileShareImageCompatibility($combined, $format);
 
             $imageContent = $combined->getImageBlob();
             Storage::disk('public')->put($path, $imageContent);
@@ -183,5 +183,22 @@ class GenerateClientDebtReport implements ShouldQueue
         $pdf->render();
 
         return max(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
+    }
+
+    private function applyMobileShareImageCompatibility(Imagick $image, string $format): void
+    {
+        $image->setImageColorspace(Imagick::COLORSPACE_RGB);
+        $image->setImageDepth(8);
+        $image->setImageType(Imagick::IMGTYPE_TRUECOLOR);
+        $image->setImageInterlaceScheme(Imagick::INTERLACE_NO);
+        $image->stripImage();
+
+        if ($format === 'jpg') {
+            $image->setImageCompression(Imagick::COMPRESSION_JPEG);
+            $image->setImageCompressionQuality(92);
+        } elseif ($format === 'png') {
+            $image->setImageCompression(Imagick::COMPRESSION_ZIP);
+            $image->setImageCompressionQuality(9);
+        }
     }
 }

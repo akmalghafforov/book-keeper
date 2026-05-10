@@ -1,4 +1,76 @@
 <script>
+    function isAndroidChrome() {
+        const userAgent = navigator.userAgent || '';
+
+        return /Android/i.test(userAgent) && /Chrome\//i.test(userAgent) && !/EdgA|OPR|Firefox/i.test(userAgent);
+    }
+
+    function blobToImage(blob) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            const objectUrl = URL.createObjectURL(blob);
+
+            image.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(image);
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error('{{ __('Failed to prepare report image.') }}'));
+            };
+            image.src = objectUrl;
+        });
+    }
+
+    async function convertBlobToClipboardPng(blob) {
+        const image = await blobToImage(blob);
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+
+        const context = canvas.getContext('2d', { alpha: false });
+        if (!context) {
+            throw new Error('{{ __('Failed to prepare report image.') }}');
+        }
+
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0);
+
+        return await new Promise((resolve, reject) => {
+            canvas.toBlob((pngBlob) => {
+                if (pngBlob) {
+                    resolve(pngBlob);
+                } else {
+                    reject(new Error('{{ __('Failed to prepare report image.') }}'));
+                }
+            }, 'image/png');
+        });
+    }
+
+    async function writeReportClipboard(imageBlob, whatsappText) {
+        const pngBlob = await convertBlobToClipboardPng(imageBlob);
+        const pngItem = { 'image/png': pngBlob };
+
+        if (isAndroidChrome()) {
+            await navigator.clipboard.write([new ClipboardItem(pngItem)]);
+
+            return;
+        }
+
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    ...pngItem,
+                    'text/plain': new Blob([whatsappText], { type: 'text/plain' }),
+                }),
+            ]);
+        } catch (combinedError) {
+            console.warn('Combined image/text copy failed, trying image only...', combinedError);
+            await navigator.clipboard.write([new ClipboardItem(pngItem)]);
+        }
+    }
+
     async function copyReportToClipboard(button, reportName, reportUrl) {
         const originalHtml = button.innerHTML;
         const btnText = button.querySelector('.btn-text');
@@ -36,46 +108,7 @@
             console.log('Fetched blob:', blob.type, blob.size);
 
             if (navigator.clipboard && window.ClipboardItem) {
-                try {
-                    // Try to copy both image and text
-                    console.log('Attempting to copy image and text...');
-                    
-                    // Note: Some browsers/apps only pick the first or last item if multiple are provided.
-                    // WhatsApp Web often ignores text if an image is present in the same ClipboardItem.
-                    // We try to provide them in a way that maximizes compatibility.
-                    
-                    let data;
-                    try {
-                        // Attempt 1: Separate items (some clipboard managers like this)
-                        data = [
-                            new ClipboardItem({ [blob.type]: blob }),
-                            new ClipboardItem({ 'text/plain': new Blob([whatsappText], { type: 'text/plain' }) })
-                        ];
-                        await navigator.clipboard.write(data);
-                        console.log('Separate items copy succeeded');
-                    } catch (e) {
-                        console.warn('Separate items copy failed, trying combined item...', e);
-                        // Attempt 2: Combined item (Standard way)
-                        data = [
-                            new ClipboardItem({ 
-                                [blob.type]: blob,
-                                'text/plain': new Blob([whatsappText], { type: 'text/plain' })
-                            }),
-                        ];
-                        await navigator.clipboard.write(data);
-                        console.log('Combined item copy succeeded');
-                    }
-                } catch (combinedError) {
-                    console.warn('Failed to copy combined data, trying image only...', combinedError);
-                    // Fallback: Try image only
-                    const data = [new ClipboardItem({ 
-                        [blob.type]: blob
-                    })];
-                    await navigator.clipboard.write(data);
-                    
-                    // If image only succeeded, notify user text wasn't copied
-                    console.log('Image only copy succeeded');
-                }
+                await writeReportClipboard(blob, whatsappText);
                 
                 button.classList.remove('text-blue-600', 'dark:text-blue-400');
                 button.classList.add('text-green-600', 'dark:text-green-400');
