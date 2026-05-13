@@ -53,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])->name('export');
             Route::post('/export-client-debt/{client}', [\App\Http\Controllers\Admin\ReportController::class, 'exportClientDebt'])->name('export-client-debt');
             Route::post('/export-client-debt-range/{client}', [\App\Http\Controllers\Admin\ReportController::class, 'exportClientDebtRange'])->name('export-client-debt-range');
+            Route::post('/export-operation-debt/{operation}', [\App\Http\Controllers\Admin\ReportController::class, 'exportOperationDebt'])->name('export-operation-debt');
             Route::post('/{report}/regenerate', [\App\Http\Controllers\Admin\ReportController::class, 'regenerate'])->name('regenerate');
         });
     });

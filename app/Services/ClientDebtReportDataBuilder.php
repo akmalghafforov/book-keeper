@@ -102,6 +102,7 @@ class ClientDebtReportDataBuilder
         $clientId = (int) ($report->parameters['client_id'] ?? 0);
         [$hasUpperBoundary, $upperLedgerId] = $this->resolveUpperLedgerBoundary($report);
         $rangeStart = Carbon::parse($report->parameters['range_start_date'])->startOfDay();
+        $rangeStartLedgerId = (int) ($report->parameters['range_start_ledger_id'] ?? 0);
         $rangeEnd = ! empty($report->parameters['range_end_date'])
             ? Carbon::parse($report->parameters['range_end_date'])->endOfDay()
             : null;
@@ -118,13 +119,20 @@ class ClientDebtReportDataBuilder
 
         $allLedgers = $client->debtLedgers->values();
         $openingLedgers = $allLedgers
-            ->filter(fn ($ledger) => $this->ledgerReportDate($ledger)->lt($rangeStart))
-            ->values();
-        $rangeLedgers = $allLedgers
-            ->filter(function ($ledger) use ($rangeStart, $rangeEnd) {
+            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId) {
                 $ledgerDate = $this->ledgerReportDate($ledger);
 
-                return $ledgerDate->gte($rangeStart)
+                return $ledgerDate->lt($rangeStart)
+                    || ($rangeStartLedgerId > 0 && $ledgerDate->eq($rangeStart) && $ledger->id < $rangeStartLedgerId);
+            })
+            ->values();
+        $rangeLedgers = $allLedgers
+            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeEnd) {
+                $ledgerDate = $this->ledgerReportDate($ledger);
+                $startsWithinRange = $ledgerDate->gt($rangeStart)
+                    || ($ledgerDate->eq($rangeStart) && ($rangeStartLedgerId <= 0 || $ledger->id >= $rangeStartLedgerId));
+
+                return $startsWithinRange
                     && ($rangeEnd === null || $ledgerDate->lte($rangeEnd));
             })
             ->values();

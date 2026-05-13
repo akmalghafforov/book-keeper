@@ -56,8 +56,43 @@ class OperationController extends Controller
         }
 
         $operations = $query->paginate(100)->withQueryString();
+        $this->hydrateOperationBalances($operations);
+
         $clients = Client::orderBy('name')->get();
 
         return view('admin.operations.index', compact('operations', 'clients'));
+    }
+
+    private function hydrateOperationBalances($operations): void
+    {
+        $displayedOperations = $operations->getCollection();
+
+        if ($displayedOperations->isEmpty()) {
+            return;
+        }
+
+        $displayedOperationIds = $displayedOperations->pluck('id')->all();
+        $displayedOperationIdLookup = array_flip($displayedOperationIds);
+        $balancesByClient = [];
+
+        DebtLedger::query()
+            ->whereIn('client_id', $displayedOperations->pluck('client_id')->unique()->all())
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get(['id', 'client_id', 'type', 'amount'])
+            ->each(function (DebtLedger $ledger) use (&$balancesByClient, $displayedOperationIdLookup, $displayedOperations): void {
+                $balancesByClient[$ledger->client_id] ??= 0.0;
+                $balancesByClient[$ledger->client_id] += $ledger->type === 'charge'
+                    ? (float) $ledger->amount
+                    : - (float) $ledger->amount;
+
+                if (! isset($displayedOperationIdLookup[$ledger->id])) {
+                    return;
+                }
+
+                $displayedOperations
+                    ->firstWhere('id', $ledger->id)
+                    ?->setAttribute('balance_after_operation', $balancesByClient[$ledger->client_id]);
+            });
     }
 }

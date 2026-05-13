@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\GenerateClientDebtReport;
 use App\Models\Client;
+use App\Models\DebtLedger;
 use App\Models\GeneratedReport;
 use App\Services\GeneratedReportLedgerBoundaryService;
 use Illuminate\Http\Request;
@@ -115,6 +116,40 @@ class ReportController extends Controller
 
         return redirect()->route('admin.reports.index')
             ->with('success', 'Date range report generation started for '.$client->name.'. Please wait.');
+    }
+
+    public function exportOperationDebt(Request $request, DebtLedger $operation)
+    {
+        $validated = $request->validate([
+            'format' => 'required|in:png,jpg',
+        ]);
+
+        $operation->loadMissing('client');
+
+        $rangeStart = Carbon::parse($operation->transaction_date ?? $operation->created_at)->startOfDay();
+        $cutoff = now();
+        $parameters = [
+            'client_id' => $operation->client_id,
+            'locale' => app()->getLocale(),
+            'cutoff_at' => $cutoff->toDateTimeString(),
+            'range_start_date' => $rangeStart->toDateString(),
+            'range_end_date' => null,
+            'range_start_ledger_id' => $operation->id,
+        ];
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: '.$operation->client->name.' (from operation #'.$operation->id.')',
+            'type' => 'single_client_debt_range',
+            'format' => $validated['format'],
+            'parameters' => $parameters,
+            'last_included_ledger_id' => $this->ledgerBoundaryService->snapshotLastIncludedLedgerId('single_client_debt_range', $parameters, $cutoff),
+            'status' => 'pending',
+        ]);
+
+        GenerateClientDebtReport::dispatch($report);
+
+        return redirect()->route('admin.reports.index')
+            ->with('success', 'Debt report generation started from the selected operation for '.$operation->client->name.'. Please wait.');
     }
 
     public function regenerate(GeneratedReport $report)

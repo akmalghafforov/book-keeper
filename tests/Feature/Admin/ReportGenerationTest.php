@@ -490,6 +490,39 @@ class ReportGenerationTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_export_operation_debt_starts_report_from_selected_operation(): void
+    {
+        Bus::fake();
+
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-04-10 12:00:00');
+        $operation = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-09',
+        ]);
+
+        $response = $this->actingAs($this->user)->post(route('admin.reports.export-operation-debt', $operation), [
+            'format' => 'jpg',
+        ]);
+
+        $response->assertRedirect(route('admin.reports.index'));
+
+        $report = GeneratedReport::query()->firstOrFail();
+
+        $this->assertSame('single_client_debt_range', $report->type);
+        $this->assertSame('jpg', $report->format);
+        $this->assertSame($client->id, $report->parameters['client_id']);
+        $this->assertSame('2026-04-09', $report->parameters['range_start_date']);
+        $this->assertNull($report->parameters['range_end_date']);
+        $this->assertSame($operation->id, $report->parameters['range_start_ledger_id']);
+        $this->assertSame($operation->id, $report->last_included_ledger_id);
+        Bus::assertDispatched(GenerateClientDebtReport::class);
+
+        Carbon::setTestNow();
+    }
+
     public function test_date_range_report_builder_lists_selected_transactions_and_summarizes_later_transactions(): void
     {
         $client = Client::factory()->create();
@@ -607,5 +640,58 @@ class ReportGenerationTest extends TestCase
         $this->assertSame(0, $payload->later_transactions_count);
         $this->assertFalse($payload->has_later_transactions);
         $this->assertEquals(130.0, (float) $payload->calculated_total_debt);
+    }
+
+    public function test_operation_started_date_range_report_uses_selected_ledger_as_exact_start(): void
+    {
+        $client = Client::factory()->create();
+
+        Carbon::setTestNow('2026-04-01 09:00:00');
+        $sameDayOpeningCharge = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-04-01 10:00:00');
+        $selectedPayment = DebtLedger::factory()->payment()->create([
+            'client_id' => $client->id,
+            'amount' => 40,
+            'transaction_date' => '2026-04-01',
+        ]);
+
+        Carbon::setTestNow('2026-04-02 09:00:00');
+        $laterCharge = DebtLedger::factory()->charge()->create([
+            'client_id' => $client->id,
+            'amount' => 70,
+            'transaction_date' => '2026-04-02',
+        ]);
+
+        Carbon::setTestNow('2026-04-02 10:00:00');
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: Test Client (from operation #'.$selectedPayment->id.')',
+            'type' => 'single_client_debt_range',
+            'format' => 'png',
+            'parameters' => [
+                'client_id' => $client->id,
+                'locale' => 'en',
+                'range_start_date' => '2026-04-01',
+                'range_end_date' => null,
+                'range_start_ledger_id' => $selectedPayment->id,
+            ],
+            'status' => 'pending',
+            'last_included_ledger_id' => $laterCharge->id,
+        ]);
+
+        Carbon::setTestNow();
+
+        $payload = app(ClientDebtReportDataBuilder::class)->build($report);
+
+        $this->assertSame(1, $payload->opening_balance_transactions_count);
+        $this->assertEquals(100.0, (float) $payload->opening_balance_total);
+        $this->assertSame([$selectedPayment->id, $laterCharge->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
+        $this->assertEquals(130.0, (float) $payload->calculated_total_debt);
+        $this->assertSame($sameDayOpeningCharge->id, $payload->debtLedgers->first()->id);
     }
 }
