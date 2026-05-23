@@ -580,6 +580,7 @@ class ReportGenerationTest extends TestCase
         $this->assertSame(1, $payload->opening_balance_transactions_count);
         $this->assertEquals(100.0, (float) $payload->opening_balance_total);
         $this->assertEquals(30.0, (float) $payload->selected_range_total);
+        $this->assertEquals(130.0, (float) $payload->range_closing_balance);
         $this->assertSame([$rangePayment->id, $rangeCharge->id], $payload->recentLedgers->pluck('id')->all());
         $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
         $this->assertSame(1, $payload->later_transactions_count);
@@ -637,6 +638,7 @@ class ReportGenerationTest extends TestCase
         $this->assertNull($payload->range_end_date);
         $this->assertEquals(100.0, (float) $payload->opening_balance_total);
         $this->assertEquals(30.0, (float) $payload->selected_range_total);
+        $this->assertEquals(130.0, (float) $payload->range_closing_balance);
         $this->assertSame([$rangePayment->id, $futureCharge->id], $payload->recentLedgers->pluck('id')->all());
         $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
         $this->assertSame(0, $payload->later_transactions_count);
@@ -692,6 +694,7 @@ class ReportGenerationTest extends TestCase
         $this->assertSame(1, $payload->opening_balance_transactions_count);
         $this->assertEquals(100.0, (float) $payload->opening_balance_total);
         $this->assertEquals(30.0, (float) $payload->selected_range_total);
+        $this->assertEquals(130.0, (float) $payload->range_closing_balance);
         $this->assertSame([$selectedPayment->id, $laterCharge->id], $payload->recentLedgers->pluck('id')->all());
         $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
         $this->assertEquals(130.0, (float) $payload->calculated_total_debt);
@@ -710,6 +713,7 @@ class ReportGenerationTest extends TestCase
         $client->range_start_date = Carbon::parse('2026-04-01');
         $client->range_end_date = Carbon::parse('2026-04-30');
         $client->selected_range_total = 30.0;
+        $client->range_closing_balance = 130.0;
         $client->calculated_total_debt = 110.0;
         $client->recentLedgers = collect();
         $client->has_opening_balance_transactions = false;
@@ -726,7 +730,7 @@ class ReportGenerationTest extends TestCase
         $normalizedHtml = preg_replace('/\s+/', ' ', $html);
 
         $this->assertStringContainsString('Selected Date Range Balance', $normalizedHtml);
-        $this->assertMatchesRegularExpression('/Selected Date Range Balance:<\/strong> <span class="debt-positive"> 30 <\/span>/', $normalizedHtml);
+        $this->assertMatchesRegularExpression('/Selected Date Range Balance:<\/strong> <span class="debt-positive"> 130 <\/span>/', $normalizedHtml);
         $this->assertStringNotContainsString('>110<', $normalizedHtml);
     }
 }

@@ -10,7 +10,7 @@
         $reportDate = $report->report_generated_at ?? now();
         $isDateRangeReport = ! empty($client->is_date_range_report);
         $summaryTotal = $isDateRangeReport
-            ? (float) ($client->selected_range_total ?? 0)
+            ? (float) ($client->range_closing_balance ?? $client->opening_balance_total ?? 0)
             : (float) $client->calculated_total_debt;
         $formatReportAmount = static function ($amount) {
             $amount = (float) $amount;
