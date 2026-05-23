@@ -143,6 +143,7 @@ class ClientDebtReportDataBuilder
                 ->values();
 
         $openingBalance = $this->sumLedgerBalanceDeltas($openingLedgers);
+        $selectedRangeTotal = $this->sumLedgerBalanceDeltas($rangeLedgers);
         $laterTransactionsTotal = $this->sumLedgerBalanceDeltas($laterLedgers);
 
         $client->is_date_range_report = true;
@@ -151,6 +152,7 @@ class ClientDebtReportDataBuilder
         $client->opening_balance_total = $openingBalance;
         $client->opening_balance_transactions_count = $openingLedgers->count();
         $client->has_opening_balance_transactions = $openingLedgers->isNotEmpty();
+        $client->selected_range_total = $selectedRangeTotal;
         $client->later_transactions_total = $laterTransactionsTotal;
         $client->later_transactions_count = $laterLedgers->count();
         $client->has_later_transactions = $laterLedgers->isNotEmpty();

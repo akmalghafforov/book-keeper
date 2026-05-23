@@ -9,6 +9,9 @@
     @php
         $reportDate = $report->report_generated_at ?? now();
         $isDateRangeReport = ! empty($client->is_date_range_report);
+        $summaryTotal = $isDateRangeReport
+            ? (float) ($client->selected_range_total ?? 0)
+            : (float) $client->calculated_total_debt;
         $formatReportAmount = static function ($amount) {
             $amount = (float) $amount;
 
@@ -38,9 +41,9 @@
             <div>{{ __('Phone') }}: {{ $client->phone }}</div>
         @endif
         <div style="margin-top: 10px; font-size: 16px;">
-            <strong>{{ __('Current Total Debt') }}:</strong>
-            <span class="{{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
-                {{ (float) $client->calculated_total_debt == (int) $client->calculated_total_debt ? number_format((float) $client->calculated_total_debt, 0) : number_format((float) $client->calculated_total_debt, 2) }}
+            <strong>{{ $isDateRangeReport ? __('Selected Date Range Balance') : __('Current Total Debt') }}:</strong>
+            <span class="{{ $summaryTotal > 0 ? 'debt-positive' : 'debt-negative' }}">
+                {{ $formatReportAmount($summaryTotal) }}
             </span>
         </div>
     </div>
@@ -133,8 +136,8 @@
                         <td class="text-right number-cell {{ $client->later_transactions_total > 0 ? 'debt-positive' : 'debt-negative' }}">
                             {{ $formatReportAmount($client->later_transactions_total) }}
                         </td>
-                        <td class="text-right number-cell {{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
-                            {{ $formatReportAmount($client->calculated_total_debt) }}
+                        <td class="text-right number-cell {{ $summaryTotal > 0 ? 'debt-positive' : 'debt-negative' }}">
+                            {{ $formatReportAmount($summaryTotal) }}
                         </td>
                     </tr>
                 @endif
@@ -142,9 +145,9 @@
             </tbody>
             <tfoot>
                 <tr class="font-bold">
-                    <td colspan="3" class="text-right">{{ __('Final Balance') }}:</td>
-                    <td class="text-right {{ $client->calculated_total_debt > 0 ? 'debt-positive' : 'debt-negative' }}">
-                        {{ (float) $client->calculated_total_debt == (int) $client->calculated_total_debt ? number_format((float) $client->calculated_total_debt, 0) : number_format((float) $client->calculated_total_debt, 2) }}
+                    <td colspan="3" class="text-right">{{ $isDateRangeReport ? __('Selected Date Range Balance') : __('Final Balance') }}:</td>
+                    <td class="text-right {{ $summaryTotal > 0 ? 'debt-positive' : 'debt-negative' }}">
+                        {{ $formatReportAmount($summaryTotal) }}
                     </td>
                 </tr>
             </tfoot>

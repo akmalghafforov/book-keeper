@@ -143,6 +143,7 @@
     "Date Range Report": "Отчет за период",
     "Report Period": "Период отчета",
     "Transactions": "Операции",
+    "Selected Date Range Balance": "Баланс за выбранный период",
     "Total before selected date range": "Итог до выбранного периода",
     "Total after selected date range": "Итог после выбранного периода",
     "No transactions in the selected date range.": "В выбранном периоде операций нет.",
