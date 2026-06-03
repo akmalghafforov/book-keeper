@@ -35,19 +35,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('debt-ledgers.potential-duplicates.resolve');
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
         Route::get('operations', [\App\Http\Controllers\Admin\OperationController::class, 'index'])->name('operations.index');
-        Route::get('whatsapp-imports', [\App\Http\Controllers\Admin\WhatsAppImportController::class, 'index'])->name('whatsapp-imports.index');
-        Route::post('whatsapp-imports', [\App\Http\Controllers\Admin\WhatsAppImportController::class, 'store'])->name('whatsapp-imports.store');
-        Route::get('whatsapp-tasks', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'index'])->name('whatsapp-tasks.index');
-        Route::get('whatsapp-tasks/created', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'created'])->name('whatsapp-tasks.created');
-        Route::get('whatsapp-tasks/review', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'review'])->name('whatsapp-tasks.review');
-        Route::post('whatsapp-tasks', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'store'])->name('whatsapp-tasks.store');
-        Route::post('whatsapp-tasks/{whatsappTask}/review', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'previewReviewedRecord'])->name('whatsapp-tasks.review.preview');
-        Route::post('whatsapp-tasks/{whatsappTask}/confirm', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'confirmReviewedRecord'])->name('whatsapp-tasks.review.confirm');
-        Route::post('whatsapp-tasks/{whatsappTask}/extracted-goods-pieces', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'storeExtractedGoodsPieces'])->name('whatsapp-tasks.extracted-goods-pieces.store');
-        Route::post('whatsapp-tasks/{whatsappTask}/extracted-payment', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'storeExtractedPayment'])->name('whatsapp-tasks.extracted-payment.store');
-        Route::post('whatsapp-tasks/{whatsappTask}/extracted-client-transfer', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'storeExtractedClientTransfer'])->name('whatsapp-tasks.extracted-client-transfer.store');
-        Route::post('whatsapp-tasks/messages/delete', [\App\Http\Controllers\Admin\WhatsAppTaskController::class, 'destroyMessages'])->name('whatsapp-tasks.messages.destroy');
-
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
             Route::post('/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])->name('export');
