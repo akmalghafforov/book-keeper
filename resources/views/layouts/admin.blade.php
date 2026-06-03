@@ -68,6 +68,12 @@
                     </svg>
                     {{ __('Products') }}
                 </a>
+                <a href="{{ route('admin.providers.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.providers.*') ? 'bg-gray-100 dark:bg-[#2A2A28] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1C1C1A]' }}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9h1m-1 4h1m-1 4h1m6-4h1m-1 4h1"></path>
+                    </svg>
+                    {{ __('Providers') }}
+                </a>
 
                 <div class="pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ __('Reports') }}</div>
 
