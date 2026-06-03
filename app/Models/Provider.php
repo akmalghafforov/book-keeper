@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Provider extends Model
@@ -16,4 +17,9 @@ class Provider extends Model
         'address',
         'notes',
     ];
+
+    public function defaultProducts(): HasMany
+    {
+        return $this->hasMany(Product::class, 'default_provider_id');
+    }
 }

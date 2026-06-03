@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Product;
 use App\Models\Provider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,10 +89,17 @@ class ProviderControllerTest extends TestCase
     public function test_destroy_soft_deletes_provider(): void
     {
         $provider = Provider::factory()->create();
+        $product = Product::factory()->create([
+            'default_provider_id' => $provider->id,
+        ]);
 
         $response = $this->actingAs($this->user)->delete(route('admin.providers.destroy', $provider));
 
         $response->assertRedirect(route('admin.providers.index'));
         $this->assertSoftDeleted('providers', ['id' => $provider->id]);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'default_provider_id' => null,
+        ]);
     }
 }

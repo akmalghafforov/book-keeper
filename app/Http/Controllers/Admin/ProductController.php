@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Provider;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
@@ -13,7 +15,8 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::latest()->paginate(10);
+        $products = Product::with('defaultProvider')->latest()->paginate(10);
+
         return view('admin.products.index', compact('products'));
     }
 
@@ -22,7 +25,9 @@ class ProductController extends Controller
      */
     public function create()
     {
-        return view('admin.products.create');
+        $providers = Provider::orderBy('name')->get();
+
+        return view('admin.products.create', compact('providers'));
     }
 
     /**
@@ -30,10 +35,7 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'default_unit' => 'nullable|in:per_ton,per_bag,per_piece',
-        ]);
+        $validated = $request->validate($this->rules());
 
         Product::create($validated);
 
@@ -46,6 +48,8 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
+        $product->load('defaultProvider');
+
         return view('admin.products.show', compact('product'));
     }
 
@@ -54,7 +58,9 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        return view('admin.products.edit', compact('product'));
+        $providers = Provider::orderBy('name')->get();
+
+        return view('admin.products.edit', compact('product', 'providers'));
     }
 
     /**
@@ -62,14 +68,24 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'default_unit' => 'nullable|in:per_ton,per_bag,per_piece',
-        ]);
+        $validated = $request->validate($this->rules());
 
         $product->update($validated);
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Product updated successfully.');
+    }
+
+    private function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'default_unit' => 'nullable|in:per_ton,per_bag,per_piece',
+            'buy_price' => 'nullable|numeric|min:0',
+            'default_provider_id' => [
+                'nullable',
+                Rule::exists('providers', 'id')->whereNull('deleted_at'),
+            ],
+        ];
     }
 }

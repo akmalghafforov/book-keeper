@@ -85,6 +85,7 @@ class ProviderController extends Controller
      */
     public function destroy(Provider $provider)
     {
+        $provider->defaultProducts()->update(['default_provider_id' => null]);
         $provider->delete();
 
         return redirect()->route('admin.providers.index')
