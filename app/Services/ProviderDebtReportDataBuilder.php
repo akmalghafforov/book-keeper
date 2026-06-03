@@ -30,25 +30,25 @@ class ProviderDebtReportDataBuilder
                 }
 
                 $query->with(['product', 'distribution'])
-                    ->orderBy('transaction_date', 'asc')
-                    ->orderBy('id', 'asc');
+                    ->inOperationOrder();
             }])
             ->findOrFail($providerId);
 
         $allLedgers = $provider->providerLedgers->values();
+        $rangeStartSortOrder = $this->resolveRangeStartSortOrder($allLedgers, $rangeStartLedgerId);
         $openingLedgers = $allLedgers
-            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId) {
+            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeStartSortOrder) {
                 $ledgerDate = $this->ledgerReportDate($ledger);
 
                 return $ledgerDate->lt($rangeStart)
-                    || ($rangeStartLedgerId > 0 && $ledgerDate->eq($rangeStart) && $ledger->id < $rangeStartLedgerId);
+                    || ($ledgerDate->eq($rangeStart) && $this->ledgerComesBeforeRangeStart($ledger, $rangeStartLedgerId, $rangeStartSortOrder));
             })
             ->values();
         $rangeLedgers = $allLedgers
-            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeEnd) {
+            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeStartSortOrder, $rangeEnd) {
                 $ledgerDate = $this->ledgerReportDate($ledger);
                 $startsWithinRange = $ledgerDate->gt($rangeStart)
-                    || ($ledgerDate->eq($rangeStart) && ($rangeStartLedgerId <= 0 || $ledger->id >= $rangeStartLedgerId));
+                    || ($ledgerDate->eq($rangeStart) && ! $this->ledgerComesBeforeRangeStart($ledger, $rangeStartLedgerId, $rangeStartSortOrder));
 
                 return $startsWithinRange
                     && ($rangeEnd === null || $ledgerDate->lte($rangeEnd));
@@ -106,6 +106,33 @@ class ProviderDebtReportDataBuilder
     private function ledgerReportDate($ledger): Carbon
     {
         return Carbon::parse($ledger->transaction_date ?? $ledger->created_at)->startOfDay();
+    }
+
+    private function resolveRangeStartSortOrder(Collection $ledgers, int $rangeStartLedgerId): ?int
+    {
+        if ($rangeStartLedgerId <= 0) {
+            return null;
+        }
+
+        $rangeStartLedger = $ledgers->firstWhere('id', $rangeStartLedgerId);
+
+        return $rangeStartLedger === null ? null : (int) $rangeStartLedger->sort_order;
+    }
+
+    private function ledgerComesBeforeRangeStart($ledger, int $rangeStartLedgerId, ?int $rangeStartSortOrder): bool
+    {
+        if ($rangeStartLedgerId <= 0) {
+            return false;
+        }
+
+        if ($rangeStartSortOrder === null) {
+            return $ledger->id < $rangeStartLedgerId;
+        }
+
+        $ledgerSortOrder = (int) ($ledger->sort_order ?? 0);
+
+        return $ledgerSortOrder < $rangeStartSortOrder
+            || ($ledgerSortOrder === $rangeStartSortOrder && $ledger->id < $rangeStartLedgerId);
     }
 
     private function ledgerBalanceDelta($ledger): float

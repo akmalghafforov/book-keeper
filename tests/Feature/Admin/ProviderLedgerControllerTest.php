@@ -51,6 +51,40 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('25.0000');
     }
 
+    public function test_provider_ledger_operations_can_be_reordered_within_the_same_day(): void
+    {
+        $firstLedger = ProviderLedger::factory()->create([
+            'provider_id' => $this->provider->id,
+            'car_number' => 'AA-1111',
+            'transaction_date' => '2026-06-03',
+        ]);
+        $secondLedger = ProviderLedger::factory()->create([
+            'provider_id' => $this->provider->id,
+            'car_number' => 'BB-2222',
+            'transaction_date' => '2026-06-03',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.provider-ledgers.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['AA-1111', 'BB-2222']);
+
+        $this->actingAs($this->user)
+            ->from(route('admin.provider-ledgers.index'))
+            ->post(route('admin.provider-ledgers.move', $secondLedger), [
+                'direction' => 'earlier',
+            ])
+            ->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $this->assertSame(2, $firstLedger->fresh()->sort_order);
+        $this->assertSame(1, $secondLedger->fresh()->sort_order);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.provider-ledgers.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['BB-2222', 'AA-1111']);
+    }
+
     public function test_create_prefills_selected_provider(): void
     {
         $response = $this->actingAs($this->user)->get(route('admin.provider-ledgers.create', [

@@ -796,6 +796,57 @@ class ReportGenerationTest extends TestCase
         $this->assertSame($sameDayOpeningCharge->id, $payload->providerLedgers->first()->id);
     }
 
+    public function test_provider_ledger_started_report_uses_operation_order_for_same_day_boundaries(): void
+    {
+        $provider = Provider::factory()->create();
+
+        $sameDayCharge = ProviderLedger::factory()->create([
+            'provider_id' => $provider->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-01',
+            'sort_order' => 2,
+        ]);
+
+        $selectedPayment = ProviderLedger::factory()->payment()->create([
+            'provider_id' => $provider->id,
+            'amount' => 40,
+            'transaction_date' => '2026-04-01',
+            'sort_order' => 1,
+        ]);
+
+        $laterCharge = ProviderLedger::factory()->create([
+            'provider_id' => $provider->id,
+            'amount' => 70,
+            'transaction_date' => '2026-04-02',
+        ]);
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: Test Provider (from provider ledger #'.$selectedPayment->id.')',
+            'type' => 'single_provider_debt_range',
+            'format' => 'png',
+            'parameters' => [
+                'provider_id' => $provider->id,
+                'locale' => 'en',
+                'range_start_date' => '2026-04-01',
+                'range_end_date' => null,
+                'range_start_provider_ledger_id' => $selectedPayment->id,
+            ],
+            'status' => 'pending',
+            'last_included_ledger_id' => $laterCharge->id,
+        ]);
+
+        $payload = app(ProviderDebtReportDataBuilder::class)->build($report);
+
+        $this->assertSame(0, $payload->opening_balance_transactions_count);
+        $this->assertEquals(0.0, (float) $payload->opening_balance_total);
+        $this->assertEquals(130.0, (float) $payload->selected_range_total);
+        $this->assertEquals(130.0, (float) $payload->range_closing_balance);
+        $this->assertSame([$selectedPayment->id, $sameDayCharge->id, $laterCharge->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertSame([-40.0, 60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
+        $this->assertEquals(130.0, (float) $payload->calculated_total_debt);
+        $this->assertSame($selectedPayment->id, $payload->providerLedgers->first()->id);
+    }
+
     public function test_date_range_report_view_shows_range_balance_in_summary_instead_of_all_time_total(): void
     {
         app()->setLocale('en');
