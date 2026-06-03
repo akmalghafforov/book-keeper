@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\GeneratedReport;
 use App\Services\ClientDebtReportDataBuilder;
 use App\Services\GeneratedReportLedgerBoundaryService;
+use App\Services\ProviderDebtReportDataBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -50,7 +51,17 @@ class GenerateClientDebtReport implements ShouldQueue
         $lastIncludedLedgerId = $ledgerBoundaryService->resolveReportLastIncludedLedgerId($this->report);
         $reportDataBuilder = app(ClientDebtReportDataBuilder::class);
 
-        if ($clientId) {
+        if ($this->report->type === 'single_provider_debt_range') {
+            $provider = app(ProviderDebtReportDataBuilder::class)->build($this->report);
+            $lastIncludedLedgerId = $provider->last_included_ledger_id;
+
+            $html = view('admin.reports.pdf.single-provider-debt', [
+                'provider' => $provider,
+                'report' => $this->report,
+            ])->render();
+            $pdf = $this->buildSinglePagePdf($html, $reportWidth);
+            $fileNamePrefix = 'provider-debt-report-'.str_replace(' ', '-', strtolower($provider->name)).'-';
+        } elseif ($clientId) {
             $client = $reportDataBuilder->build($this->report);
             $lastIncludedLedgerId = $client->last_included_ledger_id;
 

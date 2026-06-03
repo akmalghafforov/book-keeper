@@ -7,6 +7,7 @@ use App\Jobs\GenerateClientDebtReport;
 use App\Models\Client;
 use App\Models\DebtLedger;
 use App\Models\GeneratedReport;
+use App\Models\ProviderLedger;
 use App\Services\GeneratedReportLedgerBoundaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -150,6 +151,40 @@ class ReportController extends Controller
 
         return redirect()->route('admin.reports.index')
             ->with('success', 'Debt report generation started from the selected operation for '.$operation->client->name.'. Please wait.');
+    }
+
+    public function exportProviderLedgerDebt(Request $request, ProviderLedger $providerLedger)
+    {
+        $validated = $request->validate([
+            'format' => 'required|in:png,jpg',
+        ]);
+
+        $providerLedger->loadMissing('provider');
+
+        $rangeStart = Carbon::parse($providerLedger->transaction_date ?? $providerLedger->created_at)->startOfDay();
+        $cutoff = now();
+        $parameters = [
+            'provider_id' => $providerLedger->provider_id,
+            'locale' => app()->getLocale(),
+            'cutoff_at' => $cutoff->toDateTimeString(),
+            'range_start_date' => $rangeStart->toDateString(),
+            'range_end_date' => null,
+            'range_start_provider_ledger_id' => $providerLedger->id,
+        ];
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: '.$providerLedger->provider->name.' (from provider ledger #'.$providerLedger->id.')',
+            'type' => 'single_provider_debt_range',
+            'format' => $validated['format'],
+            'parameters' => $parameters,
+            'last_included_ledger_id' => $this->ledgerBoundaryService->snapshotLastIncludedLedgerId('single_provider_debt_range', $parameters, $cutoff),
+            'status' => 'pending',
+        ]);
+
+        GenerateClientDebtReport::dispatch($report);
+
+        return redirect()->route('admin.reports.index')
+            ->with('success', 'Debt report generation started from the selected provider ledger for '.$providerLedger->provider->name.'. Please wait.');
     }
 
     public function regenerate(GeneratedReport $report)

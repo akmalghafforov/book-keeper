@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DebtLedger;
 use App\Models\GeneratedReport;
+use App\Models\ProviderLedger;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Throwable;
@@ -14,6 +15,7 @@ class GeneratedReportLedgerBoundaryService
         'client_debt',
         'single_client_debt',
         'single_client_debt_range',
+        'single_provider_debt_range',
     ];
 
     public function resolveReportLastIncludedLedgerId(GeneratedReport $report): int
@@ -39,7 +41,19 @@ class GeneratedReportLedgerBoundaryService
             return 0;
         }
 
-        $query = DebtLedger::query();
+        $query = $type === 'single_provider_debt_range'
+            ? ProviderLedger::query()
+            : DebtLedger::query();
+
+        if ($type === 'single_provider_debt_range') {
+            $providerId = (int) ($parameters['provider_id'] ?? 0);
+
+            if ($providerId <= 0) {
+                return 0;
+            }
+
+            $query->where('provider_id', $providerId);
+        }
 
         if (in_array($type, ['single_client_debt', 'single_client_debt_range'], true)) {
             $clientId = (int) ($parameters['client_id'] ?? 0);

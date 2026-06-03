@@ -28,7 +28,7 @@ class ProviderLedgerControllerTest extends TestCase
 
     public function test_index_lists_provider_ledgers(): void
     {
-        ProviderLedger::factory()->create([
+        $chargeLedger = ProviderLedger::factory()->create([
             'provider_id' => $this->provider->id,
             'amount' => '125.7500',
             'car_number' => 'AA-1234',
@@ -47,6 +47,7 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('North Cement')
             ->assertSee('AA-1234')
             ->assertSee('payment')
+            ->assertSee(route('admin.reports.export-provider-ledger-debt', $chargeLedger), false)
             ->assertSee('25.0000');
     }
 
