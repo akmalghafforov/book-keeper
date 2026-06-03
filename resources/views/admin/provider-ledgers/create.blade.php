@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', __('Add Provider Payment'))
-@section('header_title', __('Add Provider Payment'))
+@section('title', __('Add Provider Ledger Entry'))
+@section('header_title', __('Add Provider Ledger Entry'))
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -11,7 +11,7 @@
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6" x-data="{ providerId: '{{ old('provider_id', $selectedProviderId ?? '') }}' }">
     <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Add Provider Payment') }}</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Add Provider Ledger Entry') }}</h2>
         <a href="{{ route('admin.provider-ledgers.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             {{ __('Back to list') }}
@@ -51,8 +51,14 @@
 
                 <div>
                     <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Type') }}</label>
-                    <input type="text" id="type" value="{{ __('payment') }}" disabled
-                        class="block w-full px-3 py-2 bg-gray-100 dark:bg-[#2A2A28] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm sm:text-sm">
+                    <select name="type" id="type" required
+                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                        <option value="charge" {{ old('type') === 'charge' ? 'selected' : '' }}>{{ __('charge') }}</option>
+                        <option value="payment" {{ old('type', 'payment') === 'payment' ? 'selected' : '' }}>{{ __('payment') }}</option>
+                    </select>
+                    @error('type')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
@@ -61,6 +67,15 @@
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                         placeholder="0.00">
                     @error('amount')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="car_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Car Number (Optional)') }}</label>
+                    <input type="text" name="car_number" id="car_number" value="{{ old('car_number') }}"
+                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                    @error('car_number')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                 </div>
@@ -102,7 +117,7 @@
                         {{ __('Cancel') }}
                     </a>
                     <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md shadow-indigo-500/20">
-                        {{ __('Create Payment') }}
+                        {{ __('Create Entry') }}
                     </button>
                 </div>
             </form>

@@ -59,7 +59,9 @@ class ProviderLedgerControllerTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Add Provider Payment')
+            ->assertSee('Add Provider Ledger Entry')
+            ->assertSee('charge')
+            ->assertSee('payment')
             ->assertSee('North Cement');
     }
 
@@ -67,6 +69,7 @@ class ProviderLedgerControllerTest extends TestCase
     {
         $response = $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $this->provider->id,
+            'type' => 'payment',
             'amount' => '25.2500',
             'transaction_date' => '03/06/2026',
             'notes' => 'Cash payment',
@@ -83,10 +86,38 @@ class ProviderLedgerControllerTest extends TestCase
         ]);
     }
 
+    public function test_store_creates_provider_debt(): void
+    {
+        $response = $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
+            'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'amount' => '125.7500',
+            'car_number' => 'AA-1234',
+            'transaction_date' => '03/06/2026',
+            'notes' => 'Manual supplier debt',
+        ]);
+
+        $response->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $this->assertDatabaseHas('provider_ledgers', [
+            'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'distribution_id' => null,
+            'product_id' => null,
+            'car_number' => 'AA-1234',
+            'quantity' => null,
+            'buy_price' => null,
+            'amount' => '125.7500',
+            'transaction_date' => '2026-06-03 00:00:00',
+            'notes' => 'Manual supplier debt',
+        ]);
+    }
+
     public function test_store_validates_positive_amount(): void
     {
         $response = $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $this->provider->id,
+            'type' => 'payment',
             'amount' => '0',
             'transaction_date' => '03/06/2026',
         ]);
@@ -120,6 +151,7 @@ class ProviderLedgerControllerTest extends TestCase
 
         $response = $this->actingAs($this->user)->put(route('admin.provider-ledgers.update', $ledger), [
             'provider_id' => $this->provider->id,
+            'type' => 'payment',
             'amount' => '30.5000',
             'transaction_date' => '04/06/2026',
             'notes' => 'Updated payment',
@@ -136,9 +168,54 @@ class ProviderLedgerControllerTest extends TestCase
         ]);
     }
 
+    public function test_update_modifies_manual_provider_debt(): void
+    {
+        $ledger = ProviderLedger::factory()->manualCharge()->create([
+            'provider_id' => $this->provider->id,
+            'amount' => '125.0000',
+            'car_number' => 'AA-1234',
+        ]);
+
+        $response = $this->actingAs($this->user)->put(route('admin.provider-ledgers.update', $ledger), [
+            'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'amount' => '130.7500',
+            'car_number' => 'BB-5678',
+            'transaction_date' => '04/06/2026',
+            'notes' => 'Updated manual debt',
+        ]);
+
+        $response->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $this->assertDatabaseHas('provider_ledgers', [
+            'id' => $ledger->id,
+            'type' => 'charge',
+            'distribution_id' => null,
+            'product_id' => null,
+            'car_number' => 'BB-5678',
+            'quantity' => null,
+            'buy_price' => null,
+            'amount' => '130.7500',
+            'transaction_date' => '2026-06-04 00:00:00',
+            'notes' => 'Updated manual debt',
+        ]);
+    }
+
     public function test_destroy_soft_deletes_provider_payment(): void
     {
         $ledger = ProviderLedger::factory()->payment()->create([
+            'provider_id' => $this->provider->id,
+        ]);
+
+        $response = $this->actingAs($this->user)->delete(route('admin.provider-ledgers.destroy', $ledger));
+
+        $response->assertRedirect(route('admin.provider-ledgers.index'));
+        $this->assertSoftDeleted('provider_ledgers', ['id' => $ledger->id]);
+    }
+
+    public function test_destroy_soft_deletes_manual_provider_debt(): void
+    {
+        $ledger = ProviderLedger::factory()->manualCharge()->create([
             'provider_id' => $this->provider->id,
         ]);
 
@@ -161,6 +238,7 @@ class ProviderLedgerControllerTest extends TestCase
         $this->actingAs($this->user)
             ->put(route('admin.provider-ledgers.update', $ledger), [
                 'provider_id' => $this->provider->id,
+                'type' => 'charge',
                 'amount' => '30.5000',
                 'transaction_date' => '04/06/2026',
             ])

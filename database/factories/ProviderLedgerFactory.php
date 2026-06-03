@@ -45,4 +45,15 @@ class ProviderLedgerFactory extends Factory
             'buy_price' => null,
         ]);
     }
+
+    public function manualCharge(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'charge',
+            'distribution_id' => null,
+            'product_id' => null,
+            'quantity' => null,
+            'buy_price' => null,
+        ]);
+    }
 }

@@ -7,6 +7,7 @@ use App\Models\Provider;
 use App\Models\ProviderLedger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProviderLedgerController extends Controller
 {
@@ -67,18 +68,23 @@ class ProviderLedgerController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate($this->paymentRules());
+        $validated = $request->validate($this->manualEntryRules());
 
         ProviderLedger::create([
             'provider_id' => $validated['provider_id'],
-            'type' => 'payment',
+            'type' => $validated['type'],
             'amount' => $validated['amount'],
+            'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
             'transaction_date' => Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d'),
             'notes' => $validated['notes'] ?? null,
         ]);
 
+        $message = $validated['type'] === 'charge'
+            ? __('Provider debt recorded successfully.')
+            : __('Provider payment recorded successfully.');
+
         return redirect()->route('admin.provider-ledgers.index')
-            ->with('success', __('Provider payment recorded successfully.'));
+            ->with('success', $message);
     }
 
     /**
@@ -96,7 +102,7 @@ class ProviderLedgerController extends Controller
      */
     public function edit(ProviderLedger $providerLedger)
     {
-        $this->ensureManualPayment($providerLedger);
+        $this->ensureManualEntry($providerLedger);
 
         $providers = Provider::orderBy('name')->get();
 
@@ -108,20 +114,25 @@ class ProviderLedgerController extends Controller
      */
     public function update(Request $request, ProviderLedger $providerLedger)
     {
-        $this->ensureManualPayment($providerLedger);
+        $this->ensureManualEntry($providerLedger);
 
-        $validated = $request->validate($this->paymentRules());
+        $validated = $request->validate($this->manualEntryRules());
 
         $providerLedger->update([
             'provider_id' => $validated['provider_id'],
-            'type' => 'payment',
+            'type' => $validated['type'],
+            'distribution_id' => null,
+            'product_id' => null,
+            'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
+            'quantity' => null,
+            'buy_price' => null,
             'amount' => $validated['amount'],
             'transaction_date' => Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d'),
             'notes' => $validated['notes'] ?? null,
         ]);
 
         return redirect()->route('admin.provider-ledgers.index')
-            ->with('success', __('Provider payment updated successfully.'));
+            ->with('success', __('Provider ledger entry updated successfully.'));
     }
 
     /**
@@ -129,26 +140,28 @@ class ProviderLedgerController extends Controller
      */
     public function destroy(ProviderLedger $providerLedger)
     {
-        $this->ensureManualPayment($providerLedger);
+        $this->ensureManualEntry($providerLedger);
 
         $providerLedger->delete();
 
         return redirect()->route('admin.provider-ledgers.index')
-            ->with('success', __('Provider payment deleted successfully.'));
+            ->with('success', __('Provider ledger entry deleted successfully.'));
     }
 
-    private function paymentRules(): array
+    private function manualEntryRules(): array
     {
         return [
             'provider_id' => 'required|exists:providers,id',
+            'type' => ['required', Rule::in(['charge', 'payment'])],
             'amount' => 'required|numeric|min:0.01',
+            'car_number' => 'nullable|string|max:50',
             'transaction_date' => 'required|date_format:d/m/Y',
             'notes' => 'nullable|string|max:1000',
         ];
     }
 
-    private function ensureManualPayment(ProviderLedger $providerLedger): void
+    private function ensureManualEntry(ProviderLedger $providerLedger): void
     {
-        abort_if($providerLedger->type !== 'payment', 403);
+        abort_if($providerLedger->distribution_id !== null, 403);
     }
 }
