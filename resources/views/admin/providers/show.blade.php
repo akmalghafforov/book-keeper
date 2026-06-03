@@ -37,6 +37,10 @@
                     <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Phone') }}</h3>
                     <p class="text-gray-900 dark:text-white">{{ $provider->phone ?? __('N/A') }}</p>
                 </div>
+                <div class="space-y-1">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Balance') }}</h3>
+                    <p class="text-gray-900 dark:text-white">{{ number_format($provider->balance, 4) }}</p>
+                </div>
                 <div class="space-y-1 md:col-span-2">
                     <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Address') }}</h3>
                     <p class="text-gray-900 dark:text-white">{{ $provider->address ?? __('N/A') }}</p>

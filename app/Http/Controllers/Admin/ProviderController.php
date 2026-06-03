@@ -13,7 +13,7 @@ class ProviderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Provider::latest();
+        $query = Provider::withBalance()->latest();
 
         if ($request->filled('search')) {
             $search = strtolower($request->input('search'));

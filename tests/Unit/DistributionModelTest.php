@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\DebtLedger;
 use App\Models\Distribution;
 use App\Models\Product;
+use App\Models\Provider;
 use App\Models\Supplier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -31,7 +32,7 @@ class DistributionModelTest extends TestCase
             'client_id' => $distribution->client_id,
             'type' => 'charge',
             'amount' => 500.00,
-            'transaction_date' => $distribution->distribution_date->toDateString() . ' 00:00:00',
+            'transaction_date' => $distribution->distribution_date->toDateString().' 00:00:00',
             'reference_id' => $distribution->id,
         ]);
     }
@@ -56,7 +57,7 @@ class DistributionModelTest extends TestCase
             'client_id' => $creditClient->id,
             'type' => 'credit_note',
             'amount' => 750.00,
-            'transaction_date' => $distribution->distribution_date->toDateString() . ' 00:00:00',
+            'transaction_date' => $distribution->distribution_date->toDateString().' 00:00:00',
             'reference_id' => $distribution->id,
         ]);
     }
@@ -126,7 +127,7 @@ class DistributionModelTest extends TestCase
             'type' => 'credit_note',
             'client_id' => $creditClient->id,
             'amount' => 400.00,
-            'transaction_date' => $distribution->fresh()->distribution_date->toDateString() . ' 00:00:00',
+            'transaction_date' => $distribution->fresh()->distribution_date->toDateString().' 00:00:00',
         ]);
     }
 
@@ -166,8 +167,133 @@ class DistributionModelTest extends TestCase
             'reference_id' => $distribution->id,
             'type' => 'charge',
             'amount' => 500.00,
-            'transaction_date' => $distribution->distribution_date->toDateString() . ' 00:00:00',
+            'transaction_date' => $distribution->distribution_date->toDateString().' 00:00:00',
         ]);
+    }
+
+    // ---------------------------------------------------------------
+    // syncProviderLedger
+    // ---------------------------------------------------------------
+
+    public function test_creating_distribution_adds_provider_balance_from_product_buy_price(): void
+    {
+        $provider = Provider::factory()->create();
+        $product = Product::factory()->create([
+            'default_provider_id' => $provider->id,
+            'buy_price' => '25.5000',
+        ]);
+        $supplier = Supplier::factory()->create([
+            'car_number' => 'AA-1234',
+        ]);
+
+        $distribution = $this->createDistribution([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => '4.000',
+            'distribution_date' => '2026-03-17',
+        ]);
+
+        $this->assertDatabaseHas('provider_ledgers', [
+            'provider_id' => $provider->id,
+            'distribution_id' => $distribution->id,
+            'product_id' => $product->id,
+            'car_number' => 'AA-1234',
+            'quantity' => 4.000,
+            'buy_price' => 25.5000,
+            'amount' => 102.0000,
+            'transaction_date' => '2026-03-17 00:00:00',
+        ]);
+
+        $this->assertSame(102.0, $provider->fresh()->balance);
+    }
+
+    public function test_creating_distribution_without_product_provider_or_buy_price_does_not_add_provider_balance(): void
+    {
+        $product = Product::factory()->create([
+            'default_provider_id' => null,
+            'buy_price' => null,
+        ]);
+
+        $distribution = $this->createDistribution([
+            'product_id' => $product->id,
+            'quantity' => '4.000',
+        ]);
+
+        $this->assertDatabaseMissing('provider_ledgers', [
+            'distribution_id' => $distribution->id,
+        ]);
+    }
+
+    public function test_updating_distribution_syncs_provider_balance(): void
+    {
+        $provider = Provider::factory()->create();
+        $product = Product::factory()->create([
+            'default_provider_id' => $provider->id,
+            'buy_price' => '10.0000',
+        ]);
+        $distribution = $this->createDistribution([
+            'product_id' => $product->id,
+            'quantity' => '2.000',
+        ]);
+
+        $distribution->update([
+            'quantity' => '3.500',
+            'distribution_date' => '2026-03-18',
+        ]);
+
+        $this->assertDatabaseHas('provider_ledgers', [
+            'distribution_id' => $distribution->id,
+            'provider_id' => $provider->id,
+            'quantity' => 3.500,
+            'amount' => 35.0000,
+            'transaction_date' => '2026-03-18 00:00:00',
+        ]);
+        $this->assertSame(35.0, $provider->fresh()->balance);
+    }
+
+    public function test_deleting_distribution_removes_provider_balance(): void
+    {
+        $provider = Provider::factory()->create();
+        $product = Product::factory()->create([
+            'default_provider_id' => $provider->id,
+            'buy_price' => '10.0000',
+        ]);
+        $distribution = $this->createDistribution([
+            'product_id' => $product->id,
+            'quantity' => '2.000',
+        ]);
+
+        $distribution->delete();
+
+        $this->assertDatabaseMissing('provider_ledgers', [
+            'distribution_id' => $distribution->id,
+            'deleted_at' => null,
+        ]);
+        $this->assertSame(0.0, $provider->fresh()->balance);
+    }
+
+    public function test_restoring_distribution_restores_provider_balance(): void
+    {
+        $provider = Provider::factory()->create();
+        $product = Product::factory()->create([
+            'default_provider_id' => $provider->id,
+            'buy_price' => '10.0000',
+        ]);
+        $distribution = $this->createDistribution([
+            'product_id' => $product->id,
+            'quantity' => '2.000',
+        ]);
+
+        $distribution->delete();
+        $distribution->restore();
+
+        $this->assertDatabaseHas('provider_ledgers', [
+            'distribution_id' => $distribution->id,
+            'provider_id' => $provider->id,
+            'amount' => '20.0000',
+            'deleted_at' => null,
+        ]);
+        $this->assertSame(20.0, $provider->fresh()->balance);
     }
 
     // ---------------------------------------------------------------

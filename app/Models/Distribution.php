@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use App\Models\DebtLedger;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Distribution extends Model
@@ -37,6 +36,7 @@ class Distribution extends Model
     {
         static::created(function (Distribution $distribution) {
             $distribution->createDebtLedgerCharge();
+            $distribution->syncProviderLedger();
         });
 
         static::updated(function (Distribution $distribution) {
@@ -45,14 +45,17 @@ class Distribution extends Model
                 return;
             }
             $distribution->syncDebtLedgerCharge();
+            $distribution->syncProviderLedger();
         });
 
         static::deleted(function (Distribution $distribution) {
             $distribution->deleteDebtLedgerCharge();
+            $distribution->deleteProviderLedger();
         });
 
         static::restored(function (Distribution $distribution) {
             $distribution->restoreDebtLedgerCharge();
+            $distribution->syncProviderLedger();
         });
     }
 
@@ -145,6 +148,52 @@ class Distribution extends Model
             ->restore();
     }
 
+    public function syncProviderLedger(): void
+    {
+        $product = Product::query()->find($this->product_id);
+        $ledger = ProviderLedger::withTrashed()
+            ->where('distribution_id', $this->id)
+            ->first();
+
+        if (! $product?->default_provider_id || $product->buy_price === null) {
+            $ledger?->delete();
+
+            return;
+        }
+
+        $amount = round((float) $this->quantity * (float) $product->buy_price, 4);
+        $data = [
+            'provider_id' => $product->default_provider_id,
+            'distribution_id' => $this->id,
+            'product_id' => $product->id,
+            'car_number' => Supplier::withTrashed()
+                ->whereKey($this->supplier_id)
+                ->value('car_number'),
+            'quantity' => $this->quantity,
+            'buy_price' => $product->buy_price,
+            'amount' => $amount,
+            'transaction_date' => $this->distribution_date,
+            'notes' => "Auto-generated provider balance from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+        ];
+
+        if ($ledger) {
+            if ($ledger->trashed()) {
+                $ledger->restore();
+            }
+
+            $ledger->update($data);
+
+            return;
+        }
+
+        ProviderLedger::create($data);
+    }
+
+    public function deleteProviderLedger(): void
+    {
+        ProviderLedger::where('distribution_id', $this->id)->delete();
+    }
+
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
@@ -168,5 +217,10 @@ class Distribution extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function providerLedger(): HasOne
+    {
+        return $this->hasOne(ProviderLedger::class);
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Product;
 use App\Models\Provider;
+use App\Models\ProviderLedger;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -32,6 +33,22 @@ class ProviderControllerTest extends TestCase
             ->assertOk()
             ->assertSee('North Cement')
             ->assertSee('East Aggregates');
+    }
+
+    public function test_index_lists_provider_balance(): void
+    {
+        $provider = Provider::factory()->create(['name' => 'North Cement']);
+        ProviderLedger::factory()->create([
+            'provider_id' => $provider->id,
+            'amount' => '125.7500',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('admin.providers.index'));
+
+        $response
+            ->assertOk()
+            ->assertSee('North Cement')
+            ->assertSee('125.7500');
     }
 
     public function test_store_creates_provider(): void
