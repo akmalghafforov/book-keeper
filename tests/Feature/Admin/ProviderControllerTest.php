@@ -42,13 +42,35 @@ class ProviderControllerTest extends TestCase
             'provider_id' => $provider->id,
             'amount' => '125.7500',
         ]);
+        ProviderLedger::factory()->payment()->create([
+            'provider_id' => $provider->id,
+            'amount' => '25.0000',
+        ]);
 
         $response = $this->actingAs($this->user)->get(route('admin.providers.index'));
 
         $response
             ->assertOk()
             ->assertSee('North Cement')
-            ->assertSee('125.7500');
+            ->assertSee('100.7500');
+    }
+
+    public function test_show_displays_payment_link_and_provider_ledger(): void
+    {
+        $provider = Provider::factory()->create(['name' => 'North Cement']);
+        ProviderLedger::factory()->payment()->create([
+            'provider_id' => $provider->id,
+            'amount' => '50.0000',
+            'notes' => 'Bank transfer',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('admin.providers.show', $provider));
+
+        $response
+            ->assertOk()
+            ->assertSee('Record Payment')
+            ->assertSee('Provider Ledger')
+            ->assertSee('Bank transfer');
     }
 
     public function test_store_creates_provider(): void

@@ -13,6 +13,7 @@ class ProviderLedger extends Model
 
     protected $fillable = [
         'provider_id',
+        'type',
         'distribution_id',
         'product_id',
         'car_number',

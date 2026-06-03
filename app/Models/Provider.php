@@ -31,7 +31,7 @@ class Provider extends Model
     public function scopeWithBalance($query)
     {
         return $query->select('providers.*')
-            ->selectRaw('COALESCE((SELECT SUM(amount) FROM provider_ledgers WHERE provider_id = providers.id AND deleted_at IS NULL), 0) as balance');
+            ->selectRaw("COALESCE((SELECT SUM(CASE WHEN type = 'payment' THEN -amount ELSE amount END) FROM provider_ledgers WHERE provider_id = providers.id AND deleted_at IS NULL), 0) as balance");
     }
 
     public function getBalanceAttribute($value): float
@@ -40,6 +40,9 @@ class Provider extends Model
             return (float) $value;
         }
 
-        return (float) $this->providerLedgers()->sum('amount');
+        $charges = $this->providerLedgers()->where('type', 'charge')->sum('amount');
+        $payments = $this->providerLedgers()->where('type', 'payment')->sum('amount');
+
+        return (float) ($charges - $payments);
     }
 }

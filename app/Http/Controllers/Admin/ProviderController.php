@@ -56,7 +56,13 @@ class ProviderController extends Controller
      */
     public function show(Provider $provider)
     {
-        return view('admin.providers.show', compact('provider'));
+        $providerLedgers = $provider->providerLedgers()
+            ->with(['product', 'distribution'])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->paginate(10);
+
+        return view('admin.providers.show', compact('provider', 'providerLedgers'));
     }
 
     /**

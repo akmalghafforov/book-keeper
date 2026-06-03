@@ -1,0 +1,154 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Provider;
+use App\Models\ProviderLedger;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+
+class ProviderLedgerController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $query = ProviderLedger::with(['provider', 'product', 'distribution'])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id');
+
+        if ($request->filled('provider_id')) {
+            $query->where('provider_id', $request->provider_id);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('notes', 'like', '%'.$search.'%')
+                    ->orWhere('car_number', 'like', '%'.$search.'%')
+                    ->orWhere('distribution_id', 'like', '%'.$search.'%');
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('transaction_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('transaction_date', '<=', $request->date_to);
+        }
+
+        $providerLedgers = $query->paginate(15)->withQueryString();
+        $providers = Provider::orderBy('name')->get();
+
+        return view('admin.provider-ledgers.index', compact('providerLedgers', 'providers'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(Request $request)
+    {
+        $providers = Provider::orderBy('name')->get();
+        $selectedProviderId = $request->query('provider_id');
+
+        return view('admin.provider-ledgers.create', compact('providers', 'selectedProviderId'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate($this->paymentRules());
+
+        ProviderLedger::create([
+            'provider_id' => $validated['provider_id'],
+            'type' => 'payment',
+            'amount' => $validated['amount'],
+            'transaction_date' => Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d'),
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->route('admin.provider-ledgers.index')
+            ->with('success', __('Provider payment recorded successfully.'));
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(ProviderLedger $providerLedger)
+    {
+        $providerLedger->load(['provider', 'product', 'distribution']);
+
+        return view('admin.provider-ledgers.show', compact('providerLedger'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(ProviderLedger $providerLedger)
+    {
+        $this->ensureManualPayment($providerLedger);
+
+        $providers = Provider::orderBy('name')->get();
+
+        return view('admin.provider-ledgers.edit', compact('providerLedger', 'providers'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, ProviderLedger $providerLedger)
+    {
+        $this->ensureManualPayment($providerLedger);
+
+        $validated = $request->validate($this->paymentRules());
+
+        $providerLedger->update([
+            'provider_id' => $validated['provider_id'],
+            'type' => 'payment',
+            'amount' => $validated['amount'],
+            'transaction_date' => Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d'),
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->route('admin.provider-ledgers.index')
+            ->with('success', __('Provider payment updated successfully.'));
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(ProviderLedger $providerLedger)
+    {
+        $this->ensureManualPayment($providerLedger);
+
+        $providerLedger->delete();
+
+        return redirect()->route('admin.provider-ledgers.index')
+            ->with('success', __('Provider payment deleted successfully.'));
+    }
+
+    private function paymentRules(): array
+    {
+        return [
+            'provider_id' => 'required|exists:providers,id',
+            'amount' => 'required|numeric|min:0.01',
+            'transaction_date' => 'required|date_format:d/m/Y',
+            'notes' => 'nullable|string|max:1000',
+        ];
+    }
+
+    private function ensureManualPayment(ProviderLedger $providerLedger): void
+    {
+        abort_if($providerLedger->type !== 'payment', 403);
+    }
+}

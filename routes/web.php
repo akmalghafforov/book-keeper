@@ -29,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
         Route::resource('providers', \App\Http\Controllers\Admin\ProviderController::class);
+        Route::resource('provider-ledgers', \App\Http\Controllers\Admin\ProviderLedgerController::class)
+            ->parameters(['provider-ledgers' => 'providerLedger']);
         Route::post('distributions/potential-duplicates/resolve', [\App\Http\Controllers\Admin\DistributionController::class, 'resolvePotentialDuplicate'])
             ->name('distributions.potential-duplicates.resolve');
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);

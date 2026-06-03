@@ -22,6 +22,7 @@ class ProviderLedgerFactory extends Factory
 
         return [
             'provider_id' => Provider::factory(),
+            'type' => 'charge',
             'distribution_id' => Distribution::factory(),
             'product_id' => Product::factory(),
             'car_number' => strtoupper(fake()->bothify('??-####')),
@@ -31,5 +32,17 @@ class ProviderLedgerFactory extends Factory
             'transaction_date' => fake()->date(),
             'notes' => fake()->sentence(),
         ];
+    }
+
+    public function payment(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'payment',
+            'distribution_id' => null,
+            'product_id' => null,
+            'car_number' => null,
+            'quantity' => null,
+            'buy_price' => null,
+        ]);
     }
 }

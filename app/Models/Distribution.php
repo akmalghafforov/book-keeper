@@ -164,6 +164,7 @@ class Distribution extends Model
         $amount = round((float) $this->quantity * (float) $product->buy_price, 4);
         $data = [
             'provider_id' => $product->default_provider_id,
+            'type' => 'charge',
             'distribution_id' => $this->id,
             'product_id' => $product->id,
             'car_number' => Supplier::withTrashed()
