@@ -7,7 +7,6 @@ use App\Models\Provider;
 use App\Models\ProviderLedger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ProviderLedgerController extends Controller
@@ -47,7 +46,6 @@ class ProviderLedgerController extends Controller
         }
 
         $providerLedgers = $query->paginate(15)->withQueryString();
-        $this->hydrateMovementState($providerLedgers);
 
         $providers = Provider::orderBy('name')->get();
 
@@ -154,57 +152,6 @@ class ProviderLedgerController extends Controller
             ->with('success', __('Provider ledger entry deleted successfully.'));
     }
 
-    public function move(Request $request, ProviderLedger $providerLedger)
-    {
-        $validated = $request->validate([
-            'direction' => ['required', Rule::in(['earlier', 'later'])],
-        ]);
-
-        $moved = DB::transaction(function () use ($providerLedger, $validated): bool {
-            $providerLedger->refresh();
-
-            $ledgers = ProviderLedger::query()
-                ->where('provider_id', $providerLedger->provider_id)
-                ->whereDate('transaction_date', $providerLedger->transaction_date->toDateString())
-                ->inOperationOrder()
-                ->get(['id', 'provider_id', 'transaction_date', 'provider_received_at', 'sort_order']);
-
-            $currentIndex = $ledgers->search(fn (ProviderLedger $ledger) => $ledger->id === $providerLedger->id);
-
-            if ($currentIndex === false) {
-                return false;
-            }
-
-            $targetIndex = $validated['direction'] === 'earlier'
-                ? $currentIndex - 1
-                : $currentIndex + 1;
-
-            $targetLedger = $ledgers->get($targetIndex);
-
-            if ($targetLedger === null || ! $this->operationDateTimesMatch($providerLedger, $targetLedger)) {
-                return false;
-            }
-
-            $ledgerIds = $ledgers->pluck('id')->all();
-            [$ledgerIds[$currentIndex], $ledgerIds[$targetIndex]] = [$ledgerIds[$targetIndex], $ledgerIds[$currentIndex]];
-
-            foreach (array_values($ledgerIds) as $index => $ledgerId) {
-                ProviderLedger::query()
-                    ->whereKey($ledgerId)
-                    ->update(['sort_order' => $index + 1]);
-            }
-
-            return true;
-        });
-
-        return back()->with(
-            'success',
-            $moved
-                ? __('Provider ledger operation order updated successfully.')
-                : __('Provider ledger operation is already at that edge of the day.'),
-        );
-    }
-
     private function manualEntryRules(): array
     {
         return [
@@ -220,59 +167,5 @@ class ProviderLedgerController extends Controller
     private function ensureManualEntry(ProviderLedger $providerLedger): void
     {
         abort_if($providerLedger->distribution_id !== null, 403);
-    }
-
-    private function hydrateMovementState($providerLedgers): void
-    {
-        $displayedLedgers = $providerLedgers->getCollection();
-
-        if ($displayedLedgers->isEmpty()) {
-            return;
-        }
-
-        $groups = $displayedLedgers
-            ->map(fn (ProviderLedger $ledger) => [
-                'provider_id' => $ledger->provider_id,
-                'transaction_date' => $ledger->transaction_date?->toDateString(),
-            ])
-            ->filter(fn (array $group) => $group['transaction_date'] !== null)
-            ->unique(fn (array $group) => $group['provider_id'].'|'.$group['transaction_date']);
-
-        foreach ($groups as $group) {
-            $orderedLedgers = ProviderLedger::query()
-                ->where('provider_id', $group['provider_id'])
-                ->whereDate('transaction_date', $group['transaction_date'])
-                ->inOperationOrder()
-                ->get(['id', 'provider_id', 'transaction_date', 'provider_received_at']);
-
-            $positions = $orderedLedgers->pluck('id')->flip();
-            $lastIndex = $orderedLedgers->count() - 1;
-
-            $displayedLedgers
-                ->filter(fn (ProviderLedger $ledger) => $ledger->provider_id === $group['provider_id']
-                    && $ledger->transaction_date?->toDateString() === $group['transaction_date'])
-                ->each(function (ProviderLedger $ledger) use ($orderedLedgers, $positions, $lastIndex): void {
-                    $position = $positions->get($ledger->id);
-                    $previousLedger = $position !== null && $position > 0
-                        ? $orderedLedgers->get($position - 1)
-                        : null;
-                    $nextLedger = $position !== null && $position < $lastIndex
-                        ? $orderedLedgers->get($position + 1)
-                        : null;
-
-                    $ledger->setAttribute('can_move_earlier', $previousLedger !== null && $this->operationDateTimesMatch($ledger, $previousLedger));
-                    $ledger->setAttribute('can_move_later', $nextLedger !== null && $this->operationDateTimesMatch($ledger, $nextLedger));
-                });
-        }
-    }
-
-    private function operationDateTimesMatch(ProviderLedger $left, ProviderLedger $right): bool
-    {
-        return $this->operationDateTimeKey($left) === $this->operationDateTimeKey($right);
-    }
-
-    private function operationDateTimeKey(ProviderLedger $ledger): ?string
-    {
-        return $ledger->operationDateTime()?->format('Y-m-d H:i:s');
     }
 }

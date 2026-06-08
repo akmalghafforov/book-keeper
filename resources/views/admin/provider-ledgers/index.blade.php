@@ -122,7 +122,6 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Product') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Car Number') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Provider Date/Time') }}</th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Order') }}</th>
                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
@@ -148,24 +147,6 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $ledger->operationDateTime()?->format('M d, Y H:i') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">
-                                <div class="inline-flex items-center gap-2">
-                                    <form action="{{ route('admin.provider-ledgers.move', $ledger) }}" method="POST" class="inline-flex">
-                                        @csrf
-                                        <input type="hidden" name="direction" value="earlier">
-                                        <button type="submit" class="{{ $ledger->can_move_earlier ? 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white' : 'text-gray-300 dark:text-gray-700 cursor-not-allowed' }} inline-flex" title="{{ __('Move earlier') }}" @disabled(! $ledger->can_move_earlier)>
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                                        </button>
-                                    </form>
-                                    <form action="{{ route('admin.provider-ledgers.move', $ledger) }}" method="POST" class="inline-flex">
-                                        @csrf
-                                        <input type="hidden" name="direction" value="later">
-                                        <button type="submit" class="{{ $ledger->can_move_later ? 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white' : 'text-gray-300 dark:text-gray-700 cursor-not-allowed' }} inline-flex" title="{{ __('Move later') }}" @disabled(! $ledger->can_move_later)>
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                        </button>
-                                    </form>
-                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 <form action="{{ route('admin.reports.export-provider-ledger-debt', $ledger) }}" method="POST" class="inline-block">
@@ -194,7 +175,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
                                 {{ __('No provider ledger entries found.') }}
                             </td>
                         </tr>
