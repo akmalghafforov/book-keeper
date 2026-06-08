@@ -800,28 +800,33 @@ class ReportGenerationTest extends TestCase
     {
         $provider = Provider::factory()->create();
 
-        $sameDayOpeningCharge = ProviderLedger::factory()->create([
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $provider->id,
-            'amount' => 100,
-            'transaction_date' => '2026-04-01',
-            'provider_received_at' => '2026-04-01 09:00:00',
-            'sort_order' => 2,
+            'type' => 'charge',
+            'amount' => '100.0000',
+            'transaction_date' => '01/04/2026 09:00',
+            'notes' => 'Opening manual provider debt',
         ]);
 
-        $selectedPayment = ProviderLedger::factory()->payment()->create([
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $provider->id,
-            'amount' => 40,
-            'transaction_date' => '2026-04-01',
-            'provider_received_at' => '2026-04-01 10:00:00',
-            'sort_order' => 1,
+            'type' => 'payment',
+            'amount' => '40.0000',
+            'transaction_date' => '01/04/2026 10:00',
+            'notes' => 'Selected manual provider payment',
         ]);
 
-        $laterCharge = ProviderLedger::factory()->create([
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $provider->id,
-            'amount' => 70,
-            'transaction_date' => '2026-04-02',
-            'provider_received_at' => '2026-04-02 09:00:00',
+            'type' => 'charge',
+            'amount' => '70.0000',
+            'transaction_date' => '02/04/2026 09:00',
+            'notes' => 'Later manual provider debt',
         ]);
+
+        $sameDayOpeningCharge = ProviderLedger::where('notes', 'Opening manual provider debt')->firstOrFail();
+        $selectedPayment = ProviderLedger::where('notes', 'Selected manual provider payment')->firstOrFail();
+        $laterCharge = ProviderLedger::where('notes', 'Later manual provider debt')->firstOrFail();
 
         $report = GeneratedReport::create([
             'name' => 'Debt Report: Test Provider (from provider ledger #'.$selectedPayment->id.')',

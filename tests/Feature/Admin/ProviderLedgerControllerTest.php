@@ -75,19 +75,21 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertDontSee('provider-ledgers.move');
     }
 
-    public function test_index_sorts_provider_ledgers_by_provider_received_at(): void
+    public function test_index_sorts_manually_created_provider_ledgers_by_transaction_datetime(): void
     {
-        ProviderLedger::factory()->create([
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'amount' => '100.0000',
             'car_number' => 'AA-1111',
-            'transaction_date' => '2026-06-03',
-            'provider_received_at' => '2026-06-03 09:00:00',
+            'transaction_date' => '03/06/2026 09:00',
         ]);
-        ProviderLedger::factory()->create([
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'amount' => '200.0000',
             'car_number' => 'BB-2222',
-            'transaction_date' => '2026-06-03',
-            'provider_received_at' => '2026-06-03 15:30:00',
+            'transaction_date' => '03/06/2026 15:30',
         ]);
 
         $this->actingAs($this->user)
@@ -116,7 +118,7 @@ class ProviderLedgerControllerTest extends TestCase
             'provider_id' => $this->provider->id,
             'type' => 'payment',
             'amount' => '25.2500',
-            'transaction_date' => '03/06/2026',
+            'transaction_date' => '03/06/2026 14:15',
             'notes' => 'Cash payment',
         ]);
 
@@ -127,6 +129,7 @@ class ProviderLedgerControllerTest extends TestCase
             'type' => 'payment',
             'amount' => '25.2500',
             'transaction_date' => '2026-06-03 00:00:00',
+            'provider_received_at' => '2026-06-03 14:15:00',
             'notes' => 'Cash payment',
         ]);
     }
@@ -138,7 +141,7 @@ class ProviderLedgerControllerTest extends TestCase
             'type' => 'charge',
             'amount' => '125.7500',
             'car_number' => 'AA-1234',
-            'transaction_date' => '03/06/2026',
+            'transaction_date' => '03/06/2026 09:45',
             'notes' => 'Manual supplier debt',
         ]);
 
@@ -154,6 +157,7 @@ class ProviderLedgerControllerTest extends TestCase
             'buy_price' => null,
             'amount' => '125.7500',
             'transaction_date' => '2026-06-03 00:00:00',
+            'provider_received_at' => '2026-06-03 09:45:00',
             'notes' => 'Manual supplier debt',
         ]);
     }
@@ -164,7 +168,7 @@ class ProviderLedgerControllerTest extends TestCase
             'provider_id' => $this->provider->id,
             'type' => 'payment',
             'amount' => '0',
-            'transaction_date' => '03/06/2026',
+            'transaction_date' => '03/06/2026 12:00',
         ]);
 
         $response->assertSessionHasErrors(['amount']);
@@ -198,7 +202,7 @@ class ProviderLedgerControllerTest extends TestCase
             'provider_id' => $this->provider->id,
             'type' => 'payment',
             'amount' => '30.5000',
-            'transaction_date' => '04/06/2026',
+            'transaction_date' => '04/06/2026 16:20',
             'notes' => 'Updated payment',
         ]);
 
@@ -209,6 +213,7 @@ class ProviderLedgerControllerTest extends TestCase
             'type' => 'payment',
             'amount' => '30.5000',
             'transaction_date' => '2026-06-04 00:00:00',
+            'provider_received_at' => '2026-06-04 16:20:00',
             'notes' => 'Updated payment',
         ]);
     }
@@ -226,7 +231,7 @@ class ProviderLedgerControllerTest extends TestCase
             'type' => 'charge',
             'amount' => '130.7500',
             'car_number' => 'BB-5678',
-            'transaction_date' => '04/06/2026',
+            'transaction_date' => '04/06/2026 08:05',
             'notes' => 'Updated manual debt',
         ]);
 
@@ -242,6 +247,7 @@ class ProviderLedgerControllerTest extends TestCase
             'buy_price' => null,
             'amount' => '130.7500',
             'transaction_date' => '2026-06-04 00:00:00',
+            'provider_received_at' => '2026-06-04 08:05:00',
             'notes' => 'Updated manual debt',
         ]);
     }
@@ -285,7 +291,7 @@ class ProviderLedgerControllerTest extends TestCase
                 'provider_id' => $this->provider->id,
                 'type' => 'charge',
                 'amount' => '30.5000',
-                'transaction_date' => '04/06/2026',
+                'transaction_date' => '04/06/2026 10:00',
             ])
             ->assertForbidden();
 

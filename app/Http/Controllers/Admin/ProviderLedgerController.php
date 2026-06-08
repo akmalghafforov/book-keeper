@@ -69,7 +69,7 @@ class ProviderLedgerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate($this->manualEntryRules());
-        $transactionDate = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->startOfDay();
+        $transactionDate = $this->parseManualTransactionDate($validated['transaction_date']);
 
         ProviderLedger::create([
             'provider_id' => $validated['provider_id'],
@@ -119,7 +119,7 @@ class ProviderLedgerController extends Controller
         $this->ensureManualEntry($providerLedger);
 
         $validated = $request->validate($this->manualEntryRules());
-        $transactionDate = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->startOfDay();
+        $transactionDate = $this->parseManualTransactionDate($validated['transaction_date']);
 
         $providerLedger->update([
             'provider_id' => $validated['provider_id'],
@@ -159,9 +159,14 @@ class ProviderLedgerController extends Controller
             'type' => ['required', Rule::in(['charge', 'payment'])],
             'amount' => 'required|numeric|min:0.01',
             'car_number' => 'nullable|string|max:50',
-            'transaction_date' => 'required|date_format:d/m/Y',
+            'transaction_date' => 'required|date_format:d/m/Y H:i',
             'notes' => 'nullable|string|max:1000',
         ];
+    }
+
+    private function parseManualTransactionDate(string $transactionDate): Carbon
+    {
+        return Carbon::createFromFormat('d/m/Y H:i', $transactionDate);
     }
 
     private function ensureManualEntry(ProviderLedger $providerLedger): void
