@@ -161,7 +161,7 @@ class ReportController extends Controller
 
         $providerLedger->loadMissing('provider');
 
-        $rangeStart = Carbon::parse($providerLedger->transaction_date ?? $providerLedger->created_at)->startOfDay();
+        $rangeStart = Carbon::parse($providerLedger->provider_received_at ?? $providerLedger->transaction_date ?? $providerLedger->created_at)->startOfDay();
         $cutoff = now();
         $parameters = [
             'provider_id' => $providerLedger->provider_id,

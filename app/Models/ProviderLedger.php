@@ -24,6 +24,7 @@ class ProviderLedger extends Model
         'buy_price',
         'amount',
         'transaction_date',
+        'provider_received_at',
         'sort_order',
         'notes',
     ];
@@ -33,6 +34,7 @@ class ProviderLedger extends Model
         'buy_price' => 'decimal:4',
         'amount' => 'decimal:4',
         'transaction_date' => 'date',
+        'provider_received_at' => 'datetime',
         'sort_order' => 'integer',
     ];
 
@@ -62,9 +64,31 @@ class ProviderLedger extends Model
     public function scopeInOperationOrder(Builder $query): Builder
     {
         return $query
-            ->orderBy('transaction_date')
+            ->orderByRaw(static::operationDateTimeExpression().' asc')
             ->orderBy('sort_order')
             ->orderBy('id');
+    }
+
+    public function scopeInReverseOperationOrder(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw(static::operationDateTimeExpression().' desc')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public static function operationDateTimeExpression(): string
+    {
+        $table = (new static)->getTable();
+
+        return "COALESCE({$table}.provider_received_at, {$table}.transaction_date)";
+    }
+
+    public function operationDateTime(): ?Carbon
+    {
+        return $this->provider_received_at
+            ?? $this->transaction_date
+            ?? $this->created_at;
     }
 
     public function provider(): BelongsTo

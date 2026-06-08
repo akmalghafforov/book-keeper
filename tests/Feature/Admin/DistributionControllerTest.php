@@ -3,9 +3,9 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Client;
-use App\Models\DebtLedger;
 use App\Models\Distribution;
 use App\Models\Product;
+use App\Models\Provider;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\PotentialDuplicateDetector;
@@ -17,8 +17,11 @@ class DistributionControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Client $client;
+
     private Product $product;
+
     private Supplier $supplier;
 
     protected function setUp(): void
@@ -59,6 +62,43 @@ class DistributionControllerTest extends TestCase
             'amount' => 500.0,
             'transaction_date' => '2026-01-15 00:00:00',
             'reference_id' => $distribution->id,
+        ]);
+    }
+
+    public function test_store_saves_provider_received_at_and_syncs_provider_ledger(): void
+    {
+        $provider = Provider::factory()->create();
+        $this->product->update([
+            'default_provider_id' => $provider->id,
+            'buy_price' => '12.5000',
+        ]);
+
+        $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), [
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'distribution_date' => '15/01/2026',
+            'provider_received_at' => '15/01/2026 14:30',
+        ]);
+
+        $response->assertRedirect(route('admin.distributions.index'));
+
+        $distribution = Distribution::latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('distributions', [
+            'id' => $distribution->id,
+            'provider_received_at' => '2026-01-15 14:30:00',
+        ]);
+
+        $this->assertDatabaseHas('provider_ledgers', [
+            'provider_id' => $provider->id,
+            'distribution_id' => $distribution->id,
+            'transaction_date' => '2026-01-15 00:00:00',
+            'provider_received_at' => '2026-01-15 14:30:00',
+            'amount' => '125.0000',
         ]);
     }
 

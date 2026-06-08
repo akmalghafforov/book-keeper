@@ -156,7 +156,7 @@
                     <div class="p-6 space-y-4">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-[#3E3E3A] pb-2">Distribution Details</h3>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div x-data="{
                                 init() {
                                     flatpickr($refs.datepicker, {
@@ -176,6 +176,31 @@
                                         placeholder="dd/mm/yyyy">
                                 </div>
                                 @error('distribution_date')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div x-data="{
+                                init() {
+                                    flatpickr($refs.providerReceivedAtPicker, {
+                                        enableTime: true,
+                                        time_24hr: true,
+                                        dateFormat: 'd/m/Y H:i',
+                                        defaultDate: '{{ old('provider_received_at', now()->format('d/m/Y H:i')) }}',
+                                        allowInput: true,
+                                    });
+                                }
+                            }">
+                                <label for="provider_received_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Date & Time') }}</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <input type="text" name="provider_received_at" id="provider_received_at" x-ref="providerReceivedAtPicker"
+                                        class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        placeholder="dd/mm/yyyy hh:mm">
+                                </div>
+                                @error('provider_received_at')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>

@@ -58,9 +58,7 @@ class ProviderController extends Controller
     {
         $providerLedgers = $provider->providerLedgers()
             ->with(['product', 'distribution'])
-            ->orderByDesc('transaction_date')
-            ->orderBy('sort_order')
-            ->orderBy('id')
+            ->inReverseOperationOrder()
             ->paginate(10);
 
         return view('admin.providers.show', compact('provider', 'providerLedgers'));

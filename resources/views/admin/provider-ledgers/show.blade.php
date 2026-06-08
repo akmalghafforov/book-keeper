@@ -40,8 +40,8 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white font-bold text-lg">{{ $providerLedger->type === 'payment' ? '-' : '' }}{{ number_format((float) $providerLedger->amount, 4) }}</dd>
                 </div>
                 <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Transaction Date') }}</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ optional($providerLedger->transaction_date)->format('F d, Y') }}</dd>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Provider Date & Time') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $providerLedger->operationDateTime()?->format('F d, Y H:i') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Product') }}</dt>

@@ -35,20 +35,23 @@ class ProviderDebtReportDataBuilder
             ->findOrFail($providerId);
 
         $allLedgers = $provider->providerLedgers->values();
-        $rangeStartSortOrder = $this->resolveRangeStartSortOrder($allLedgers, $rangeStartLedgerId);
+        $ledgerPositions = $allLedgers->pluck('id')->flip();
+        $rangeStartPosition = $rangeStartLedgerId > 0
+            ? $ledgerPositions->get($rangeStartLedgerId)
+            : null;
         $openingLedgers = $allLedgers
-            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeStartSortOrder) {
+            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeStartPosition, $ledgerPositions) {
                 $ledgerDate = $this->ledgerReportDate($ledger);
 
                 return $ledgerDate->lt($rangeStart)
-                    || ($ledgerDate->eq($rangeStart) && $this->ledgerComesBeforeRangeStart($ledger, $rangeStartLedgerId, $rangeStartSortOrder));
+                    || ($ledgerDate->eq($rangeStart) && $this->ledgerComesBeforeRangeStart($ledger, $rangeStartLedgerId, $rangeStartPosition, $ledgerPositions));
             })
             ->values();
         $rangeLedgers = $allLedgers
-            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeStartSortOrder, $rangeEnd) {
+            ->filter(function ($ledger) use ($rangeStart, $rangeStartLedgerId, $rangeStartPosition, $ledgerPositions, $rangeEnd) {
                 $ledgerDate = $this->ledgerReportDate($ledger);
                 $startsWithinRange = $ledgerDate->gt($rangeStart)
-                    || ($ledgerDate->eq($rangeStart) && ! $this->ledgerComesBeforeRangeStart($ledger, $rangeStartLedgerId, $rangeStartSortOrder));
+                    || ($ledgerDate->eq($rangeStart) && ! $this->ledgerComesBeforeRangeStart($ledger, $rangeStartLedgerId, $rangeStartPosition, $ledgerPositions));
 
                 return $startsWithinRange
                     && ($rangeEnd === null || $ledgerDate->lte($rangeEnd));
@@ -105,34 +108,22 @@ class ProviderDebtReportDataBuilder
 
     private function ledgerReportDate($ledger): Carbon
     {
-        return Carbon::parse($ledger->transaction_date ?? $ledger->created_at)->startOfDay();
+        return Carbon::parse($ledger->provider_received_at ?? $ledger->transaction_date ?? $ledger->created_at)->startOfDay();
     }
 
-    private function resolveRangeStartSortOrder(Collection $ledgers, int $rangeStartLedgerId): ?int
-    {
-        if ($rangeStartLedgerId <= 0) {
-            return null;
-        }
-
-        $rangeStartLedger = $ledgers->firstWhere('id', $rangeStartLedgerId);
-
-        return $rangeStartLedger === null ? null : (int) $rangeStartLedger->sort_order;
-    }
-
-    private function ledgerComesBeforeRangeStart($ledger, int $rangeStartLedgerId, ?int $rangeStartSortOrder): bool
+    private function ledgerComesBeforeRangeStart($ledger, int $rangeStartLedgerId, ?int $rangeStartPosition, Collection $ledgerPositions): bool
     {
         if ($rangeStartLedgerId <= 0) {
             return false;
         }
 
-        if ($rangeStartSortOrder === null) {
+        $ledgerPosition = $ledgerPositions->get($ledger->id);
+
+        if ($rangeStartPosition === null || $ledgerPosition === null) {
             return $ledger->id < $rangeStartLedgerId;
         }
 
-        $ledgerSortOrder = (int) ($ledger->sort_order ?? 0);
-
-        return $ledgerSortOrder < $rangeStartSortOrder
-            || ($ledgerSortOrder === $rangeStartSortOrder && $ledger->id < $rangeStartLedgerId);
+        return $ledgerPosition < $rangeStartPosition;
     }
 
     private function ledgerBalanceDelta($ledger): float

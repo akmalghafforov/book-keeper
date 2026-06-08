@@ -796,6 +796,59 @@ class ReportGenerationTest extends TestCase
         $this->assertSame($sameDayOpeningCharge->id, $payload->providerLedgers->first()->id);
     }
 
+    public function test_provider_ledger_started_report_uses_provider_received_at_for_same_day_boundaries(): void
+    {
+        $provider = Provider::factory()->create();
+
+        $sameDayOpeningCharge = ProviderLedger::factory()->create([
+            'provider_id' => $provider->id,
+            'amount' => 100,
+            'transaction_date' => '2026-04-01',
+            'provider_received_at' => '2026-04-01 09:00:00',
+            'sort_order' => 2,
+        ]);
+
+        $selectedPayment = ProviderLedger::factory()->payment()->create([
+            'provider_id' => $provider->id,
+            'amount' => 40,
+            'transaction_date' => '2026-04-01',
+            'provider_received_at' => '2026-04-01 10:00:00',
+            'sort_order' => 1,
+        ]);
+
+        $laterCharge = ProviderLedger::factory()->create([
+            'provider_id' => $provider->id,
+            'amount' => 70,
+            'transaction_date' => '2026-04-02',
+            'provider_received_at' => '2026-04-02 09:00:00',
+        ]);
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: Test Provider (from provider ledger #'.$selectedPayment->id.')',
+            'type' => 'single_provider_debt_range',
+            'format' => 'png',
+            'parameters' => [
+                'provider_id' => $provider->id,
+                'locale' => 'en',
+                'range_start_date' => '2026-04-01',
+                'range_end_date' => null,
+                'range_start_provider_ledger_id' => $selectedPayment->id,
+            ],
+            'status' => 'pending',
+            'last_included_ledger_id' => $laterCharge->id,
+        ]);
+
+        $payload = app(ProviderDebtReportDataBuilder::class)->build($report);
+
+        $this->assertSame(1, $payload->opening_balance_transactions_count);
+        $this->assertEquals(100.0, (float) $payload->opening_balance_total);
+        $this->assertEquals(30.0, (float) $payload->selected_range_total);
+        $this->assertEquals(130.0, (float) $payload->range_closing_balance);
+        $this->assertSame([$selectedPayment->id, $laterCharge->id], $payload->recentLedgers->pluck('id')->all());
+        $this->assertSame([60.0, 130.0], $payload->recentLedgers->pluck('running_balance')->map(fn ($value) => (float) $value)->all());
+        $this->assertSame($sameDayOpeningCharge->id, $payload->providerLedgers->first()->id);
+    }
+
     public function test_provider_ledger_started_report_uses_operation_order_for_same_day_boundaries(): void
     {
         $provider = Provider::factory()->create();

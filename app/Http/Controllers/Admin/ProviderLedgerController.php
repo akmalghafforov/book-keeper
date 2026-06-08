@@ -18,9 +18,7 @@ class ProviderLedgerController extends Controller
     public function index(Request $request)
     {
         $query = ProviderLedger::with(['provider', 'product', 'distribution'])
-            ->orderByDesc('transaction_date')
-            ->orderBy('sort_order')
-            ->orderBy('id');
+            ->inReverseOperationOrder();
 
         if ($request->filled('provider_id')) {
             $query->where('provider_id', $request->provider_id);
@@ -73,13 +71,15 @@ class ProviderLedgerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate($this->manualEntryRules());
+        $transactionDate = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->startOfDay();
 
         ProviderLedger::create([
             'provider_id' => $validated['provider_id'],
             'type' => $validated['type'],
             'amount' => $validated['amount'],
             'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
-            'transaction_date' => Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d'),
+            'transaction_date' => $transactionDate->toDateString(),
+            'provider_received_at' => $transactionDate->toDateTimeString(),
             'notes' => $validated['notes'] ?? null,
         ]);
 
@@ -121,6 +121,7 @@ class ProviderLedgerController extends Controller
         $this->ensureManualEntry($providerLedger);
 
         $validated = $request->validate($this->manualEntryRules());
+        $transactionDate = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->startOfDay();
 
         $providerLedger->update([
             'provider_id' => $validated['provider_id'],
@@ -131,7 +132,8 @@ class ProviderLedgerController extends Controller
             'quantity' => null,
             'buy_price' => null,
             'amount' => $validated['amount'],
-            'transaction_date' => Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d'),
+            'transaction_date' => $transactionDate->toDateString(),
+            'provider_received_at' => $transactionDate->toDateTimeString(),
             'notes' => $validated['notes'] ?? null,
         ]);
 
@@ -161,14 +163,13 @@ class ProviderLedgerController extends Controller
         $moved = DB::transaction(function () use ($providerLedger, $validated): bool {
             $providerLedger->refresh();
 
-            $ledgerIds = ProviderLedger::query()
+            $ledgers = ProviderLedger::query()
                 ->where('provider_id', $providerLedger->provider_id)
                 ->whereDate('transaction_date', $providerLedger->transaction_date->toDateString())
                 ->inOperationOrder()
-                ->pluck('id')
-                ->all();
+                ->get(['id', 'provider_id', 'transaction_date', 'provider_received_at', 'sort_order']);
 
-            $currentIndex = array_search($providerLedger->id, $ledgerIds, true);
+            $currentIndex = $ledgers->search(fn (ProviderLedger $ledger) => $ledger->id === $providerLedger->id);
 
             if ($currentIndex === false) {
                 return false;
@@ -178,10 +179,13 @@ class ProviderLedgerController extends Controller
                 ? $currentIndex - 1
                 : $currentIndex + 1;
 
-            if (! array_key_exists($targetIndex, $ledgerIds)) {
+            $targetLedger = $ledgers->get($targetIndex);
+
+            if ($targetLedger === null || ! $this->operationDateTimesMatch($providerLedger, $targetLedger)) {
                 return false;
             }
 
+            $ledgerIds = $ledgers->pluck('id')->all();
             [$ledgerIds[$currentIndex], $ledgerIds[$targetIndex]] = [$ledgerIds[$targetIndex], $ledgerIds[$currentIndex]];
 
             foreach (array_values($ledgerIds) as $index => $ledgerId) {
@@ -235,25 +239,40 @@ class ProviderLedgerController extends Controller
             ->unique(fn (array $group) => $group['provider_id'].'|'.$group['transaction_date']);
 
         foreach ($groups as $group) {
-            $orderedIds = ProviderLedger::query()
+            $orderedLedgers = ProviderLedger::query()
                 ->where('provider_id', $group['provider_id'])
                 ->whereDate('transaction_date', $group['transaction_date'])
                 ->inOperationOrder()
-                ->pluck('id')
-                ->all();
+                ->get(['id', 'provider_id', 'transaction_date', 'provider_received_at']);
 
-            $positions = array_flip($orderedIds);
-            $lastIndex = count($orderedIds) - 1;
+            $positions = $orderedLedgers->pluck('id')->flip();
+            $lastIndex = $orderedLedgers->count() - 1;
 
             $displayedLedgers
                 ->filter(fn (ProviderLedger $ledger) => $ledger->provider_id === $group['provider_id']
                     && $ledger->transaction_date?->toDateString() === $group['transaction_date'])
-                ->each(function (ProviderLedger $ledger) use ($positions, $lastIndex): void {
-                    $position = $positions[$ledger->id] ?? null;
+                ->each(function (ProviderLedger $ledger) use ($orderedLedgers, $positions, $lastIndex): void {
+                    $position = $positions->get($ledger->id);
+                    $previousLedger = $position !== null && $position > 0
+                        ? $orderedLedgers->get($position - 1)
+                        : null;
+                    $nextLedger = $position !== null && $position < $lastIndex
+                        ? $orderedLedgers->get($position + 1)
+                        : null;
 
-                    $ledger->setAttribute('can_move_earlier', $position !== null && $position > 0);
-                    $ledger->setAttribute('can_move_later', $position !== null && $position < $lastIndex);
+                    $ledger->setAttribute('can_move_earlier', $previousLedger !== null && $this->operationDateTimesMatch($ledger, $previousLedger));
+                    $ledger->setAttribute('can_move_later', $nextLedger !== null && $this->operationDateTimesMatch($ledger, $nextLedger));
                 });
         }
+    }
+
+    private function operationDateTimesMatch(ProviderLedger $left, ProviderLedger $right): bool
+    {
+        return $this->operationDateTimeKey($left) === $this->operationDateTimeKey($right);
+    }
+
+    private function operationDateTimeKey(ProviderLedger $ledger): ?string
+    {
+        return $ledger->operationDateTime()?->format('Y-m-d H:i:s');
     }
 }

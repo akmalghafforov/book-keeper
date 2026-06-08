@@ -71,9 +71,15 @@
                 @endif
 
                 @forelse ($provider->recentLedgers as $ledger)
+                    @php
+                        $operationAt = $ledger->operationDateTime();
+                    @endphp
                     <tr>
                         <td class="date-cell">
-                            {{ $ledger->transaction_date?->format('d/m') ?? $ledger->created_at->format('d/m') }}
+                            {{ $operationAt?->format('d/m') ?? $ledger->created_at->format('d/m') }}
+                            @if($operationAt)
+                                <small class="date-meta">{{ $operationAt->format('H:i') }}</small>
+                            @endif
                             @if($ledger->car_number)
                                 <small class="date-meta">{{ $ledger->car_number }}</small>
                             @endif

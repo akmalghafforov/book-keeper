@@ -77,7 +77,7 @@
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                     <thead class="bg-gray-50 dark:bg-[#1C1C1A]">
                         <tr>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Date') }}</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Provider Date/Time') }}</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Type') }}</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Product') }}</th>
                             <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Car Number') }}</th>
@@ -91,7 +91,7 @@
                         @forelse ($providerLedgers as $ledger)
                             <tr>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    {{ optional($ledger->transaction_date)->format('M d, Y') }}
+                                    {{ $ledger->operationDateTime()?->format('M d, Y H:i') }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $ledger->type === 'payment' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">

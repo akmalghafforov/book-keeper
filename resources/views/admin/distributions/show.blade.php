@@ -26,6 +26,10 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->distribution_date->format('d/m/Y') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Provider Date & Time') }}</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ ($distribution->provider_received_at ?? $distribution->distribution_date)->format('d/m/Y H:i') }}</dd>
+                </div>
+                <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Supplier (Car)') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">
                         @if($distribution->supplier)

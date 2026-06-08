@@ -23,10 +23,12 @@ class Distribution extends Model
         'price',
         'subtotal',
         'distribution_date',
+        'provider_received_at',
     ];
 
     protected $casts = [
         'distribution_date' => 'date',
+        'provider_received_at' => 'datetime',
         'quantity' => 'decimal:3',
         'price' => 'decimal:4',
         'subtotal' => 'decimal:4',
@@ -162,6 +164,8 @@ class Distribution extends Model
         }
 
         $amount = round((float) $this->quantity * (float) $product->buy_price, 4);
+        $providerReceivedAt = $this->provider_received_at ?? $this->distribution_date?->copy()->startOfDay();
+        $providerReceivedAtLabel = $providerReceivedAt?->format('d/m/Y H:i') ?? $this->distribution_date->format('d/m/Y');
         $data = [
             'provider_id' => $product->default_provider_id,
             'type' => 'charge',
@@ -173,8 +177,9 @@ class Distribution extends Model
             'quantity' => $this->quantity,
             'buy_price' => $product->buy_price,
             'amount' => $amount,
-            'transaction_date' => $this->distribution_date,
-            'notes' => "Auto-generated provider balance from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+            'transaction_date' => $providerReceivedAt?->toDateString() ?? $this->distribution_date,
+            'provider_received_at' => $providerReceivedAt,
+            'notes' => "Auto-generated provider balance from Distribution #{$this->id} ({$providerReceivedAtLabel})",
         ];
 
         if ($ledger) {

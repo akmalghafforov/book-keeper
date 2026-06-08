@@ -85,6 +85,27 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSeeInOrder(['BB-2222', 'AA-1111']);
     }
 
+    public function test_index_sorts_provider_ledgers_by_provider_received_at(): void
+    {
+        ProviderLedger::factory()->create([
+            'provider_id' => $this->provider->id,
+            'car_number' => 'AA-1111',
+            'transaction_date' => '2026-06-03',
+            'provider_received_at' => '2026-06-03 09:00:00',
+        ]);
+        ProviderLedger::factory()->create([
+            'provider_id' => $this->provider->id,
+            'car_number' => 'BB-2222',
+            'transaction_date' => '2026-06-03',
+            'provider_received_at' => '2026-06-03 15:30:00',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.provider-ledgers.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['BB-2222', 'AA-1111']);
+    }
+
     public function test_create_prefills_selected_provider(): void
     {
         $response = $this->actingAs($this->user)->get(route('admin.provider-ledgers.create', [

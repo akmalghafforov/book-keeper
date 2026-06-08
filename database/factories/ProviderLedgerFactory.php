@@ -19,6 +19,7 @@ class ProviderLedgerFactory extends Factory
     {
         $quantity = fake()->randomFloat(3, 1, 100);
         $buyPrice = fake()->randomFloat(4, 10, 1000);
+        $transactionDate = fake()->date();
 
         return [
             'provider_id' => Provider::factory(),
@@ -29,7 +30,8 @@ class ProviderLedgerFactory extends Factory
             'quantity' => $quantity,
             'buy_price' => $buyPrice,
             'amount' => round($quantity * $buyPrice, 4),
-            'transaction_date' => fake()->date(),
+            'transaction_date' => $transactionDate,
+            'provider_received_at' => fn (array $attributes) => $attributes['transaction_date'],
             'notes' => fake()->sentence(),
         ];
     }

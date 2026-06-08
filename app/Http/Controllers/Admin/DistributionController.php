@@ -8,6 +8,7 @@ use App\Models\Distribution;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Services\PotentialDuplicateDetector;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DistributionController extends Controller
@@ -90,6 +91,7 @@ class DistributionController extends Controller
         $clients = Client::with('shops')->get();
         $products = Product::all();
         $suppliers = Supplier::all();
+
         return view('admin.distributions.create', compact('clients', 'products', 'suppliers'));
     }
 
@@ -108,9 +110,10 @@ class DistributionController extends Controller
             'quantity' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'distribution_date' => 'required|date_format:d/m/Y',
+            'provider_received_at' => 'nullable|date_format:d/m/Y H:i',
         ]);
 
-        $validated['distribution_date'] = \Carbon\Carbon::createFromFormat('d/m/Y', $validated['distribution_date'])->format('Y-m-d');
+        $validated = $this->normalizeDates($validated);
         $validated['subtotal'] = $validated['quantity'] * $validated['price'];
 
         Distribution::create($validated);
@@ -125,6 +128,7 @@ class DistributionController extends Controller
     public function show(Distribution $distribution)
     {
         $distribution->load(['client', 'shop', 'product', 'supplier']);
+
         return view('admin.distributions.show', compact('distribution'));
     }
 
@@ -136,6 +140,7 @@ class DistributionController extends Controller
         $clients = Client::with('shops')->get();
         $products = Product::all();
         $suppliers = Supplier::all();
+
         return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'suppliers'));
     }
 
@@ -154,9 +159,10 @@ class DistributionController extends Controller
             'quantity' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'distribution_date' => 'required|date_format:d/m/Y',
+            'provider_received_at' => 'nullable|date_format:d/m/Y H:i',
         ]);
 
-        $validated['distribution_date'] = \Carbon\Carbon::createFromFormat('d/m/Y', $validated['distribution_date'])->format('Y-m-d');
+        $validated = $this->normalizeDates($validated);
         $validated['subtotal'] = $validated['quantity'] * $validated['price'];
 
         $distribution->update($validated);
@@ -174,5 +180,20 @@ class DistributionController extends Controller
 
         return redirect()->route('admin.distributions.index')
             ->with('success', 'Distribution deleted successfully.');
+    }
+
+    private function normalizeDates(array $validated): array
+    {
+        $distributionDate = Carbon::createFromFormat('d/m/Y', $validated['distribution_date'])
+            ->startOfDay();
+
+        $providerReceivedAt = isset($validated['provider_received_at'])
+            ? Carbon::createFromFormat('d/m/Y H:i', $validated['provider_received_at'])
+            : $distributionDate->copy();
+
+        $validated['distribution_date'] = $distributionDate->toDateString();
+        $validated['provider_received_at'] = $providerReceivedAt->format('Y-m-d H:i:s');
+
+        return $validated;
     }
 }

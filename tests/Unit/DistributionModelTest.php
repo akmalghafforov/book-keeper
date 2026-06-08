@@ -191,6 +191,7 @@ class DistributionModelTest extends TestCase
             'supplier_id' => $supplier->id,
             'quantity' => '4.000',
             'distribution_date' => '2026-03-17',
+            'provider_received_at' => '2026-03-17 13:45:00',
         ]);
 
         $this->assertDatabaseHas('provider_ledgers', [
@@ -202,6 +203,7 @@ class DistributionModelTest extends TestCase
             'buy_price' => 25.5000,
             'amount' => 102.0000,
             'transaction_date' => '2026-03-17 00:00:00',
+            'provider_received_at' => '2026-03-17 13:45:00',
         ]);
 
         $this->assertSame(102.0, $provider->fresh()->balance);
