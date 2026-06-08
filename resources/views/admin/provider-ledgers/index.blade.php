@@ -137,7 +137,15 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $ledger->type === 'payment' ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white' }}">
-                                {{ $ledger->type === 'payment' ? '-' : '' }}{{ number_format((float) $ledger->amount, 4) }}
+                                <div>{{ $ledger->type === 'payment' ? '-' : '' }}{{ number_format((float) $ledger->amount, 4) }}</div>
+                                @if($ledger->quantity !== null)
+                                    <div class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                                        {{ __('Quantity') }}: {{ number_format((float) $ledger->quantity, 3) }}
+                                        @if($ledger->distribution?->quantity_unit)
+                                            {{ __($ledger->distribution->quantity_unit) }}
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $ledger->product?->name ?? __('N/A') }}
