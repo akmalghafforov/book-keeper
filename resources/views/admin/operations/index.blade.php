@@ -80,6 +80,7 @@
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                 <thead class="bg-gray-50 dark:bg-[#1C1C1A]">
                     <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Actions') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Date') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Client') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Car') }}</th>
@@ -90,12 +91,21 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Amount') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Balance') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Notes') }}</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-[#161615] divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                     @forelse ($operations as $operation)
+                        @php($includedInRecentDebtReport = (bool) $operation->getAttribute('included_in_recent_debt_report'))
                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-left text-sm">
+                                <form action="{{ route('admin.reports.export-operation-debt', $operation) }}" method="POST" class="inline-block">
+                                    @csrf
+                                    <input type="hidden" name="format" value="jpg">
+                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 {{ $includedInRecentDebtReport ? 'bg-red-600 hover:bg-red-700 active:bg-red-900 focus:ring-red-500' : 'bg-green-600 hover:bg-green-700 active:bg-green-900 focus:ring-green-500' }} border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm" title="{{ $includedInRecentDebtReport ? __('Included in the latest completed debt report for this client') : __('Generate debt report from this operation') }}">
+                                        {{ $includedInRecentDebtReport ? __('Reported') : __('Report') }}
+                                    </button>
+                                </form>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ optional($operation->transaction_date)->format('Y-m-d') ?? $operation->created_at->format('Y-m-d') }}
                             </td>
@@ -128,15 +138,6 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs" title="{{ $operation->notes }}">
                                 {{ $operation->notes }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                <form action="{{ route('admin.reports.export-operation-debt', $operation) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    <input type="hidden" name="format" value="jpg">
-                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm" title="{{ __('Generate debt report from this operation') }}">
-                                        {{ __('Report') }}
-                                    </button>
-                                </form>
                             </td>
                         </tr>
                     @empty
