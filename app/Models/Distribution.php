@@ -21,6 +21,7 @@ class Distribution extends Model
         'quantity_unit',
         'quantity',
         'price',
+        'provider_buy_price',
         'subtotal',
         'distribution_date',
         'provider_received_at',
@@ -31,6 +32,7 @@ class Distribution extends Model
         'provider_received_at' => 'datetime',
         'quantity' => 'decimal:3',
         'price' => 'decimal:4',
+        'provider_buy_price' => 'decimal:4',
         'subtotal' => 'decimal:4',
     ];
 
@@ -157,13 +159,15 @@ class Distribution extends Model
             ->where('distribution_id', $this->id)
             ->first();
 
-        if (! $product?->default_provider_id || $product->buy_price === null) {
+        $buyPrice = $this->provider_buy_price ?? $product?->buy_price;
+
+        if (! $product?->default_provider_id || $buyPrice === null) {
             $ledger?->delete();
 
             return;
         }
 
-        $amount = round((float) $this->quantity * (float) $product->buy_price, 4);
+        $amount = round((float) $this->quantity * (float) $buyPrice, 4);
         $providerReceivedAt = $this->provider_received_at ?? $this->distribution_date?->copy()->startOfDay();
         $providerReceivedAtLabel = $providerReceivedAt?->format('d/m/Y H:i') ?? $this->distribution_date->format('d/m/Y');
         $data = [
@@ -175,7 +179,7 @@ class Distribution extends Model
                 ->whereKey($this->supplier_id)
                 ->value('car_number'),
             'quantity' => $this->quantity,
-            'buy_price' => $product->buy_price,
+            'buy_price' => $buyPrice,
             'amount' => $amount,
             'transaction_date' => $providerReceivedAt?->toDateString() ?? $this->distribution_date,
             'provider_received_at' => $providerReceivedAt,

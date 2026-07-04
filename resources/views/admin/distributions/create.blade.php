@@ -10,8 +10,9 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6" x-data="{ 
-    quantity: {{ old('quantity', 0) }}, 
+    quantity: {{ old('quantity', 0) }},
     price: {{ old('price', 0) }},
+    providerBuyPrice: {{ old('provider_buy_price') !== null ? old('provider_buy_price') : 'null' }},
     clientId: '{{ old('client_id') }}',
     shopId: '{{ old('shop_id') }}',
     showClientModal: false,
@@ -27,7 +28,7 @@
     newShop: { name: '', address: '' },
     isSavingShop: false,
     shopError: '',
-    products: @js($products->map(fn($p) => ['id' => $p->id, 'default_unit' => $p->default_unit])->keyBy('id')),
+    products: @js($products->map(fn($p) => ['id' => $p->id, 'default_unit' => $p->default_unit, 'buy_price' => $p->buy_price])->keyBy('id')),
     productId: '{{ old('product_id') }}',
     unit: '{{ old('quantity_unit', 'per_ton') }}',
     get subtotal() {
@@ -321,6 +322,7 @@
                                         if (productId && products[productId] && products[productId].default_unit) {
                                             unit = products[productId].default_unit;
                                         }
+                                        providerBuyPrice = (productId && products[productId]) ? products[productId].buy_price : null;
                                     "
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">Select Product</option>
@@ -404,6 +406,19 @@
                                         placeholder="0.00">
                                 </div>
                                 @error('price')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="provider_buy_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Price (Optional)') }}</label>
+                                <div class="relative">
+                                    <input type="number" step="0.0001" min="0" name="provider_buy_price" id="provider_buy_price" x-model.number="providerBuyPrice"
+                                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        placeholder="0.0000">
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __("Defaults to the product's Buy Price. Override it for this distribution if needed.") }}</p>
+                                @error('provider_buy_price')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>

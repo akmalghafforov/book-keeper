@@ -109,6 +109,7 @@ class DistributionController extends Controller
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
             'quantity' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
+            'provider_buy_price' => 'nullable|numeric|min:0',
             'distribution_date' => 'required|date_format:d/m/Y',
             'provider_received_at' => 'nullable|date_format:d/m/Y H:i',
         ]);
@@ -158,6 +159,7 @@ class DistributionController extends Controller
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
             'quantity' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
+            'provider_buy_price' => 'nullable|numeric|min:0',
             'distribution_date' => 'required|date_format:d/m/Y',
             'provider_received_at' => 'nullable|date_format:d/m/Y H:i',
         ]);
