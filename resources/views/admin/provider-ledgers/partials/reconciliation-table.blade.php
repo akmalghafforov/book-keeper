@@ -1,4 +1,7 @@
 <div class="overflow-x-auto">
+    @isset($heading)
+        <h4 class="px-6 pt-4 text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $heading }}</h4>
+    @endisset
     <table class="min-w-full divide-y divide-gray-200 dark:divide-[#3E3E3A]">
         <thead class="bg-gray-50 dark:bg-[#1C1C1A]">
             <tr>

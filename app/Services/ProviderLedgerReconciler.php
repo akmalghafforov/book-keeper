@@ -36,6 +36,7 @@ class ProviderLedgerReconciler
 
         $databaseEntries = ProviderLedger::query()
             ->where('provider_id', $provider->getKey())
+            ->whereIn('type', ['charge', 'payment'])
             ->whereDate('transaction_date', '>=', $dateFrom->toDateString())
             ->whereDate('transaction_date', '<=', $dateTo->toDateString())
             ->orderBy('id')
@@ -54,24 +55,56 @@ class ProviderLedgerReconciler
             }
         }
 
-        [$matchedDeliveries, $missingDeliveries, $extraDeliveries] = $this->matchEntries(
-            $deliveries,
-            $databaseDeliveries,
-            fn (array $entry): string => $this->deliveryKey($entry),
+        $paymentComparison = $this->matchPayments($payments, $databasePayments);
+        $deliveryComparison = $this->matchDeliveries($deliveries, $databaseDeliveries);
+
+        $rankedCandidates = [];
+        foreach ($deliveryComparison['missing'] as &$missingDelivery) {
+            $missingDelivery['candidates'] = $this->rankDeliveryCandidates($missingDelivery, $databaseDeliveries);
+            $rankedCandidates[] = [
+                'source_row' => $missingDelivery['source_row'],
+                'excel' => $missingDelivery,
+                'candidates' => $missingDelivery['candidates'],
+            ];
+        }
+        unset($missingDelivery);
+
+        [$excelOnlyCars, $ledgerOnlyCars] = $this->setDifferences(
+            $this->carNumberSet($deliveries),
+            $this->carNumberSet($databaseDeliveries),
         );
-        [$matchedPayments, $missingPayments, $extraPayments] = $this->matchEntries(
-            $payments,
-            $databasePayments,
-            fn (array $entry): string => $this->paymentKey($entry),
+        [$excelOnlyWeights, $ledgerOnlyWeights] = $this->setDifferences(
+            $this->weightSet($deliveries),
+            $this->weightSet($databaseDeliveries),
         );
 
+        $excelPaymentTotalScaled = array_sum(array_column($payments, '_amount_scaled'));
+        $ledgerPaymentTotalScaled = array_sum(array_column($databasePayments, '_amount_scaled'));
+
         return new ProviderLedgerReconciliationResult(
-            matchedDeliveries: $matchedDeliveries,
-            matchedPayments: $matchedPayments,
-            missingDeliveries: $missingDeliveries,
-            missingPayments: $missingPayments,
-            extraDeliveries: $extraDeliveries,
-            extraPayments: $extraPayments,
+            excelDeliveryCount: count($deliveries),
+            ledgerDeliveryCount: count($databaseDeliveries),
+            excelPaymentCount: count($payments),
+            ledgerPaymentCount: count($databasePayments),
+            excelPaymentTotal: $this->formatScaled($excelPaymentTotalScaled, 4),
+            ledgerPaymentTotal: $this->formatScaled($ledgerPaymentTotalScaled, 4),
+            excelPaymentTotalScaled: $excelPaymentTotalScaled,
+            ledgerPaymentTotalScaled: $ledgerPaymentTotalScaled,
+            exactDeliveryMatches: $deliveryComparison['exact'],
+            exactPaymentMatches: $paymentComparison['exact'],
+            paymentAmountMismatches: $paymentComparison['mismatches'],
+            buyPriceMismatches: $deliveryComparison['mismatches'],
+            missingDeliveries: $deliveryComparison['missing'],
+            missingPayments: $paymentComparison['missing'],
+            extraDeliveries: $deliveryComparison['extra'],
+            extraPayments: $paymentComparison['extra'],
+            excelOnlyCarNumbers: $excelOnlyCars,
+            ledgerOnlyCarNumbers: $ledgerOnlyCars,
+            excelOnlyWeights: $excelOnlyWeights,
+            ledgerOnlyWeights: $ledgerOnlyWeights,
+            excelDuplicateDeliveryGroups: $this->duplicateDeliveryGroups($deliveries, 'source_row'),
+            ledgerDuplicateDeliveryGroups: $this->duplicateDeliveryGroups($databaseDeliveries, 'ledger_id'),
+            rankedDeliveryCandidates: $rankedCandidates,
             invalidEntries: $invalidEntries,
         );
     }
@@ -190,14 +223,14 @@ class ProviderLedgerReconciler
                 }
 
                 if ($errors === []) {
-                    $deliveries[] = [
+                    $deliveries[] = $this->canonicalizeEntry([
                         'source_row' => $row,
                         'date' => $dateString,
                         'quantity' => $quantity,
                         'price' => $price,
                         'amount' => $amount,
                         'car_number' => $this->blankToNull($values['car_number']),
-                    ];
+                    ]);
                 } else {
                     $invalidEntries[] = [
                         'row' => $row,
@@ -209,6 +242,8 @@ class ProviderLedgerReconciler
                 }
             }
 
+            // A nonblank payment cell is always an independent provider-date payment,
+            // including when delivery fields are populated on the same Excel row.
             if (! $this->isBlank($values['payment_amount'])) {
                 $paymentAmount = $this->parseNumber($values['payment_amount']);
 
@@ -221,11 +256,11 @@ class ProviderLedgerReconciler
                         'errors' => ['Payment amount is invalid.'],
                     ];
                 } else {
-                    $payments[] = [
+                    $payments[] = $this->canonicalizeEntry([
                         'source_row' => $row,
                         'date' => $dateString,
                         'amount' => $paymentAmount,
-                    ];
+                    ]);
                 }
             }
         }
@@ -303,70 +338,334 @@ class ProviderLedgerReconciler
             : null;
     }
 
-    private function matchEntries(array $excelEntries, array $databaseEntries, callable $key): array
+    private function matchPayments(array $excelEntries, array $ledgerEntries): array
     {
-        $databasePools = [];
+        foreach ($excelEntries as $index => &$entry) {
+            $entry['_index'] = $index;
+        }
+        unset($entry);
 
-        foreach ($databaseEntries as $id => $entry) {
-            $databasePools[$key($entry)][] = $id;
+        $remainingExcel = $excelEntries;
+        $remainingLedger = $ledgerEntries;
+        $ledgerPools = [];
+        $exact = [];
+
+        foreach ($ledgerEntries as $id => $entry) {
+            $ledgerPools[$this->paymentKey($entry)][] = $id;
         }
 
-        $matched = 0;
-        $missing = [];
+        foreach ($excelEntries as $index => $entry) {
+            $key = $this->paymentKey($entry);
+            if (empty($ledgerPools[$key])) {
+                continue;
+            }
 
-        foreach ($excelEntries as $entry) {
-            $entryKey = $key($entry);
+            $id = array_shift($ledgerPools[$key]);
+            $exact[] = $this->entryPair($entry, $ledgerEntries[$id]);
+            unset($remainingExcel[$index], $remainingLedger[$id]);
+        }
 
-            if (! empty($databasePools[$entryKey])) {
-                $matchedId = array_shift($databasePools[$entryKey]);
-                unset($databaseEntries[$matchedId]);
-                $matched++;
-            } else {
-                $missing[] = $entry;
+        $excelByDate = $this->groupBy($remainingExcel, fn (array $entry): string => $entry['date']);
+        $ledgerByDate = $this->groupBy($remainingLedger, fn (array $entry): string => $entry['date']);
+        $mismatches = [];
+
+        foreach (array_values(array_unique(array_merge(array_keys($excelByDate), array_keys($ledgerByDate)))) as $date) {
+            $excelOnDate = array_values($excelByDate[$date] ?? []);
+            $ledgerOnDate = array_values($ledgerByDate[$date] ?? []);
+            $this->sortEntries($excelOnDate, '_amount_scaled', 'source_row');
+            $this->sortEntries($ledgerOnDate, '_amount_scaled', 'ledger_id');
+            $pairCount = min(count($excelOnDate), count($ledgerOnDate));
+
+            for ($i = 0; $i < $pairCount; $i++) {
+                $mismatches[] = $this->entryPair($excelOnDate[$i], $ledgerOnDate[$i]);
+                unset(
+                    $remainingExcel[$excelOnDate[$i]['_index']],
+                    $remainingLedger[$ledgerOnDate[$i]['ledger_id']],
+                );
             }
         }
 
-        return [$matched, $missing, array_values($databaseEntries)];
+        return [
+            'exact' => $exact,
+            'mismatches' => $mismatches,
+            'missing' => array_values($this->withoutInternalIndex($remainingExcel)),
+            'extra' => array_values($this->withoutInternalIndex($remainingLedger)),
+        ];
+    }
+
+    private function matchDeliveries(array $excelEntries, array $ledgerEntries): array
+    {
+        foreach ($excelEntries as $index => &$entry) {
+            $entry['_index'] = $index;
+        }
+        unset($entry);
+
+        $remainingExcel = $excelEntries;
+        $remainingLedger = $ledgerEntries;
+        $excelGroups = $this->groupBy($excelEntries, fn (array $entry): string => $this->deliveryIdentityKey($entry));
+        $ledgerGroups = $this->groupBy($ledgerEntries, fn (array $entry): string => $this->deliveryIdentityKey($entry));
+        $exact = [];
+        $mismatches = [];
+
+        foreach (array_values(array_unique(array_merge(array_keys($excelGroups), array_keys($ledgerGroups)))) as $identity) {
+            $excelGroup = $excelGroups[$identity] ?? [];
+            $ledgerGroup = $ledgerGroups[$identity] ?? [];
+            $pricePools = [];
+
+            foreach ($ledgerGroup as $ledgerEntry) {
+                $pricePools[$ledgerEntry['_price_scaled']][] = $ledgerEntry['ledger_id'];
+            }
+
+            foreach ($excelGroup as $excelEntry) {
+                if (empty($pricePools[$excelEntry['_price_scaled']])) {
+                    continue;
+                }
+
+                $id = array_shift($pricePools[$excelEntry['_price_scaled']]);
+                $exact[] = $this->entryPair($excelEntry, $ledgerEntries[$id]);
+                unset($remainingExcel[$excelEntry['_index']], $remainingLedger[$id]);
+            }
+
+            $unmatchedExcel = array_values(array_filter(
+                $excelGroup,
+                fn (array $entry): bool => isset($remainingExcel[$entry['_index']]),
+            ));
+            $unmatchedLedger = array_values(array_filter(
+                $ledgerGroup,
+                fn (array $entry): bool => isset($remainingLedger[$entry['ledger_id']]),
+            ));
+            $this->sortEntries($unmatchedExcel, '_price_scaled', 'source_row');
+            $this->sortEntries($unmatchedLedger, '_price_scaled', 'ledger_id');
+            $pairCount = min(count($unmatchedExcel), count($unmatchedLedger));
+
+            for ($i = 0; $i < $pairCount; $i++) {
+                $mismatches[] = $this->entryPair($unmatchedExcel[$i], $unmatchedLedger[$i]);
+                unset(
+                    $remainingExcel[$unmatchedExcel[$i]['_index']],
+                    $remainingLedger[$unmatchedLedger[$i]['ledger_id']],
+                );
+            }
+        }
+
+        return [
+            'exact' => $exact,
+            'mismatches' => $mismatches,
+            'missing' => array_values($this->withoutInternalIndex($remainingExcel)),
+            'extra' => array_values($this->withoutInternalIndex($remainingLedger)),
+        ];
+    }
+
+    private function rankDeliveryCandidates(array $excelEntry, array $ledgerEntries): array
+    {
+        $ranked = [];
+
+        foreach ($ledgerEntries as $ledgerEntry) {
+            $fieldMatches = [
+                'date' => $excelEntry['date'] === $ledgerEntry['date'],
+                'car_number' => $excelEntry['_car_normalized'] === $ledgerEntry['_car_normalized'],
+                'quantity' => $excelEntry['_quantity_scaled'] === $ledgerEntry['_quantity_scaled'],
+                'price' => $excelEntry['_price_scaled'] === $ledgerEntry['_price_scaled'],
+            ];
+
+            $candidate = $ledgerEntry;
+            $candidate['field_matches'] = $fieldMatches;
+            $candidate['exact_match_count'] = count(array_filter($fieldMatches));
+            $candidate['date_difference'] = abs(Carbon::parse($excelEntry['date'])->diffInDays(Carbon::parse($ledgerEntry['date']), false));
+            $candidate['car_edit_distance'] = $this->unicodeEditDistance(
+                $excelEntry['_car_normalized'],
+                $ledgerEntry['_car_normalized'],
+            );
+            $candidate['weight_difference_scaled'] = abs($excelEntry['_quantity_scaled'] - $ledgerEntry['_quantity_scaled']);
+            $candidate['price_difference_scaled'] = abs($excelEntry['_price_scaled'] - $ledgerEntry['_price_scaled']);
+            $ranked[] = $candidate;
+        }
+
+        usort($ranked, function (array $left, array $right): int {
+            return ($right['exact_match_count'] <=> $left['exact_match_count'])
+                ?: ($left['date_difference'] <=> $right['date_difference'])
+                ?: ($left['car_edit_distance'] <=> $right['car_edit_distance'])
+                ?: ($left['weight_difference_scaled'] <=> $right['weight_difference_scaled'])
+                ?: ($left['price_difference_scaled'] <=> $right['price_difference_scaled'])
+                ?: ($left['ledger_id'] <=> $right['ledger_id']);
+        });
+
+        return array_slice($ranked, 0, 5);
     }
 
     private function databaseEntry(ProviderLedger $ledger): array
     {
-        return [
+        return $this->canonicalizeEntry([
             'ledger_id' => $ledger->getKey(),
             'date' => $ledger->transaction_date->toDateString(),
             'quantity' => $ledger->quantity,
             'price' => $ledger->buy_price,
             'amount' => $ledger->amount,
             'car_number' => $ledger->car_number,
-        ];
+        ]);
     }
 
-    private function deliveryKey(array $entry): string
+    private function canonicalizeEntry(array $entry): array
+    {
+        $entry['_amount_scaled'] = $this->toScaled($entry['amount'] ?? null, 4);
+        $entry['_quantity_scaled'] = $this->toScaled($entry['quantity'] ?? null, 3);
+        $entry['_price_scaled'] = $this->toScaled($entry['price'] ?? null, 4);
+        $entry['_car_normalized'] = $this->normalizeCarNumber($entry['car_number'] ?? null);
+
+        return $entry;
+    }
+
+    private function deliveryIdentityKey(array $entry): string
     {
         return implode('|', [
             $entry['date'],
-            $this->rounded($entry['quantity'], 3),
-            $this->rounded($entry['price'], 4),
-            $this->rounded($entry['amount'], 4),
-            $this->normalizeCarNumber($entry['car_number']),
+            $entry['_car_normalized'],
+            $entry['_quantity_scaled'],
         ]);
     }
 
     private function paymentKey(array $entry): string
     {
-        return implode('|', [
-            $entry['date'],
-            $this->rounded($entry['amount'], 4),
-        ]);
+        return $entry['date'].'|'.$entry['_amount_scaled'];
     }
 
-    private function rounded(mixed $value, int $precision): string
+    private function duplicateDeliveryGroups(array $entries, string $referenceField): array
     {
-        if ($value === null || ! is_numeric($value)) {
-            return '<null>';
+        $groups = [];
+
+        foreach ($entries as $entry) {
+            if ($entry['_car_normalized'] === '') {
+                continue;
+            }
+
+            $key = $entry['date'].'|'.$entry['_car_normalized'];
+            $groups[$key][] = $entry;
         }
 
-        return number_format(round((float) $value, $precision), $precision, '.', '');
+        $duplicates = [];
+        foreach ($groups as $entriesInGroup) {
+            if (count($entriesInGroup) < 2) {
+                continue;
+            }
+
+            $duplicates[] = [
+                'date' => $entriesInGroup[0]['date'],
+                'car_number' => $entriesInGroup[0]['_car_normalized'],
+                'references' => array_column($entriesInGroup, $referenceField),
+                'entries' => array_values($this->withoutInternalIndex($entriesInGroup)),
+            ];
+        }
+
+        return $duplicates;
+    }
+
+    private function carNumberSet(array $entries): array
+    {
+        $values = [];
+        foreach ($entries as $entry) {
+            if ($entry['_car_normalized'] !== '') {
+                $values[$entry['_car_normalized']] = true;
+            }
+        }
+
+        $values = array_keys($values);
+        sort($values, SORT_STRING);
+
+        return $values;
+    }
+
+    private function weightSet(array $entries): array
+    {
+        $values = [];
+        foreach ($entries as $entry) {
+            if ($entry['_quantity_scaled'] !== null) {
+                $values[$this->formatScaled($entry['_quantity_scaled'], 3)] = true;
+            }
+        }
+
+        $values = array_keys($values);
+        sort($values, SORT_STRING);
+
+        return $values;
+    }
+
+    private function setDifferences(array $excelValues, array $ledgerValues): array
+    {
+        return [
+            array_values(array_diff($excelValues, $ledgerValues)),
+            array_values(array_diff($ledgerValues, $excelValues)),
+        ];
+    }
+
+    private function groupBy(array $entries, callable $key): array
+    {
+        $groups = [];
+        foreach ($entries as $entry) {
+            $groups[$key($entry)][] = $entry;
+        }
+
+        return $groups;
+    }
+
+    private function sortEntries(array &$entries, string $valueField, string $tieField): void
+    {
+        usort($entries, fn (array $left, array $right): int => ($left[$valueField] <=> $right[$valueField]) ?: ($left[$tieField] <=> $right[$tieField])
+        );
+    }
+
+    private function entryPair(array $excelEntry, array $ledgerEntry): array
+    {
+        unset($excelEntry['_index']);
+
+        return ['excel' => $excelEntry, 'ledger' => $ledgerEntry];
+    }
+
+    private function withoutInternalIndex(array $entries): array
+    {
+        foreach ($entries as &$entry) {
+            unset($entry['_index']);
+        }
+        unset($entry);
+
+        return $entries;
+    }
+
+    private function toScaled(mixed $value, int $precision): ?int
+    {
+        if ($value === null || ! is_numeric($value)) {
+            return null;
+        }
+
+        return (int) round((float) $value * (10 ** $precision), 0, PHP_ROUND_HALF_UP);
+    }
+
+    private function formatScaled(int $value, int $precision): string
+    {
+        $scale = 10 ** $precision;
+        $sign = $value < 0 ? '-' : '';
+        $absolute = abs($value);
+
+        return $sign.intdiv($absolute, $scale).'.'.str_pad((string) ($absolute % $scale), $precision, '0', STR_PAD_LEFT);
+    }
+
+    private function unicodeEditDistance(string $left, string $right): int
+    {
+        $leftChars = preg_split('//u', $left, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $rightChars = preg_split('//u', $right, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $previous = range(0, count($rightChars));
+
+        foreach ($leftChars as $leftIndex => $leftChar) {
+            $current = [$leftIndex + 1];
+            foreach ($rightChars as $rightIndex => $rightChar) {
+                $current[] = min(
+                    $current[$rightIndex] + 1,
+                    $previous[$rightIndex + 1] + 1,
+                    $previous[$rightIndex] + ($leftChar === $rightChar ? 0 : 1),
+                );
+            }
+            $previous = $current;
+        }
+
+        return $previous[count($rightChars)];
     }
 
     private function normalizeCarNumber(mixed $value): string
