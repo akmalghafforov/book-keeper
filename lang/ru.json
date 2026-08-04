@@ -233,5 +233,6 @@
     "Ledger Payment": "Оплата в книге",
     "Excel Buy Price": "Цена закупки Excel",
     "Ledger Buy Price": "Цена закупки в книге",
-    "Informational": "Информационно"
+    "Informational": "Информационно",
+    "Delivery dates within ±1 day are treated as matching.": "Даты поставок с разницей до ±1 дня считаются совпадающими."
 }

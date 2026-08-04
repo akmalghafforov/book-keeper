@@ -18,7 +18,12 @@
                 <tr>
                     <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ $pair['excel']['source_row'] }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ $pair['ledger']['ledger_id'] }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ date('d/m/Y', strtotime($pair['excel']['date'])) }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                        {{ date('d/m/Y', strtotime($pair['excel']['date'])) }}
+                        @if ($pair['excel']['date'] !== $pair['ledger']['date'])
+                            &rarr; {{ date('d/m/Y', strtotime($pair['ledger']['date'])) }}
+                        @endif
+                    </td>
                     @if ($kind === 'delivery')
                         <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ $pair['excel']['car_number'] ?: __('N/A') }}</td>
                         <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{{ number_format((float) $pair['excel']['quantity'], 3) }}</td>

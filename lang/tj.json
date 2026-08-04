@@ -233,5 +233,6 @@
     "Ledger Payment": "Пардохти дафтар",
     "Excel Buy Price": "Нархи хариди Excel",
     "Ledger Buy Price": "Нархи хариди дафтар",
-    "Informational": "Иттилоотӣ"
+    "Informational": "Иттилоотӣ",
+    "Delivery dates within ±1 day are treated as matching.": "Санаҳои таҳвил бо фарқи то ±1 рӯз мувофиқ ҳисобида мешаванд."
 }

@@ -343,7 +343,7 @@ class ProviderLedgerReconciliationTest extends TestCase
     public function test_missing_delivery_candidates_are_ranked_include_consumed_records_and_are_limited_to_five(): void
     {
         $sameCar = $this->createDelivery('2026-06-05', '9.000', '5.0000', '45.0000', 'ABC');
-        $previousDate = $this->createDelivery('2026-06-04', '10.000', '5.0000', '50.0000', 'ABC');
+        $previousDate = $this->createDelivery('2026-06-03', '10.000', '5.0000', '50.0000', 'ABC');
         $closeCar = $this->createDelivery('2026-06-05', '10.000', '5.0000', '50.0000', 'ABD');
         $this->createDelivery('2026-06-03', '8.000', '4.0000', '32.0000', 'AX');
         $this->createDelivery('2026-06-02', '7.000', '3.0000', '21.0000', 'AY');
@@ -356,7 +356,7 @@ class ProviderLedgerReconciliationTest extends TestCase
                 'date_to' => '10/06/2026',
                 'excel_file' => $this->workbook([
                     ['05/06/2026', 10, 5, 50, 'ABC', null],
-                    ['04/06/2026', 10, 5, 50, 'ABC', null],
+                    ['03/06/2026', 10, 5, 50, 'ABC', null],
                 ]),
             ])
             ->assertOk()
@@ -380,6 +380,109 @@ class ProviderLedgerReconciliationTest extends TestCase
             ->assertSee('Missing Excel Deliveries and Closest Ledger Candidates')
             ->assertSee('Match')
             ->assertSee('Different');
+    }
+
+    public function test_deliveries_match_when_provider_dates_differ_by_one_day_in_either_direction(): void
+    {
+        $this->createDelivery('2026-06-04', '10.000', '5.0000', '50.0000', 'CAR-1');
+        $this->createDelivery('2026-06-07', '12.000', '6.0000', '72.0000', 'CAR-2');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.compare'), [
+                'provider_id' => $this->provider->id,
+                'date_from' => '01/06/2026',
+                'date_to' => '10/06/2026',
+                'excel_file' => $this->workbook([
+                    ['05/06/2026', 10, 5, 999, 'car 1', null],
+                    ['06/06/2026', 12, 6, 999, 'car 2', null],
+                ]),
+            ])
+            ->assertOk()
+            ->assertViewHas('result', function (ProviderLedgerReconciliationResult $result): bool {
+                return $result->matchedDeliveries === 2
+                    && $result->missingDeliveries === []
+                    && $result->extraDeliveries === []
+                    && $result->buyPriceMismatches === []
+                    && $result->allChecksPass();
+            })
+            ->assertSee('The Excel file and database ledger match for the selected period.');
+    }
+
+    public function test_delivery_date_tolerance_does_not_extend_beyond_one_day(): void
+    {
+        $ledger = $this->createDelivery('2026-06-03', '10.000', '5.0000', '50.0000', 'CAR-1');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.compare'), [
+                'provider_id' => $this->provider->id,
+                'date_from' => '01/06/2026',
+                'date_to' => '10/06/2026',
+                'excel_file' => $this->workbook([
+                    ['05/06/2026', 10, 5, 50, 'CAR-1', null],
+                ]),
+            ])
+            ->assertOk()
+            ->assertViewHas('result', function (ProviderLedgerReconciliationResult $result) use ($ledger): bool {
+                return $result->matchedDeliveries === 0
+                    && count($result->missingDeliveries) === 1
+                    && collect($result->extraDeliveries)->pluck('ledger_id')->all() === [$ledger->id]
+                    && $result->missingDeliveries[0]['candidates'][0]['field_matches']['date'] === false;
+            });
+    }
+
+    public function test_adjacent_delivery_dates_are_paired_for_maximum_matches_and_closest_dates(): void
+    {
+        $firstLedger = $this->createDelivery('2026-06-04', '10.000', '5.0000', '50.0000', 'CAR-1');
+        $secondLedger = $this->createDelivery('2026-06-05', '10.000', '5.0000', '50.0000', 'CAR-1');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.compare'), [
+                'provider_id' => $this->provider->id,
+                'date_from' => '01/06/2026',
+                'date_to' => '10/06/2026',
+                'excel_file' => $this->workbook([
+                    ['05/06/2026', 10, 5, 50, 'CAR-1', null],
+                    ['06/06/2026', 10, 5, 50, 'CAR-1', null],
+                ]),
+            ])
+            ->assertOk()
+            ->assertViewHas('result', function (ProviderLedgerReconciliationResult $result) use ($firstLedger, $secondLedger): bool {
+                return $result->matchedDeliveries === 2
+                    && collect($result->exactDeliveryMatches)->map(fn (array $pair): array => [
+                        $pair['excel']['date'],
+                        $pair['ledger']['date'],
+                        $pair['ledger']['ledger_id'],
+                    ])->all() === [
+                        ['2026-06-05', '2026-06-04', $firstLedger->id],
+                        ['2026-06-06', '2026-06-05', $secondLedger->id],
+                    ];
+            });
+    }
+
+    public function test_buy_price_mismatches_use_delivery_date_tolerance_but_payments_keep_exact_dates(): void
+    {
+        $this->createDelivery('2026-06-04', '10.000', '5.0000', '50.0000', 'CAR-1');
+        $this->createPayment('2026-06-04', '25.0000');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.compare'), [
+                'provider_id' => $this->provider->id,
+                'date_from' => '01/06/2026',
+                'date_to' => '10/06/2026',
+                'excel_file' => $this->workbook([
+                    ['05/06/2026', 10, 5.5, 55, 'CAR-1', 25],
+                ]),
+            ])
+            ->assertOk()
+            ->assertViewHas('result', function (ProviderLedgerReconciliationResult $result): bool {
+                return count($result->buyPriceMismatches) === 1
+                    && $result->missingDeliveries === []
+                    && $result->extraDeliveries === []
+                    && $result->matchedPayments === 0
+                    && count($result->missingPayments) === 1
+                    && count($result->extraPayments) === 1;
+            })
+            ->assertSee('04/06/2026');
     }
 
     private function createDelivery(

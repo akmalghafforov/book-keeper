@@ -18,6 +18,9 @@
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {{ $provider->name }} &middot; {{ $dateFrom->format('d/m/Y') }} &ndash; {{ $dateTo->format('d/m/Y') }}
     </p>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        {{ __('Delivery dates within ±1 day are treated as matching.') }}
+    </p>
 
     <div class="mt-5 overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-[#3E3E3A]">

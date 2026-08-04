@@ -402,50 +402,25 @@ class ProviderLedgerReconciler
 
         $remainingExcel = $excelEntries;
         $remainingLedger = $ledgerEntries;
-        $excelGroups = $this->groupBy($excelEntries, fn (array $entry): string => $this->deliveryIdentityKey($entry));
-        $ledgerGroups = $this->groupBy($ledgerEntries, fn (array $entry): string => $this->deliveryIdentityKey($entry));
         $exact = [];
         $mismatches = [];
 
-        foreach (array_values(array_unique(array_merge(array_keys($excelGroups), array_keys($ledgerGroups)))) as $identity) {
-            $excelGroup = $excelGroups[$identity] ?? [];
-            $ledgerGroup = $ledgerGroups[$identity] ?? [];
-            $pricePools = [];
+        // Car number, rounded quantity, and buy price are the primary identity.
+        // The provider date is allowed to differ by one day in either direction.
+        $this->consumeDeliveryPairs(
+            $remainingExcel,
+            $remainingLedger,
+            fn (array $entry): string => $this->deliveryComparisonKey($entry, includePrice: true),
+            $exact,
+        );
 
-            foreach ($ledgerGroup as $ledgerEntry) {
-                $pricePools[$ledgerEntry['_price_scaled']][] = $ledgerEntry['ledger_id'];
-            }
-
-            foreach ($excelGroup as $excelEntry) {
-                if (empty($pricePools[$excelEntry['_price_scaled']])) {
-                    continue;
-                }
-
-                $id = array_shift($pricePools[$excelEntry['_price_scaled']]);
-                $exact[] = $this->entryPair($excelEntry, $ledgerEntries[$id]);
-                unset($remainingExcel[$excelEntry['_index']], $remainingLedger[$id]);
-            }
-
-            $unmatchedExcel = array_values(array_filter(
-                $excelGroup,
-                fn (array $entry): bool => isset($remainingExcel[$entry['_index']]),
-            ));
-            $unmatchedLedger = array_values(array_filter(
-                $ledgerGroup,
-                fn (array $entry): bool => isset($remainingLedger[$entry['ledger_id']]),
-            ));
-            $this->sortEntries($unmatchedExcel, '_price_scaled', 'source_row');
-            $this->sortEntries($unmatchedLedger, '_price_scaled', 'ledger_id');
-            $pairCount = min(count($unmatchedExcel), count($unmatchedLedger));
-
-            for ($i = 0; $i < $pairCount; $i++) {
-                $mismatches[] = $this->entryPair($unmatchedExcel[$i], $unmatchedLedger[$i]);
-                unset(
-                    $remainingExcel[$unmatchedExcel[$i]['_index']],
-                    $remainingLedger[$unmatchedLedger[$i]['ledger_id']],
-                );
-            }
-        }
+        // Pair the remaining same-car/same-quantity records to explain price differences.
+        $this->consumeDeliveryPairs(
+            $remainingExcel,
+            $remainingLedger,
+            fn (array $entry): string => $this->deliveryComparisonKey($entry, includePrice: false),
+            $mismatches,
+        );
 
         return [
             'exact' => $exact,
@@ -460,8 +435,9 @@ class ProviderLedgerReconciler
         $ranked = [];
 
         foreach ($ledgerEntries as $ledgerEntry) {
+            $dateDifference = $this->dateDifference($excelEntry, $ledgerEntry);
             $fieldMatches = [
-                'date' => $excelEntry['date'] === $ledgerEntry['date'],
+                'date' => $dateDifference <= 1,
                 'car_number' => $excelEntry['_car_normalized'] === $ledgerEntry['_car_normalized'],
                 'quantity' => $excelEntry['_quantity_scaled'] === $ledgerEntry['_quantity_scaled'],
                 'price' => $excelEntry['_price_scaled'] === $ledgerEntry['_price_scaled'],
@@ -470,7 +446,7 @@ class ProviderLedgerReconciler
             $candidate = $ledgerEntry;
             $candidate['field_matches'] = $fieldMatches;
             $candidate['exact_match_count'] = count(array_filter($fieldMatches));
-            $candidate['date_difference'] = abs(Carbon::parse($excelEntry['date'])->diffInDays(Carbon::parse($ledgerEntry['date']), false));
+            $candidate['date_difference'] = $dateDifference;
             $candidate['car_edit_distance'] = $this->unicodeEditDistance(
                 $excelEntry['_car_normalized'],
                 $ledgerEntry['_car_normalized'],
@@ -514,13 +490,18 @@ class ProviderLedgerReconciler
         return $entry;
     }
 
-    private function deliveryIdentityKey(array $entry): string
+    private function deliveryComparisonKey(array $entry, bool $includePrice): string
     {
-        return implode('|', [
-            $entry['date'],
+        $parts = [
             $entry['_car_normalized'],
             $entry['_quantity_scaled'],
-        ]);
+        ];
+
+        if ($includePrice) {
+            $parts[] = $entry['_price_scaled'];
+        }
+
+        return implode('|', $parts);
     }
 
     private function paymentKey(array $entry): string
@@ -610,6 +591,97 @@ class ProviderLedgerReconciler
     {
         usort($entries, fn (array $left, array $right): int => ($left[$valueField] <=> $right[$valueField]) ?: ($left[$tieField] <=> $right[$tieField])
         );
+    }
+
+    private function consumeDeliveryPairs(
+        array &$excelEntries,
+        array &$ledgerEntries,
+        callable $groupKey,
+        array &$matches,
+    ): void {
+        $excelGroups = $this->groupBy($excelEntries, $groupKey);
+        $ledgerGroups = $this->groupBy($ledgerEntries, $groupKey);
+
+        foreach (array_intersect(array_keys($excelGroups), array_keys($ledgerGroups)) as $key) {
+            foreach ($this->bestDateTolerantPairs($excelGroups[$key], $ledgerGroups[$key]) as [$excelEntry, $ledgerEntry]) {
+                $matches[] = $this->entryPair($excelEntry, $ledgerEntry);
+                unset($excelEntries[$excelEntry['_index']], $ledgerEntries[$ledgerEntry['ledger_id']]);
+            }
+        }
+    }
+
+    /**
+     * Return a maximum-cardinality, minimum-date-difference pairing while
+     * preserving chronological order. This avoids a same-day greedy match
+     * preventing another valid adjacent-day match in duplicate groups.
+     */
+    private function bestDateTolerantPairs(array $excelEntries, array $ledgerEntries): array
+    {
+        usort($excelEntries, fn (array $left, array $right): int => ($left['date'] <=> $right['date'])
+            ?: ($left['_price_scaled'] <=> $right['_price_scaled'])
+            ?: ($left['source_row'] <=> $right['source_row'])
+        );
+        usort($ledgerEntries, fn (array $left, array $right): int => ($left['date'] <=> $right['date'])
+            ?: ($left['_price_scaled'] <=> $right['_price_scaled'])
+            ?: ($left['ledger_id'] <=> $right['ledger_id'])
+        );
+
+        $excelCount = count($excelEntries);
+        $ledgerCount = count($ledgerEntries);
+        $counts = array_fill(0, $excelCount + 1, array_fill(0, $ledgerCount + 1, 0));
+        $costs = array_fill(0, $excelCount + 1, array_fill(0, $ledgerCount + 1, 0));
+        $actions = array_fill(0, $excelCount, array_fill(0, $ledgerCount, null));
+
+        for ($excelIndex = $excelCount - 1; $excelIndex >= 0; $excelIndex--) {
+            for ($ledgerIndex = $ledgerCount - 1; $ledgerIndex >= 0; $ledgerIndex--) {
+                $options = [
+                    ['action' => 'skip_excel', 'count' => $counts[$excelIndex + 1][$ledgerIndex], 'cost' => $costs[$excelIndex + 1][$ledgerIndex], 'priority' => 2],
+                    ['action' => 'skip_ledger', 'count' => $counts[$excelIndex][$ledgerIndex + 1], 'cost' => $costs[$excelIndex][$ledgerIndex + 1], 'priority' => 1],
+                ];
+                $difference = $this->dateDifference($excelEntries[$excelIndex], $ledgerEntries[$ledgerIndex]);
+
+                if ($difference <= 1) {
+                    $options[] = [
+                        'action' => 'match',
+                        'count' => 1 + $counts[$excelIndex + 1][$ledgerIndex + 1],
+                        'cost' => $difference + $costs[$excelIndex + 1][$ledgerIndex + 1],
+                        'priority' => 0,
+                    ];
+                }
+
+                usort($options, fn (array $left, array $right): int => ($right['count'] <=> $left['count'])
+                        ?: ($left['cost'] <=> $right['cost'])
+                        ?: ($left['priority'] <=> $right['priority'])
+                );
+                $best = $options[0];
+                $counts[$excelIndex][$ledgerIndex] = $best['count'];
+                $costs[$excelIndex][$ledgerIndex] = $best['cost'];
+                $actions[$excelIndex][$ledgerIndex] = $best['action'];
+            }
+        }
+
+        $pairs = [];
+        $excelIndex = 0;
+        $ledgerIndex = 0;
+
+        while ($excelIndex < $excelCount && $ledgerIndex < $ledgerCount) {
+            if ($actions[$excelIndex][$ledgerIndex] === 'match') {
+                $pairs[] = [$excelEntries[$excelIndex], $ledgerEntries[$ledgerIndex]];
+                $excelIndex++;
+                $ledgerIndex++;
+            } elseif ($actions[$excelIndex][$ledgerIndex] === 'skip_ledger') {
+                $ledgerIndex++;
+            } else {
+                $excelIndex++;
+            }
+        }
+
+        return $pairs;
+    }
+
+    private function dateDifference(array $left, array $right): int
+    {
+        return (int) abs(Carbon::parse($left['date'])->diffInDays(Carbon::parse($right['date']), false));
     }
 
     private function entryPair(array $excelEntry, array $ledgerEntry): array

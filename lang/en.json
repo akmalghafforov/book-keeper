@@ -228,5 +228,6 @@
     "Ledger Payment": "Ledger Payment",
     "Excel Buy Price": "Excel Buy Price",
     "Ledger Buy Price": "Ledger Buy Price",
-    "Informational": "Informational"
+    "Informational": "Informational",
+    "Delivery dates within ±1 day are treated as matching.": "Delivery dates within ±1 day are treated as matching."
 }
