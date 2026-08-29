@@ -1,8 +1,14 @@
 # Book Keeper
 
-## Docker Compose
+## Docker Compose and Traefik
 
-The project now has separate Compose files for development and production so both can run on the same machine at the same time.
+Taqsimot uses the shared MrStairs `traefik-net` network for all HTTP(S) ingress. Create the shared network once and start local Traefik from the `mrstairs-backend` project before starting this development stack:
+
+```bash
+docker network create traefik-net  # once; omit if it already exists
+cd ../mrstairs-backend
+docker compose up -d traefik
+```
 
 Development stack:
 
@@ -10,56 +16,40 @@ Development stack:
 make up-dev
 ```
 
-Production stack:
+Production stack (on the server):
 
 ```bash
 make up-prod
 ```
 
-Run both:
+Endpoints:
 
-```bash
-make up-dev
-make up-prod
-```
-
-Default ports:
-
-- Dev app: `http://localhost:8080`
+- Dev app: `https://taqsimot.fannjourney.test`
 - Dev Vite: `http://localhost:5173`
-- Prod app: `https://taqsimot.test`
+- Production app: `https://taqsimot.fannjourney.com`
 
-You can override them in `.env`:
+The development app is available to Traefik as `taqsimot-app-dev:80`. The production app is available as `taqsimot-app-prod:80`; it does not publish host ports. Both stacks retain a private network for application and queue traffic. Production runtime configuration is loaded from a private `.env.production` file; create it before deployment:
 
-```dotenv
-DEV_APP_PORT=8080
-DEV_VITE_PORT=5173
-PROD_DOMAIN=taqsimot.test
-PROD_HTTP_PORT=80
-PROD_HTTPS_PORT=443
-PROD_SSL_CERT_FILE=
-PROD_SSL_KEY_FILE=
+```bash
+cp .env.production.example .env.production
 ```
 
-The two stacks use different Compose project names, networks, containers, and runtime storage. The production container also keeps its SQLite database in its own Docker volume-backed storage directory, so it does not clash with the development environment.
+Set `APP_KEY` and the required integration secrets in that private file. The shared production Traefik resolver currently uses Let’s Encrypt staging; move that resolver to the production ACME endpoint before a public cutover.
 
 For local domain resolution, add this line to your hosts file:
 
 ```text
-127.0.0.1 taqsimot.test
+127.0.0.1 taqsimot.fannjourney.test
 ```
 
-For trusted local HTTPS, install `mkcert`, trust its local CA once, and generate a certificate for your domain:
+For trusted local HTTPS, install `mkcert`, trust its local CA once, and generate the certificate that the shared Traefik configuration reads:
 
 ```bash
 mkcert -install
-make cert-prod
-make up-prod
+make cert-local
 ```
 
-By default, the proxy will use `docker/certs/taqsimot.test.pem` and `docker/certs/taqsimot.test-key.pem` if they exist. You can also point `PROD_SSL_CERT_FILE` and `PROD_SSL_KEY_FILE` at alternate certificate files inside the mounted cert directory.
-
-If no trusted certificate is available, the production proxy falls back to a self-signed certificate automatically, and the browser will continue to show a warning.
+The generated certificate and key are deliberately ignored by the MrStairs repository. Restart or reload local Traefik after changing them.
 
 Useful commands:
 
@@ -71,7 +61,7 @@ Useful commands:
 - `make rebuild-prod`
 - `make logs-dev`
 - `make logs-prod`
-- `make cert-prod`
+- `make cert-local`
 
 `make build-dev` only ensures the generic Sail runtime image is available. If `sail-8.5/app` already exists locally, it will not force a rebuild. Use `make rebuild-dev` when you intentionally want to rebuild that runtime from `vendor/laravel/sail/runtimes/8.5/Dockerfile`, which requires Docker Hub access to `ubuntu:24.04`.
 

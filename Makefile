@@ -6,6 +6,9 @@ DEV_COMPOSE_FILE := compose.dev.yaml
 PROD_COMPOSE_FILE := compose.prod.yaml
 DEV_SERVICE := laravel.test
 DEV_IMAGE := sail-8.5/app
+TRAEFIK_PROJECT ?= ../mrstairs-backend
+TRAEFIK_LOCAL_CERT_DIR ?= $(TRAEFIK_PROJECT)/traefik/local/certs
+LOCAL_DOMAIN := taqsimot.fannjourney.test
 PHP_FPM := $(shell sh -lc "command -v systemctl >/dev/null 2>&1 && systemctl list-units --type=service --state=running 2>/dev/null | grep -oE 'php[0-9.]+-fpm' | head -n 1 || true")
 
 .DEFAULT_GOAL := help
@@ -27,7 +30,7 @@ help:
 	@echo "  restart-prod  Restart the production Docker containers"
 	@echo "  build-prod    Build the production Docker containers"
 	@echo "  rebuild-prod  Force a clean rebuild of the production Docker containers"
-	@echo "  cert-prod     Generate a trusted local cert with mkcert for the production domain"
+	@echo "  cert-local    Generate a trusted local Traefik certificate with mkcert"
 	@echo "  logs-dev      Tail development container logs"
 	@echo "  logs-prod     Tail production container logs"
 	@echo "  restart-local Restart local Nginx and PHP-FPM daemons"
@@ -88,9 +91,8 @@ build-prod:
 rebuild-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build --no-cache
 
-cert-prod:
-	mkdir -p docker/certs
-	mkcert -cert-file docker/certs/$(or $(PROD_DOMAIN),taqsimot.test).pem -key-file docker/certs/$(or $(PROD_DOMAIN),taqsimot.test)-key.pem $(or $(PROD_DOMAIN),taqsimot.test)
+cert-local:
+	mkcert -cert-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN).pem -key-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN)-key.pem $(LOCAL_DOMAIN)
 
 logs-dev:
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) logs -f
@@ -160,4 +162,4 @@ supervisor-install:
 supervisor-status:
 	sudo supervisorctl status
 
-.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev up-prod down-prod restart-prod build-prod rebuild-prod cert-prod logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status
+.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev up-prod down-prod restart-prod build-prod rebuild-prod cert-local logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status

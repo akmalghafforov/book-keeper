@@ -2,16 +2,18 @@ name: book-keeper-dev
 
 services:
     laravel.test:
+        container_name: taqsimot-app-dev
         build:
             context: './vendor/laravel/sail/runtimes/8.5'
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP:-1000}'
         image: 'sail-8.5/app'
+        labels:
+            traefik.enable: 'false'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
-            - '${DEV_APP_PORT:-8080}:80'
             - '${DEV_VITE_PORT:-5173}:${DEV_VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER:-1000}'
@@ -23,6 +25,7 @@ services:
             - '.:/var/www/html'
         networks:
             - sail
+            - traefik-net
 
     queue.work:
         build:
@@ -31,6 +34,8 @@ services:
             args:
                 WWWGROUP: '${WWWGROUP:-1000}'
         image: 'sail-8.5/app'
+        labels:
+            traefik.enable: 'false'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         environment:
@@ -50,3 +55,5 @@ services:
 networks:
     sail:
         driver: bridge
+    traefik-net:
+        external: true
