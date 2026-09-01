@@ -1,8 +1,10 @@
 .git
 .gitignore
+.env*
 node_modules
 vendor
-storage/*.key
-storage/logs
+storage
+database/*.sqlite*
+bootstrap/cache/*.php
 docker/prod/*.log
 tests

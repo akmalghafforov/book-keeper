@@ -36,6 +36,24 @@ cp .env.production.example .env.production
 
 Set `APP_KEY` and the required integration secrets in that private file. The shared production Traefik resolver currently uses Let’s Encrypt staging; move that resolver to the production ACME endpoint before a public cutover.
 
+### Stage deployment and disk recovery
+
+The production image deliberately excludes `.env*`, `storage`, SQLite databases, dependency directories, and generated caches. `prod-storage` and `prod-database` are persistent named volumes, so rebuilding the image does not remove uploads, logs, or application data. The app and queue use the same `book-keeper-prod-app:latest` image tag; set `BOOK_KEEPER_PROD_IMAGE` when a registry tag is needed.
+
+On the stage server, build and validate production before stopping the Sail development stack:
+
+```bash
+make up-prod
+docker compose -f compose.prod.yaml ps
+docker compose -f compose.prod.yaml logs --tail=100 app queue
+# Verify https://taqsimot.fannjourney.com, then:
+make down-dev
+docker image prune -f
+docker builder prune -f
+```
+
+Do not run `docker volume prune`: the named production volumes contain persistent application data. Rotate production credentials after deploying, because earlier images may have included environment files.
+
 For local domain resolution, add this line to your hosts file:
 
 ```text

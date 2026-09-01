@@ -3,6 +3,7 @@ name: book-keeper-prod
 services:
     app:
         container_name: taqsimot-app-prod
+        image: '${BOOK_KEEPER_PROD_IMAGE:-book-keeper-prod-app}:latest'
         build:
             context: .
             dockerfile: docker/prod/Dockerfile
@@ -16,6 +17,7 @@ services:
             - traefik-net
 
     queue:
+        image: '${BOOK_KEEPER_PROD_IMAGE:-book-keeper-prod-app}:latest'
         build:
             context: .
             dockerfile: docker/prod/Dockerfile
