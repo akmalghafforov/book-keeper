@@ -110,6 +110,7 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('Add Provider Ledger Entry')
             ->assertSee('charge')
             ->assertSee('payment')
+            ->assertSee('<option value="cash" selected>cash</option>', false)
             ->assertSee('North Cement');
     }
 
@@ -132,6 +133,7 @@ class ProviderLedgerControllerTest extends TestCase
         $response = $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $this->provider->id,
             'type' => 'payment',
+            'payment_method' => 'cash',
             'amount' => '25.2500',
             'transaction_date' => '03/06/2026 14:15',
             'notes' => 'Cash payment',
@@ -146,6 +148,7 @@ class ProviderLedgerControllerTest extends TestCase
             'transaction_date' => '2026-06-03 00:00:00',
             'provider_received_at' => '2026-06-03 14:15:00',
             'notes' => 'Cash payment',
+            'payment_method' => 'cash',
         ]);
     }
 
@@ -189,6 +192,37 @@ class ProviderLedgerControllerTest extends TestCase
         $response->assertSessionHasErrors(['amount']);
     }
 
+    public function test_payment_method_is_required_and_must_be_valid_for_provider_payments(): void
+    {
+        $payload = [
+            'provider_id' => $this->provider->id,
+            'type' => 'payment',
+            'amount' => '25.0000',
+            'transaction_date' => '03/06/2026 12:00',
+        ];
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.store'), $payload)
+            ->assertSessionHasErrors('payment_method');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.store'), [...$payload, 'payment_method' => 'card'])
+            ->assertSessionHasErrors('payment_method');
+    }
+
+    public function test_provider_charge_clears_a_submitted_payment_method(): void
+    {
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
+            'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'payment_method' => 'alif',
+            'amount' => '25.0000',
+            'transaction_date' => '03/06/2026 12:00',
+        ])->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $this->assertDatabaseHas('provider_ledgers', ['type' => 'charge', 'payment_method' => null]);
+    }
+
     public function test_show_displays_provider_ledger_details(): void
     {
         $ledger = ProviderLedger::factory()->payment()->create([
@@ -206,6 +240,23 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('Bank transfer');
     }
 
+    public function test_payment_details_show_the_saved_method_and_legacy_entries_show_na(): void
+    {
+        $ledger = ProviderLedger::factory()->payment()->create([
+            'provider_id' => $this->provider->id,
+            'payment_method' => 'ds',
+        ]);
+        $legacyLedger = ProviderLedger::factory()->payment()->create(['provider_id' => $this->provider->id]);
+
+        $this->actingAs($this->user)->get(route('admin.provider-ledgers.show', $ledger))
+            ->assertOk()
+            ->assertSee('Payment Method')
+            ->assertSee('ДС');
+        $this->actingAs($this->user)->get(route('admin.provider-ledgers.show', $legacyLedger))
+            ->assertOk()
+            ->assertSee(__('N/A'));
+    }
+
     public function test_update_modifies_provider_payment(): void
     {
         $ledger = ProviderLedger::factory()->payment()->create([
@@ -216,6 +267,7 @@ class ProviderLedgerControllerTest extends TestCase
         $response = $this->actingAs($this->user)->put(route('admin.provider-ledgers.update', $ledger), [
             'provider_id' => $this->provider->id,
             'type' => 'payment',
+            'payment_method' => 'eo',
             'amount' => '30.5000',
             'transaction_date' => '04/06/2026 16:20',
             'notes' => 'Updated payment',
@@ -230,6 +282,7 @@ class ProviderLedgerControllerTest extends TestCase
             'transaction_date' => '2026-06-04 00:00:00',
             'provider_received_at' => '2026-06-04 16:20:00',
             'notes' => 'Updated payment',
+            'payment_method' => 'eo',
         ]);
     }
 
@@ -244,6 +297,7 @@ class ProviderLedgerControllerTest extends TestCase
         $response = $this->actingAs($this->user)->put(route('admin.provider-ledgers.update', $ledger), [
             'provider_id' => $this->provider->id,
             'type' => 'charge',
+            'payment_method' => 'alif',
             'amount' => '130.7500',
             'car_number' => 'BB-5678',
             'transaction_date' => '04/06/2026 08:05',
@@ -264,6 +318,7 @@ class ProviderLedgerControllerTest extends TestCase
             'transaction_date' => '2026-06-04 00:00:00',
             'provider_received_at' => '2026-06-04 08:05:00',
             'notes' => 'Updated manual debt',
+            'payment_method' => null,
         ]);
     }
 

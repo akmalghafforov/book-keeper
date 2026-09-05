@@ -811,6 +811,7 @@ class ReportGenerationTest extends TestCase
         $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             'provider_id' => $provider->id,
             'type' => 'payment',
+            'payment_method' => 'cash',
             'amount' => '40.0000',
             'transaction_date' => '01/04/2026 10:00',
             'notes' => 'Selected manual provider payment',

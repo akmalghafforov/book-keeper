@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,7 @@ class ProviderLedger extends Model
     protected $fillable = [
         'provider_id',
         'type',
+        'payment_method',
         'distribution_id',
         'product_id',
         'car_number',
@@ -33,6 +35,7 @@ class ProviderLedger extends Model
         'quantity' => 'decimal:3',
         'buy_price' => 'decimal:4',
         'amount' => 'decimal:4',
+        'payment_method' => PaymentMethod::class,
         'transaction_date' => 'date',
         'provider_received_at' => 'datetime',
         'sort_order' => 'integer',

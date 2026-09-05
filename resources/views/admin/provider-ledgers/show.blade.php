@@ -35,6 +35,12 @@
                         </span>
                     </dd>
                 </div>
+                @if($providerLedger->type === 'payment')
+                    <div class="sm:col-span-1">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Payment Method') }}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $providerLedger->payment_method?->label() ?? __('N/A') }}</dd>
+                    </div>
+                @endif
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Amount') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white font-bold text-lg">{{ $providerLedger->type === 'payment' ? '-' : '' }}{{ number_format((float) $providerLedger->amount, 4) }}</dd>

@@ -9,7 +9,7 @@
 @endpush
 
 @section('content')
-<div class="max-w-2xl mx-auto space-y-6" x-data="{ clientId: '{{ old('client_id') ?? $debtLedger->client_id }}' }">
+<div class="max-w-2xl mx-auto space-y-6" x-data="{ clientId: '{{ old('client_id') ?? $debtLedger->client_id }}', type: '{{ old('type', $debtLedger->type) }}' }">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Debt Ledger Entry</h2>
         <a href="{{ route('admin.debt-ledgers.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
@@ -52,13 +52,27 @@
 
                 <div>
                     <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Type') }}</label>
-                    <select name="type" id="type" required
+                    <select name="type" id="type" x-model="type" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                         <option value="charge" {{ (old('type') ?? $debtLedger->type) == 'charge' ? 'selected' : '' }}>{{ __('charge') }}</option>
                         <option value="payment" {{ (old('type') ?? $debtLedger->type) == 'payment' ? 'selected' : '' }}>{{ __('payment') }}</option>
                         <option value="credit_note" {{ (old('type') ?? $debtLedger->type) == 'credit_note' ? 'selected' : '' }}>{{ __('credit_note') }}</option>
                     </select>
                     @error('type')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div x-show="type === 'payment'" x-cloak>
+                    <label for="payment_method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Payment Method') }}</label>
+                    <select name="payment_method" id="payment_method" :required="type === 'payment'"
+                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                        <option value="">{{ __('Select a payment method') }}</option>
+                        @foreach(\App\Enums\PaymentMethod::cases() as $paymentMethod)
+                            <option value="{{ $paymentMethod->value }}" {{ old('payment_method', $debtLedger->payment_method?->value) === $paymentMethod->value ? 'selected' : '' }}>{{ $paymentMethod->label() }}</option>
+                        @endforeach
+                    </select>
+                    @error('payment_method')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                 </div>

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\DebtLedger;
 use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DebtLedgerController extends Controller
 {
@@ -94,6 +96,7 @@ class DebtLedgerController extends Controller
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
+            'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
             'amount' => 'required|numeric|min:0.01',
             'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
@@ -101,6 +104,7 @@ class DebtLedgerController extends Controller
         ]);
 
         $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
+        $validated['payment_method'] = $validated['type'] === 'payment' ? $validated['payment_method'] : null;
 
         DebtLedger::create($validated);
 
@@ -136,6 +140,7 @@ class DebtLedgerController extends Controller
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
+            'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
             'amount' => 'required|numeric|min:0.01',
             'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
@@ -143,6 +148,7 @@ class DebtLedgerController extends Controller
         ]);
 
         $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
+        $validated['payment_method'] = $validated['type'] === 'payment' ? $validated['payment_method'] : null;
 
         $debtLedger->update($validated);
 

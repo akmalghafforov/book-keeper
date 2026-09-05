@@ -43,7 +43,8 @@ class DebtLedgerControllerTest extends TestCase
                 ->get(route('admin.debt-ledgers.create'))
                 ->assertOk()
                 ->assertSee('value="23/7/2026"', false)
-                ->assertSee("defaultDate: '23/7/2026'", false);
+                ->assertSee("defaultDate: '23/7/2026'", false)
+                ->assertSee('<option value="cash" selected>cash</option>', false);
         } finally {
             Carbon::setTestNow();
         }
@@ -75,6 +76,7 @@ class DebtLedgerControllerTest extends TestCase
         $response = $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [
             'client_id' => $this->client->id,
             'type' => 'payment',
+            'payment_method' => 'cash',
             'amount' => 250.50,
             'transaction_date' => '10/03/2026',
             'notes' => 'Cash payment received',
@@ -143,6 +145,37 @@ class DebtLedgerControllerTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['amount']);
+    }
+
+    public function test_payment_method_is_required_and_must_be_valid_for_payments(): void
+    {
+        $payload = [
+            'client_id' => $this->client->id,
+            'type' => 'payment',
+            'amount' => 100,
+            'transaction_date' => '10/03/2026',
+        ];
+
+        $this->actingAs($this->user)
+            ->post(route('admin.debt-ledgers.store'), $payload)
+            ->assertSessionHasErrors('payment_method');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.debt-ledgers.store'), [...$payload, 'payment_method' => 'card'])
+            ->assertSessionHasErrors('payment_method');
+    }
+
+    public function test_non_payment_entries_clear_a_submitted_payment_method(): void
+    {
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [
+            'client_id' => $this->client->id,
+            'type' => 'credit_note',
+            'payment_method' => 'alif',
+            'amount' => 75,
+            'transaction_date' => '10/03/2026',
+        ])->assertRedirect(route('admin.debt-ledgers.index'));
+
+        $this->assertDatabaseHas('debt_ledgers', ['type' => 'credit_note', 'payment_method' => null]);
     }
 
     public function test_index_exposes_potential_duplicate_groups(): void
@@ -224,6 +257,7 @@ class DebtLedgerControllerTest extends TestCase
         $this->actingAs($this->user)->put(route('admin.debt-ledgers.update', $ledger), [
             'client_id' => $this->client->id,
             'type' => 'payment',
+            'payment_method' => 'ds',
             'amount' => 200.00,
             'transaction_date' => '15/03/2026',
             'notes' => 'Updated amount',
@@ -234,7 +268,43 @@ class DebtLedgerControllerTest extends TestCase
             'amount' => 200.00,
             'transaction_date' => '2026-03-15 00:00:00',
             'notes' => 'Updated amount',
+            'payment_method' => 'ds',
         ]);
+    }
+
+    public function test_payment_details_show_the_saved_method_and_legacy_entries_show_na(): void
+    {
+        $ledger = DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'payment_method' => 'alif',
+        ]);
+        $legacyLedger = DebtLedger::factory()->payment()->create(['client_id' => $this->client->id]);
+
+        $this->actingAs($this->user)->get(route('admin.debt-ledgers.show', $ledger))
+            ->assertOk()
+            ->assertSee('Payment Method')
+            ->assertSee('Алиф');
+        $this->actingAs($this->user)->get(route('admin.debt-ledgers.show', $legacyLedger))
+            ->assertOk()
+            ->assertSee(__('N/A'));
+    }
+
+    public function test_updating_a_payment_to_a_charge_clears_its_payment_method(): void
+    {
+        $ledger = DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->actingAs($this->user)->put(route('admin.debt-ledgers.update', $ledger), [
+            'client_id' => $this->client->id,
+            'type' => 'charge',
+            'payment_method' => 'alif',
+            'amount' => 100,
+            'transaction_date' => '15/03/2026',
+        ])->assertRedirect(route('admin.debt-ledgers.index'));
+
+        $this->assertDatabaseHas('debt_ledgers', ['id' => $ledger->id, 'payment_method' => null]);
     }
 
     // ---------------------------------------------------------------

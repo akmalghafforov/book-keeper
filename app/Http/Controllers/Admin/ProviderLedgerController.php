@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PaymentMethod;
 use App\Exceptions\InvalidProviderLedgerWorkbook;
 use App\Http\Controllers\Controller;
 use App\Models\Provider;
@@ -122,6 +123,7 @@ class ProviderLedgerController extends Controller
         ProviderLedger::create([
             'provider_id' => $validated['provider_id'],
             'type' => $validated['type'],
+            'payment_method' => $validated['type'] === 'payment' ? $validated['payment_method'] : null,
             'amount' => $validated['amount'],
             'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
             'transaction_date' => $transactionDate->toDateString(),
@@ -172,6 +174,7 @@ class ProviderLedgerController extends Controller
         $providerLedger->update([
             'provider_id' => $validated['provider_id'],
             'type' => $validated['type'],
+            'payment_method' => $validated['type'] === 'payment' ? $validated['payment_method'] : null,
             'distribution_id' => null,
             'product_id' => null,
             'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
@@ -205,6 +208,7 @@ class ProviderLedgerController extends Controller
         return [
             'provider_id' => 'required|exists:providers,id',
             'type' => ['required', Rule::in(['charge', 'payment'])],
+            'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
             'amount' => 'required|numeric|min:0.01',
             'car_number' => 'nullable|string|max:50',
             'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
