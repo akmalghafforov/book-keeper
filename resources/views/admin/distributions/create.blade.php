@@ -40,6 +40,9 @@
     get hasDefaultProvider() {
         return Boolean(this.productId && this.products[this.productId]?.has_default_provider);
     },
+    get hasSelectedClientShops() {
+        return Boolean(this.clientId && this.clientShops[this.clientId]?.length);
+    },
     init() {
         this.$watch('price', () => {
             if (this.creditClientId && !this.creditPriceOverridden) this.creditClientPrice = this.price;
@@ -189,20 +192,17 @@
 
     <form action="{{ route('admin.distributions.store') }}" method="POST">
         @csrf
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column: Distribution Info -->
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
-                    <div class="p-6 space-y-4">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-[#3E3E3A] pb-2">Distribution Details</h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="space-y-6">
+            <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
+                <div class="p-6 space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-[#3E3E3A] pb-2">Distribution Details</h3>
                             <div x-data="{
                                 init() {
                                     flatpickr($refs.datepicker, {
                                         dateFormat: 'd/n/Y',
                                         defaultDate: '{{ old('distribution_date', $currentDate->format('d/n/Y')) }}',
                                         allowInput: true,
+                                        onReady: () => setTimeout(() => $refs.datepicker.focus(), 0),
                                     });
                                 }
                             }">
@@ -219,65 +219,6 @@
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
-
-                            <div x-data="{
-                                init() {
-                                    flatpickr($refs.providerReceivedAtPicker, {
-                                        enableTime: true,
-                                        time_24hr: true,
-                                        dateFormat: 'd/n/Y H:i',
-                                        defaultDate: '{{ old('provider_received_at', $currentDate->format('d/n/Y H:i')) }}',
-                                        allowInput: true,
-                                    });
-                                }
-                            }" x-show="hasDefaultProvider" x-cloak>
-                                <label for="provider_received_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Date & Time') }}</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    </div>
-                                    <input type="text" name="provider_received_at" id="provider_received_at" x-ref="providerReceivedAtPicker" :disabled="!hasDefaultProvider"
-                                        class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                                        placeholder="dd/mm/yyyy hh:mm">
-                                </div>
-                                @error('provider_received_at')
-                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <div x-data="{ supplierId: '{{ old('supplier_id') }}' }">
-                                <div class="flex justify-between items-center mb-1">
-                                    <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Supplier') }}</label>
-                                    <button type="button" @click="showSupplierModal = true" class="text-xs text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center">
-                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                        New Supplier
-                                    </button>
-                                </div>
-                                <select name="supplier_id" id="supplier_id" x-ref="selectSupplier"
-                                    x-init="
-                                        $($refs.selectSupplier).select2({
-                                            placeholder: 'Select Supplier',
-                                            allowClear: true,
-                                            width: '100%'
-                                        });
-                                        $($refs.selectSupplier).on('change', () => { supplierId = $($refs.selectSupplier).val() });
-                                    "
-                                    x-effect="$($refs.selectSupplier).val(supplierId).trigger('change')"
-                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                                    <option value="">None (Direct Distribution)</option>
-                                    @foreach($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                                            {{ $supplier->car_number }} ({{ $supplier->car_color ?? __('N/A') }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('supplier_id')
-                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <div class="flex justify-between items-center mb-1">
                                     <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Client') }}</label>
@@ -309,15 +250,15 @@
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
-
                             <div>
                                 <div class="flex justify-between items-center mb-1">
-                                    <label for="shop_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Shop (Optional)') }}</label>
+                                    <label for="shop_id" x-show="hasSelectedClientShops" x-cloak class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Shop (Optional)') }}</label>
                                     <button type="button" x-show="clientId" @click="showShopModal = true" class="text-xs text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center">
                                         <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         New Shop
                                     </button>
                                 </div>
+                                <div x-show="hasSelectedClientShops" x-cloak>
                                 <select name="shop_id" id="shop_id" x-ref="selectShop"
                                     x-init="
                                         $($refs.selectShop).select2({
@@ -351,8 +292,17 @@
                                 @error('shop_id')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
+                                </div>
                             </div>
-
+                            <div>
+                                <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Quantity') }}</label>
+                                <input type="number" step="0.001" name="quantity" id="quantity" x-model.number="quantity" required
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                    placeholder="0.000">
+                                @error('quantity')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
                             <div>
                                 <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product') }}</label>
                                 <select name="product_id" id="product_id" required
@@ -370,9 +320,96 @@
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-4 mt-4">
+                            <div>
+                                <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Price') }}</label>
+                                <div class="relative">
+                                    <input type="number" step="0.01" name="price" id="price" x-model.number="price" required
+                                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        placeholder="0.00">
+                                </div>
+                                @error('price')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div x-show="hasDefaultProvider" x-cloak>
+                                <label for="provider_buy_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Price (Optional)') }}</label>
+                                <div class="relative">
+                                    <input type="number" step="0.0001" min="0" name="provider_buy_price" id="provider_buy_price" x-model.number="providerBuyPrice" :disabled="!hasDefaultProvider"
+                                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        placeholder="0.0000">
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __("Defaults to the product's Buy Price. Override it for this distribution if needed.") }}</p>
+                                @error('provider_buy_price')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div x-data="{
+                                init() {
+                                    flatpickr($refs.providerReceivedAtPicker, {
+                                        enableTime: true,
+                                        time_24hr: true,
+                                        dateFormat: 'd/n/Y H:i',
+                                        defaultDate: '{{ old('provider_received_at', $currentDate->format('d/n/Y H:i')) }}',
+                                        allowInput: true,
+                                    });
+                                }
+                            }" x-show="hasDefaultProvider" x-cloak>
+                                <label for="provider_received_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Date & Time') }}</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <input type="text" name="provider_received_at" id="provider_received_at" x-ref="providerReceivedAtPicker" :disabled="!hasDefaultProvider"
+                                        class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                        placeholder="dd/mm/yyyy hh:mm">
+                                </div>
+                                @error('provider_received_at')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div x-data="{ supplierId: '{{ old('supplier_id') }}' }">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label for="supplier_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Supplier') }}</label>
+                                    <button type="button" @click="showSupplierModal = true" class="text-xs text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center">
+                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        New Supplier
+                                    </button>
+                                </div>
+                                <select name="supplier_id" id="supplier_id" x-ref="selectSupplier"
+                                    x-init="
+                                        $($refs.selectSupplier).select2({
+                                            placeholder: 'Select Supplier',
+                                            allowClear: true,
+                                            width: '100%'
+                                        });
+                                        $($refs.selectSupplier).on('change', () => { supplierId = $($refs.selectSupplier).val() });
+                                    "
+                                    x-effect="$($refs.selectSupplier).val(supplierId).trigger('change')"
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                                    <option value="">None (Direct Distribution)</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                            {{ $supplier->car_number }} ({{ $supplier->car_color ?? __('N/A') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('supplier_id')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
+                                <select name="quantity_unit" id="quantity_unit" required
+                                    x-model="unit"
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                                    <option value="per_ton" {{ old('quantity_unit') == 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
+                                    <option value="per_bag" {{ old('quantity_unit') == 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>
+                                    <option value="per_piece" {{ old('quantity_unit') == 'per_piece' ? 'selected' : '' }}>{{ __('per_piece') }}</option>
+                                </select>
+                                @error('quantity_unit')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
                             <div>
                                 <div class="flex justify-between items-center mb-1">
                                     <label for="credit_client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Credit Client (Optional)') }} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">- Issues credit note to this client</span></label>
@@ -399,51 +436,6 @@
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
-                    <div class="p-6 space-y-4">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-[#3E3E3A] pb-2">Pricing & Quantity</h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
-                                <select name="quantity_unit" id="quantity_unit" required
-                                    x-model="unit"
-                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                                    <option value="per_ton" {{ old('quantity_unit') == 'per_ton' ? 'selected' : '' }}>{{ __('per_ton') }}</option>
-                                    <option value="per_bag" {{ old('quantity_unit') == 'per_bag' ? 'selected' : '' }}>{{ __('per_bag') }}</option>
-                                    <option value="per_piece" {{ old('quantity_unit') == 'per_piece' ? 'selected' : '' }}>{{ __('per_piece') }}</option>
-                                </select>
-                                @error('quantity_unit')
-                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <div>
-                                <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Quantity') }}</label>
-                                <input type="number" step="0.001" name="quantity" id="quantity" x-model.number="quantity" required
-                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                                    placeholder="0.000">
-                                @error('quantity')
-                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <div>
-                                <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Price') }}</label>
-                                <div class="relative">
-                                    <input type="number" step="0.01" name="price" id="price" x-model.number="price" required
-                                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                                        placeholder="0.00">
-                                </div>
-                                @error('price')
-                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-
                             <div x-show="creditClientId" x-cloak>
                                 <label for="credit_client_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Credit Client Price') }}</label>
                                 <input type="number" step="0.0001" min="0" name="credit_client_price" id="credit_client_price" x-model.number="creditClientPrice" @input="creditPriceOverridden = true"
@@ -455,26 +447,8 @@
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>
-
-                            <div x-show="hasDefaultProvider" x-cloak>
-                                <label for="provider_buy_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Price (Optional)') }}</label>
-                                <div class="relative">
-                                    <input type="number" step="0.0001" min="0" name="provider_buy_price" id="provider_buy_price" x-model.number="providerBuyPrice" :disabled="!hasDefaultProvider"
-                                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                                        placeholder="0.0000">
-                                </div>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __("Defaults to the product's Buy Price. Override it for this distribution if needed.") }}</p>
-                                @error('provider_buy_price')
-                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
-
-            <!-- Right Column: Summary & Submit -->
-            <div class="space-y-6">
                 <div class="bg-indigo-600 dark:bg-indigo-900 overflow-hidden shadow-lg sm:rounded-xl text-white">
                     <div class="p-6 space-y-4">
                         <h3 class="text-lg font-bold">Summary</h3>
@@ -505,10 +479,8 @@
                         </a>
                     </div>
                 </div>
-            </div>
         </div>
     </form>
-
     <!-- Client Modal -->
     <div x-show="showClientModal" 
          class="fixed inset-0 z-50 overflow-y-auto" 
