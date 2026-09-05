@@ -31,16 +31,37 @@
     newShop: { name: '', address: '' },
     isSavingShop: false,
     shopError: '',
-    products: @js($products->map(fn($p) => ['id' => $p->id, 'default_unit' => $p->default_unit, 'buy_price' => $p->buy_price])->keyBy('id')),
+    products: @js($products->map(fn($p) => ['id' => $p->id, 'default_unit' => $p->default_unit, 'buy_price' => $p->buy_price, 'has_default_provider' => $p->default_provider_id !== null])->keyBy('id')),
     productId: '{{ old('product_id') }}',
     unit: '{{ old('quantity_unit', 'per_ton') }}',
     get subtotal() {
         return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
     },
+    get hasDefaultProvider() {
+        return Boolean(this.productId && this.products[this.productId]?.has_default_provider);
+    },
     init() {
         this.$watch('price', () => {
             if (this.creditClientId && !this.creditPriceOverridden) this.creditClientPrice = this.price;
         });
+        this.$nextTick(() => this.syncProduct(true));
+    },
+    syncProduct(preserveProviderPrice = false) {
+        const product = this.products[this.productId];
+
+        if (product?.default_unit) {
+            this.unit = product.default_unit;
+        }
+
+        if (product?.has_default_provider) {
+            if (!preserveProviderPrice || this.providerBuyPrice === null) this.providerBuyPrice = product.buy_price;
+            return;
+        }
+
+        this.providerBuyPrice = null;
+        const providerReceivedAt = document.getElementById('provider_received_at');
+        providerReceivedAt?._flatpickr?.clear();
+        if (providerReceivedAt) providerReceivedAt.value = '';
     },
     setCreditClient(id) {
         this.creditClientId = id;
@@ -209,13 +230,13 @@
                                         allowInput: true,
                                     });
                                 }
-                            }">
+                            }" x-show="hasDefaultProvider" x-cloak>
                                 <label for="provider_received_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Date & Time') }}</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
-                                    <input type="text" name="provider_received_at" id="provider_received_at" x-ref="providerReceivedAtPicker"
+                                    <input type="text" name="provider_received_at" id="provider_received_at" x-ref="providerReceivedAtPicker" :disabled="!hasDefaultProvider"
                                         class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                                         placeholder="dd/mm/yyyy hh:mm">
                                 </div>
@@ -336,12 +357,7 @@
                                 <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product') }}</label>
                                 <select name="product_id" id="product_id" required
                                     x-model="productId"
-                                    @change="
-                                        if (productId && products[productId] && products[productId].default_unit) {
-                                            unit = products[productId].default_unit;
-                                        }
-                                        providerBuyPrice = (productId && products[productId]) ? products[productId].buy_price : null;
-                                    "
+                                    @change="syncProduct()"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">Select Product</option>
                                     @foreach($products as $product)
@@ -440,10 +456,10 @@
                                 @enderror
                             </div>
 
-                            <div>
+                            <div x-show="hasDefaultProvider" x-cloak>
                                 <label for="provider_buy_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Provider Price (Optional)') }}</label>
                                 <div class="relative">
-                                    <input type="number" step="0.0001" min="0" name="provider_buy_price" id="provider_buy_price" x-model.number="providerBuyPrice"
+                                    <input type="number" step="0.0001" min="0" name="provider_buy_price" id="provider_buy_price" x-model.number="providerBuyPrice" :disabled="!hasDefaultProvider"
                                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                                         placeholder="0.0000">
                                 </div>

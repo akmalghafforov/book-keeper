@@ -116,6 +116,16 @@ class DistributionController extends Controller
         ]);
 
         $validated = $this->normalizeDates($validated);
+        $hasDefaultProvider = Product::query()
+            ->whereKey($validated['product_id'])
+            ->whereNotNull('default_provider_id')
+            ->exists();
+
+        if (! $hasDefaultProvider) {
+            $validated['provider_buy_price'] = null;
+            $validated['provider_received_at'] = null;
+        }
+
         if (empty($validated['credit_client_id'])) {
             $validated['credit_client_price'] = null;
         }

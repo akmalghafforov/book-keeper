@@ -51,6 +51,22 @@ class DistributionControllerTest extends TestCase
         }
     }
 
+    public function test_create_exposes_provider_availability_and_conditionally_disables_provider_fields(): void
+    {
+        $provider = Provider::factory()->create();
+        $this->product->update(['default_provider_id' => $provider->id]);
+        Product::factory()->create(['default_provider_id' => null]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertSee('has_default_provider', false)
+            ->assertSee('x-show="hasDefaultProvider"', false)
+            ->assertSee(':disabled="!hasDefaultProvider"', false)
+            ->assertViewHas('products', fn ($products) => $products->contains($this->product)
+                && $products->contains(fn (Product $product) => $product->default_provider_id === null));
+    }
+
     public function test_store_creates_distribution_and_charge_ledger(): void
     {
         $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), [
@@ -116,6 +132,31 @@ class DistributionControllerTest extends TestCase
             'transaction_date' => '2026-01-15 00:00:00',
             'provider_received_at' => '2026-01-15 14:30:00',
             'amount' => '125.0000',
+        ]);
+    }
+
+    public function test_store_discards_provider_values_for_a_product_without_a_default_provider(): void
+    {
+        $this->product->update(['default_provider_id' => null]);
+
+        $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), [
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'distribution_date' => '15/01/2026',
+            'provider_buy_price' => 12.5,
+            'provider_received_at' => '15/01/2026 14:30',
+        ]);
+
+        $response->assertRedirect(route('admin.distributions.index'));
+
+        $this->assertDatabaseHas('distributions', [
+            'product_id' => $this->product->id,
+            'provider_buy_price' => null,
+            'provider_received_at' => null,
         ]);
     }
 
