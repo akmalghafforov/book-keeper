@@ -17,6 +17,7 @@ class Distribution extends Model
         'client_id',
         'shop_id',
         'credit_client_id',
+        'credit_client_price',
         'product_id',
         'quantity_unit',
         'quantity',
@@ -32,6 +33,7 @@ class Distribution extends Model
         'provider_received_at' => 'datetime',
         'quantity' => 'decimal:3',
         'price' => 'decimal:4',
+        'credit_client_price' => 'decimal:4',
         'provider_buy_price' => 'decimal:4',
         'subtotal' => 'decimal:4',
     ];
@@ -78,7 +80,7 @@ class Distribution extends Model
             DebtLedger::create([
                 'client_id' => $this->credit_client_id,
                 'type' => 'credit_note',
-                'amount' => $this->subtotal,
+                'amount' => $this->creditClientSubtotal(),
                 'transaction_date' => $this->distribution_date,
                 'reference_id' => $this->id,
                 'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
@@ -118,7 +120,7 @@ class Distribution extends Model
             if ($creditLedger) {
                 $creditLedger->update([
                     'client_id' => $this->credit_client_id,
-                    'amount' => $this->subtotal,
+                    'amount' => $this->creditClientSubtotal(),
                     'transaction_date' => $this->distribution_date,
                     'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
                 ]);
@@ -126,7 +128,7 @@ class Distribution extends Model
                 DebtLedger::create([
                     'client_id' => $this->credit_client_id,
                     'type' => 'credit_note',
-                    'amount' => $this->subtotal,
+                    'amount' => $this->creditClientSubtotal(),
                     'transaction_date' => $this->distribution_date,
                     'reference_id' => $this->id,
                     'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
@@ -142,6 +144,15 @@ class Distribution extends Model
         DebtLedger::where('reference_id', $this->id)
             ->whereIn('type', ['charge', 'credit_note'])
             ->delete();
+    }
+
+    /**
+     * The credit client can receive a different per-unit price. Null is kept as
+     * a backwards-compatible indicator that this legacy distribution uses price.
+     */
+    public function creditClientSubtotal(): float
+    {
+        return round((float) $this->quantity * (float) ($this->credit_client_price ?? $this->price), 2);
     }
 
     public function restoreDebtLedgerCharge()

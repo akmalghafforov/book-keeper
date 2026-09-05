@@ -12,6 +12,9 @@
 <div class="max-w-4xl mx-auto space-y-6" x-data="{ 
     quantity: {{ old('quantity', $distribution->quantity) }},
     price: {{ old('price', $distribution->price) }},
+    creditClientId: @js(old('credit_client_id', $distribution->credit_client_id)),
+    creditClientPrice: @js(old('credit_client_price', $distribution->credit_client_price ?? ($distribution->credit_client_id ? $distribution->price : null))),
+    creditPriceOverridden: @js(old('credit_client_price') !== null || ($distribution->credit_client_price !== null && (float) $distribution->credit_client_price !== (float) $distribution->price)),
     providerBuyPrice: {{ old('provider_buy_price', $distribution->provider_buy_price) !== null ? old('provider_buy_price', $distribution->provider_buy_price) : 'null' }},
     clientId: '{{ old('client_id', $distribution->client_id) }}',
     shopId: '{{ old('shop_id', $distribution->shop_id ?? '') }}',
@@ -32,6 +35,21 @@
     shopError: '',
     get subtotal() {
         return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
+    },
+    init() {
+        this.$watch('price', () => {
+            if (this.creditClientId && !this.creditPriceOverridden) this.creditClientPrice = this.price;
+        });
+    },
+    setCreditClient(id) {
+        this.creditClientId = id;
+        if (!id) {
+            this.creditClientPrice = null;
+            this.creditPriceOverridden = false;
+        } else if (!this.creditPriceOverridden || this.creditClientPrice === null) {
+            this.creditClientPrice = this.price;
+            this.creditPriceOverridden = false;
+        }
     },
     async submitClient() {
         this.isSavingClient = true;
@@ -336,7 +354,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 gap-4 mt-4">
-                            <div x-data="{ creditClientId: '{{ old('credit_client_id', $distribution->credit_client_id) }}' }">
+                            <div>
                                 <div class="flex justify-between items-center mb-1">
                                     <label for="credit_client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Credit Client (Optional)') }} <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">- Issues credit note to this client</span></label>
                                 </div>
@@ -347,7 +365,7 @@
                                             allowClear: true,
                                             width: '100%'
                                         });
-                                        $($refs.selectCredit).on('change', () => { creditClientId = $($refs.selectCredit).val() });
+                                        $($refs.selectCredit).on('change', () => { setCreditClient($($refs.selectCredit).val()) });
                                     "
                                     x-effect="$($refs.selectCredit).val(creditClientId).trigger('change')"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
@@ -402,6 +420,18 @@
                                         placeholder="0.00">
                                 </div>
                                 @error('price')
+                                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div x-show="creditClientId" x-cloak>
+                                <label for="credit_client_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Credit Client Price') }}</label>
+                                <input type="number" step="0.0001" min="0" name="credit_client_price" id="credit_client_price" x-model.number="creditClientPrice" @input="creditPriceOverridden = true"
+                                    :required="Boolean(creditClientId)"
+                                    class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                                    placeholder="0.0000">
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Defaults to Price until you change it.') }}</p>
+                                @error('credit_client_price')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                 @enderror
                             </div>

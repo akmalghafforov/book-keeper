@@ -105,6 +105,7 @@ class DistributionController extends Controller
             'client_id' => 'required|exists:clients,id',
             'shop_id' => 'nullable|exists:shops,id',
             'credit_client_id' => 'nullable|exists:clients,id',
+            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
             'quantity' => 'required|numeric|min:0',
@@ -115,6 +116,9 @@ class DistributionController extends Controller
         ]);
 
         $validated = $this->normalizeDates($validated);
+        if (empty($validated['credit_client_id'])) {
+            $validated['credit_client_price'] = null;
+        }
         $validated['subtotal'] = $validated['quantity'] * $validated['price'];
 
         Distribution::create($validated);
@@ -128,7 +132,7 @@ class DistributionController extends Controller
      */
     public function show(Distribution $distribution)
     {
-        $distribution->load(['client', 'shop', 'product', 'supplier']);
+        $distribution->load(['client', 'shop', 'product', 'supplier', 'creditClient']);
 
         return view('admin.distributions.show', compact('distribution'));
     }
@@ -155,6 +159,7 @@ class DistributionController extends Controller
             'client_id' => 'required|exists:clients,id',
             'shop_id' => 'nullable|exists:shops,id',
             'credit_client_id' => 'nullable|exists:clients,id',
+            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
             'product_id' => 'required|exists:products,id',
             'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
             'quantity' => 'required|numeric|min:0',
@@ -165,6 +170,9 @@ class DistributionController extends Controller
         ]);
 
         $validated = $this->normalizeDates($validated);
+        if (empty($validated['credit_client_id'])) {
+            $validated['credit_client_price'] = null;
+        }
         $validated['subtotal'] = $validated['quantity'] * $validated['price'];
 
         $distribution->update($validated);

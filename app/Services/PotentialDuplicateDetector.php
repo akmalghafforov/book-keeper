@@ -277,6 +277,7 @@ class PotentialDuplicateDetector
                 $distribution->supplier_id ?? '',
                 $distribution->shop_id ?? '',
                 $distribution->credit_client_id ?? '',
+                $this->normalizeDecimal($distribution->credit_client_price, 4),
                 optional($distribution->created_at)?->toIso8601String() ?? '',
             ]),
         );
@@ -311,6 +312,7 @@ class PotentialDuplicateDetector
             $distribution->quantity_unit,
             $this->normalizeDecimal($distribution->quantity, 3),
             $this->normalizeDecimal($distribution->price, 4),
+            $this->normalizeDecimal($distribution->credit_client_price, 4),
             optional($distribution->distribution_date)->toDateString() ?? '',
         ]);
     }

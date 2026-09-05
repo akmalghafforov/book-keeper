@@ -101,7 +101,8 @@
                         <td class="details-cell">
                             @if($ledger->distribution)
                                 {{ $ledger->distribution->product->name ?? '' }}
-                                ({{ (float) $ledger->distribution->quantity == (int) $ledger->distribution->quantity ? number_format((float) $ledger->distribution->quantity, 0) : number_format((float) $ledger->distribution->quantity, 2) }} × {{ (float) $ledger->distribution->price == (int) $ledger->distribution->price ? number_format((float) $ledger->distribution->price, 0) : number_format((float) $ledger->distribution->price, 2) }})
+                                @php($unitPrice = $ledger->type === 'credit_note' ? ($ledger->distribution->credit_client_price ?? $ledger->distribution->price) : $ledger->distribution->price)
+                                ({{ (float) $ledger->distribution->quantity == (int) $ledger->distribution->quantity ? number_format((float) $ledger->distribution->quantity, 0) : number_format((float) $ledger->distribution->quantity, 2) }} × {{ (float) $unitPrice == (int) $unitPrice ? number_format((float) $unitPrice, 0) : number_format((float) $unitPrice, 2) }})
                                 @if($ledger->distribution->shop)
                                     , <small>{{ $ledger->distribution->shop->name }}</small>
                                 @endif

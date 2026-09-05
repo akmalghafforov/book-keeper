@@ -54,7 +54,13 @@
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Price') }}</dt>
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ number_format($distribution->price, 4) }}</dd>
+                </div>
+                @if($distribution->creditClient)
+                    <div class="sm:col-span-1">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Credit Client Price') }}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ number_format($distribution->credit_client_price ?? $distribution->price, 4) }}</dd>
                     </div>
+                @endif
 
                     <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Subtotal</dt>

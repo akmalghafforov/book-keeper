@@ -42,6 +42,8 @@ class DistributionModelTest extends TestCase
         $creditClient = Client::factory()->create();
         $distribution = $this->createDistribution([
             'credit_client_id' => $creditClient->id,
+            'quantity' => 5,
+            'price' => 150,
             'subtotal' => 750.00,
         ]);
 
@@ -59,6 +61,24 @@ class DistributionModelTest extends TestCase
             'amount' => 750.00,
             'transaction_date' => $distribution->distribution_date->toDateString().' 00:00:00',
             'reference_id' => $distribution->id,
+        ]);
+    }
+
+    public function test_credit_note_uses_the_separate_credit_client_price(): void
+    {
+        $creditClient = Client::factory()->create();
+        $distribution = $this->createDistribution([
+            'credit_client_id' => $creditClient->id,
+            'quantity' => 3.5,
+            'price' => 100,
+            'credit_client_price' => 80,
+            'subtotal' => 350,
+        ]);
+
+        $this->assertDatabaseHas('debt_ledgers', [
+            'reference_id' => $distribution->id,
+            'type' => 'credit_note',
+            'amount' => 280.0,
         ]);
     }
 
@@ -116,6 +136,8 @@ class DistributionModelTest extends TestCase
     {
         $distribution = $this->createDistribution([
             'credit_client_id' => null,
+            'quantity' => 8,
+            'price' => 50,
             'subtotal' => 400.00,
         ]);
 

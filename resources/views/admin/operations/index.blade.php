@@ -128,7 +128,7 @@
                                 {{ $operation->distribution ? number_format($operation->distribution->quantity, 2) : '-' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $operation->distribution ? number_format($operation->distribution->price, 2) : '-' }}
+                                {{ $operation->distribution ? number_format($operation->type === 'credit_note' ? ($operation->distribution->credit_client_price ?? $operation->distribution->price) : $operation->distribution->price, 2) : '-' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold {{ $operation->type === 'charge' ? 'text-red-600' : 'text-green-600' }}">
                                 {{ number_format($operation->amount, 2) }}

@@ -131,6 +131,7 @@ class DistributionControllerTest extends TestCase
             'quantity_unit' => 'per_bag',
             'quantity' => 5,
             'price' => 100,
+            'credit_client_price' => 80,
             'distribution_date' => '20/02/2026',
         ]);
 
@@ -140,7 +141,7 @@ class DistributionControllerTest extends TestCase
         $this->assertDatabaseHas('debt_ledgers', [
             'client_id' => $creditClient->id,
             'type' => 'credit_note',
-            'amount' => 500.0,
+            'amount' => 400.0,
             'transaction_date' => '2026-02-20 00:00:00',
             'reference_id' => $distribution->id,
         ]);
@@ -151,6 +152,60 @@ class DistributionControllerTest extends TestCase
         $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), []);
 
         $response->assertSessionHasErrors(['client_id', 'product_id', 'quantity_unit', 'quantity', 'price', 'distribution_date']);
+    }
+
+    public function test_store_requires_a_non_negative_credit_client_price_when_credit_client_is_selected(): void
+    {
+        $creditClient = Client::factory()->create();
+        $data = [
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'credit_client_id' => $creditClient->id,
+            'product_id' => $this->product->id,
+            'quantity_unit' => 'per_ton',
+            'quantity' => 10,
+            'price' => 50,
+            'distribution_date' => '15/01/2026',
+        ];
+
+        $this->actingAs($this->user)
+            ->post(route('admin.distributions.store'), $data)
+            ->assertSessionHasErrors('credit_client_price');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.distributions.store'), [...$data, 'credit_client_price' => -1])
+            ->assertSessionHasErrors('credit_client_price');
+    }
+
+    public function test_updating_credit_client_price_resyncs_only_the_credit_note(): void
+    {
+        $creditClient = Client::factory()->create();
+        $distribution = Distribution::factory()->create([
+            'client_id' => $this->client->id,
+            'credit_client_id' => $creditClient->id,
+            'product_id' => $this->product->id,
+            'supplier_id' => $this->supplier->id,
+            'quantity' => 5,
+            'price' => 100,
+            'credit_client_price' => 80,
+            'subtotal' => 500,
+            'distribution_date' => '2026-01-15',
+        ]);
+
+        $this->actingAs($this->user)->put(route('admin.distributions.update', $distribution), [
+            'supplier_id' => $this->supplier->id,
+            'client_id' => $this->client->id,
+            'credit_client_id' => $creditClient->id,
+            'credit_client_price' => 70,
+            'product_id' => $this->product->id,
+            'quantity_unit' => $distribution->quantity_unit,
+            'quantity' => 5,
+            'price' => 100,
+            'distribution_date' => '15/01/2026',
+        ]);
+
+        $this->assertDatabaseHas('debt_ledgers', ['reference_id' => $distribution->id, 'type' => 'charge', 'amount' => 500.0]);
+        $this->assertDatabaseHas('debt_ledgers', ['reference_id' => $distribution->id, 'type' => 'credit_note', 'amount' => 350.0]);
     }
 
     public function test_index_exposes_potential_duplicate_groups(): void
