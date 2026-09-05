@@ -9,7 +9,7 @@ class ProductCategorySeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['Цемент', 'Гипсокартон', 'Шифер', 'Рассыпной', 'Другое'] as $name) {
+        foreach (['Цемент', 'Рассыпной', 'Гипсокартон', 'Другое'] as $name) {
             ProductCategory::query()->firstOrCreate(['name' => $name]);
         }
     }
