@@ -44,7 +44,15 @@ class DebtLedgerControllerTest extends TestCase
                 ->assertOk()
                 ->assertSee('value="23/7/2026"', false)
                 ->assertSee("defaultDate: '23/7/2026'", false)
-                ->assertSee('<option value="cash" selected>cash</option>', false);
+                ->assertSee('<option value="cash" selected>cash</option>', false)
+                ->assertSee('name="currency"', false)
+                ->assertSee('<option value="TJS" selected>TJS</option>', false)
+                ->assertSee('<option value="USD"', false)
+                ->assertSee('<option value="EUR"', false)
+                ->assertSee('<option value="UZS"', false)
+                ->assertSee('<option value="RUB"', false)
+                ->assertSee('value="1"', false)
+                ->assertSee(__('Converted amount'), false);
         } finally {
             Carbon::setTestNow();
         }
@@ -78,6 +86,8 @@ class DebtLedgerControllerTest extends TestCase
             'type' => 'payment',
             'payment_method' => 'cash',
             'amount' => 250.50,
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
             'transaction_date' => '10/03/2026',
             'notes' => 'Cash payment received',
         ]);
@@ -153,6 +163,8 @@ class DebtLedgerControllerTest extends TestCase
             'client_id' => $this->client->id,
             'type' => 'payment',
             'amount' => 100,
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
             'transaction_date' => '10/03/2026',
         ];
 
@@ -320,6 +332,8 @@ class DebtLedgerControllerTest extends TestCase
             'type' => 'payment',
             'payment_method' => 'cash',
             'amount' => 100,
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
             'transaction_date' => '10/03/2026',
         ];
 
@@ -372,5 +386,39 @@ class DebtLedgerControllerTest extends TestCase
         $this->actingAs($this->user)->delete(route('admin.debt-ledgers.destroy', $ledger));
 
         $this->assertSoftDeleted('debt_ledgers', ['id' => $ledger->id]);
+    }
+
+    public function test_foreign_currency_payments_are_converted_and_audited(): void
+    {
+        $payment = [
+            'client_id' => $this->client->id,
+            'type' => 'payment',
+            'payment_method' => 'cash',
+            'amount' => '100',
+            'currency' => 'USD',
+            'exchange_rate' => '9.50',
+            'transaction_date' => '10/03/2026',
+        ];
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'notes' => 'Existing note'])
+            ->assertRedirect(route('admin.debt-ledgers.index'));
+        $this->assertDatabaseHas('debt_ledgers', ['amount' => 950, 'notes' => 'Existing note | 100 USD × 9.50 = 950 TJS']);
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), $payment)
+            ->assertRedirect(route('admin.debt-ledgers.index'));
+        $this->assertDatabaseHas('debt_ledgers', ['notes' => '100 USD × 9.50 = 950 TJS']);
+    }
+
+    public function test_payment_currency_fields_are_validated_and_tjs_rate_is_forced(): void
+    {
+        $payment = ['client_id' => $this->client->id, 'type' => 'payment', 'payment_method' => 'cash', 'amount' => 100, 'transaction_date' => '10/03/2026'];
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), $payment)->assertSessionHasErrors(['currency', 'exchange_rate']);
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'amount' => -1, 'currency' => 'USD', 'exchange_rate' => 1])->assertSessionHasErrors('amount');
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'currency' => 'GBP', 'exchange_rate' => 1])->assertSessionHasErrors('currency');
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'currency' => 'USD', 'exchange_rate' => 0])->assertSessionHasErrors('exchange_rate');
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'currency' => 'USD', 'exchange_rate' => -1])->assertSessionHasErrors('exchange_rate');
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'currency' => 'TJS', 'exchange_rate' => 99, 'notes' => 'Ordinary note'])->assertRedirect(route('admin.debt-ledgers.index'));
+        $this->assertDatabaseHas('debt_ledgers', ['amount' => 100, 'notes' => 'Ordinary note']);
     }
 }

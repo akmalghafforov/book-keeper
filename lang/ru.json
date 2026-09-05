@@ -241,5 +241,8 @@
     "Money for vehicle and labor": "Деньги за машину и рабочих",
     "Money for vehicle": "Деньги за машину",
     "Money for labor": "Деньги за рабочих",
-    "On behalf of :payerName": "От имени :payerName"
+    "On behalf of :payerName": "От имени :payerName",
+    "Currency": "Валюта",
+    "Exchange Rate": "Курс обмена",
+    "Converted amount": "Конвертированная сумма"
 }

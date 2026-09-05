@@ -9,7 +9,21 @@
 @endpush
 
 @section('content')
-<div class="max-w-2xl mx-auto space-y-6" x-data="{ clientId: '{{ old('client_id', $selectedClientId ?? '') }}', type: '{{ old('type', 'payment') }}', paymentPurpose: @js(old('payment_purpose', '')) }">
+<div class="max-w-2xl mx-auto space-y-6" x-data="{
+    clientId: '{{ old('client_id', $selectedClientId ?? '') }}',
+    type: '{{ old('type', 'payment') }}',
+    paymentPurpose: @js(old('payment_purpose', '')),
+    currency: '{{ old('currency', 'TJS') }}',
+    exchangeRate: '{{ old('exchange_rate', '1') }}',
+    amount: '{{ old('amount', '') }}',
+    convertedAmount() {
+        const converted = Number(this.amount) * Number(this.exchangeRate);
+        return Number.isFinite(converted) ? converted.toFixed(2) : '0.00';
+    },
+    enforceTjsRate() {
+        if (this.currency === 'TJS') this.exchangeRate = '1';
+    }
+}">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Add Debt Ledger Entry</h2>
         <a href="{{ route('admin.debt-ledgers.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
@@ -80,12 +94,36 @@
 
                 <div>
                     <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Amount') }}</label>
-                    <input type="number" name="amount" id="amount" value="{{ old('amount') }}" step="0.01" min="0.01" required
+                    <input type="number" name="amount" id="amount" x-model="amount" value="{{ old('amount') }}" step="0.01" min="0.01" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                         placeholder="0.00">
                     @error('amount')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
+                </div>
+
+                <div x-show="type === 'payment'" x-cloak class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Currency') }}</label>
+                        <select name="currency" id="currency" x-model="currency" @change="enforceTjsRate()" :required="type === 'payment'"
+                            class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                            @foreach(['TJS', 'USD', 'EUR', 'UZS', 'RUB'] as $currency)
+                                <option value="{{ $currency }}" {{ old('currency', 'TJS') === $currency ? 'selected' : '' }}>{{ $currency }}</option>
+                            @endforeach
+                        </select>
+                        @error('currency')
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="exchange_rate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Exchange Rate') }}</label>
+                        <input type="number" name="exchange_rate" id="exchange_rate" x-model="exchangeRate" value="{{ old('exchange_rate', '1') }}" :readonly="currency === 'TJS'" :required="type === 'payment'" step="0.0001" min="0.0001"
+                            class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                        @error('exchange_rate')
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <p class="sm:col-span-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Converted amount') }}: <span x-text="convertedAmount()"></span> TJS</p>
                 </div>
 
                 <div x-data="{

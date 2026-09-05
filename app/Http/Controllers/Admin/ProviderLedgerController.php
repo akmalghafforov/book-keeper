@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Provider;
 use App\Models\ProviderLedger;
 use App\Services\ProviderLedgerReconciler;
+use App\Services\PaymentCurrencyConverter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -116,10 +117,11 @@ class ProviderLedgerController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, PaymentCurrencyConverter $paymentCurrencyConverter)
     {
-        $validated = $request->validate($this->manualEntryRules());
+        $validated = $request->validate($this->manualEntryRules($paymentCurrencyConverter));
         $transactionDate = $this->parseManualTransactionDate($validated['transaction_date']);
+        $validated = $paymentCurrencyConverter->convert($validated);
 
         ProviderLedger::create([
             'provider_id' => $validated['provider_id'],
@@ -208,7 +210,7 @@ class ProviderLedgerController extends Controller
             ->with('success', __('Provider ledger entry deleted successfully.'));
     }
 
-    private function manualEntryRules(): array
+    private function manualEntryRules(?PaymentCurrencyConverter $paymentCurrencyConverter = null): array
     {
         return [
             'provider_id' => 'required|exists:providers,id',
@@ -217,6 +219,7 @@ class ProviderLedgerController extends Controller
             'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class)],
             'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
             'amount' => 'required|numeric|min:0.01',
+            ...($paymentCurrencyConverter?->rules() ?? []),
             'car_number' => 'nullable|string|max:50',
             'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
             'notes' => 'nullable|string|max:1000',

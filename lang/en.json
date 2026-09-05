@@ -236,5 +236,8 @@
     "Money for vehicle and labor": "Money for vehicle and labor",
     "Money for vehicle": "Money for vehicle",
     "Money for labor": "Money for labor",
-    "On behalf of :payerName": "On behalf of :payerName"
+    "On behalf of :payerName": "On behalf of :payerName",
+    "Currency": "Currency",
+    "Exchange Rate": "Exchange Rate",
+    "Converted amount": "Converted amount"
 }

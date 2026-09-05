@@ -111,6 +111,14 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('charge')
             ->assertSee('payment')
             ->assertSee('<option value="cash" selected>cash</option>', false)
+            ->assertSee('name="currency"', false)
+            ->assertSee('<option value="TJS" selected>TJS</option>', false)
+            ->assertSee('<option value="USD"', false)
+            ->assertSee('<option value="EUR"', false)
+            ->assertSee('<option value="UZS"', false)
+            ->assertSee('<option value="RUB"', false)
+            ->assertSee('value="1"', false)
+            ->assertSee(__('Converted amount'), false)
             ->assertSee('North Cement');
     }
 
@@ -135,6 +143,8 @@ class ProviderLedgerControllerTest extends TestCase
             'type' => 'payment',
             'payment_method' => 'cash',
             'amount' => '25.2500',
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
             'transaction_date' => '03/06/2026 14:15',
             'notes' => 'Cash payment',
         ]);
@@ -198,6 +208,8 @@ class ProviderLedgerControllerTest extends TestCase
             'provider_id' => $this->provider->id,
             'type' => 'payment',
             'amount' => '25.0000',
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
             'transaction_date' => '03/06/2026 12:00',
         ];
 
@@ -383,6 +395,8 @@ class ProviderLedgerControllerTest extends TestCase
             'type' => 'payment',
             'payment_method' => 'cash',
             'amount' => '25.0000',
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
             'transaction_date' => '03/06/2026 12:00',
         ];
 
@@ -430,5 +444,39 @@ class ProviderLedgerControllerTest extends TestCase
         ])->assertRedirect(route('admin.provider-ledgers.index'));
 
         $this->assertDatabaseHas('provider_ledgers', ['id' => $ledger->id, 'payment_purpose' => null, 'payer_name' => null]);
+    }
+
+    public function test_foreign_currency_provider_payments_are_converted_and_audited(): void
+    {
+        $payment = [
+            'provider_id' => $this->provider->id,
+            'type' => 'payment',
+            'payment_method' => 'cash',
+            'amount' => '100',
+            'currency' => 'USD',
+            'exchange_rate' => '9.50',
+            'transaction_date' => '03/06/2026 12:00',
+        ];
+
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [...$payment, 'notes' => 'Existing note'])
+            ->assertRedirect(route('admin.provider-ledgers.index'));
+        $this->assertDatabaseHas('provider_ledgers', ['amount' => 950, 'notes' => 'Existing note | 100 USD × 9.50 = 950 TJS']);
+
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), $payment)
+            ->assertRedirect(route('admin.provider-ledgers.index'));
+        $this->assertDatabaseHas('provider_ledgers', ['notes' => '100 USD × 9.50 = 950 TJS']);
+    }
+
+    public function test_provider_payment_currency_fields_are_validated_and_tjs_rate_is_forced(): void
+    {
+        $payment = ['provider_id' => $this->provider->id, 'type' => 'payment', 'payment_method' => 'cash', 'amount' => 100, 'transaction_date' => '03/06/2026 12:00'];
+
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), $payment)->assertSessionHasErrors(['currency', 'exchange_rate']);
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [...$payment, 'amount' => -1, 'currency' => 'USD', 'exchange_rate' => 1])->assertSessionHasErrors('amount');
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [...$payment, 'currency' => 'GBP', 'exchange_rate' => 1])->assertSessionHasErrors('currency');
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [...$payment, 'currency' => 'USD', 'exchange_rate' => 0])->assertSessionHasErrors('exchange_rate');
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [...$payment, 'currency' => 'USD', 'exchange_rate' => -1])->assertSessionHasErrors('exchange_rate');
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [...$payment, 'currency' => 'TJS', 'exchange_rate' => 99, 'notes' => 'Ordinary note'])->assertRedirect(route('admin.provider-ledgers.index'));
+        $this->assertDatabaseHas('provider_ledgers', ['amount' => 100, 'notes' => 'Ordinary note']);
     }
 }

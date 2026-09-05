@@ -7,6 +7,7 @@ use App\Enums\PaymentPurpose;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\DebtLedger;
+use App\Services\PaymentCurrencyConverter;
 use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -92,7 +93,7 @@ class DebtLedgerController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, PaymentCurrencyConverter $paymentCurrencyConverter)
     {
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
@@ -101,6 +102,7 @@ class DebtLedgerController extends Controller
             'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class)],
             'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
             'amount' => 'required|numeric|min:0.01',
+            ...$paymentCurrencyConverter->rules(),
             'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
@@ -109,6 +111,7 @@ class DebtLedgerController extends Controller
         $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
         $validated['payment_method'] = $validated['type'] === 'payment' ? $validated['payment_method'] : null;
         $this->normalizePaymentPurpose($validated);
+        $validated = $paymentCurrencyConverter->convert($validated);
 
         DebtLedger::create($validated);
 
