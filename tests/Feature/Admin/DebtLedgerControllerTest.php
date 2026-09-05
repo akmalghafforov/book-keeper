@@ -147,7 +147,7 @@ class DebtLedgerControllerTest extends TestCase
         $response->assertSessionHasErrors(['amount']);
     }
 
-    public function test_payment_method_is_required_and_must_be_valid_for_payments(): void
+    public function test_payment_method_is_required_and_accepts_card_for_payments(): void
     {
         $payload = [
             'client_id' => $this->client->id,
@@ -161,8 +161,14 @@ class DebtLedgerControllerTest extends TestCase
             ->assertSessionHasErrors('payment_method');
 
         $this->actingAs($this->user)
-            ->post(route('admin.debt-ledgers.store'), [...$payload, 'payment_method' => 'card'])
+            ->post(route('admin.debt-ledgers.store'), [...$payload, 'payment_method' => 'invalid'])
             ->assertSessionHasErrors('payment_method');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.debt-ledgers.store'), [...$payload, 'payment_method' => 'card'])
+            ->assertRedirect(route('admin.debt-ledgers.index'));
+
+        $this->assertDatabaseHas('debt_ledgers', ['payment_method' => 'card']);
     }
 
     public function test_non_payment_entries_clear_a_submitted_payment_method(): void

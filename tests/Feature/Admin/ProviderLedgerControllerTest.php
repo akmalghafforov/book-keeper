@@ -192,7 +192,7 @@ class ProviderLedgerControllerTest extends TestCase
         $response->assertSessionHasErrors(['amount']);
     }
 
-    public function test_payment_method_is_required_and_must_be_valid_for_provider_payments(): void
+    public function test_payment_method_is_required_and_accepts_card_for_provider_payments(): void
     {
         $payload = [
             'provider_id' => $this->provider->id,
@@ -206,8 +206,14 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSessionHasErrors('payment_method');
 
         $this->actingAs($this->user)
-            ->post(route('admin.provider-ledgers.store'), [...$payload, 'payment_method' => 'card'])
+            ->post(route('admin.provider-ledgers.store'), [...$payload, 'payment_method' => 'invalid'])
             ->assertSessionHasErrors('payment_method');
+
+        $this->actingAs($this->user)
+            ->post(route('admin.provider-ledgers.store'), [...$payload, 'payment_method' => 'card'])
+            ->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $this->assertDatabaseHas('provider_ledgers', ['payment_method' => 'card']);
     }
 
     public function test_provider_charge_clears_a_submitted_payment_method(): void
