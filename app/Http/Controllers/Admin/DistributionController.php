@@ -92,7 +92,7 @@ class DistributionController extends Controller
     {
         $clients = Client::with('shops')->get();
         $products = Product::all();
-        $productCategories = ProductCategory::orderBy('name')->get();
+        $productCategories = ProductCategory::orderByDesc('usage_priority')->orderBy('name')->orderBy('id')->get();
         $suppliers = Supplier::all();
 
         return view('admin.distributions.create', compact('clients', 'products', 'productCategories', 'suppliers'));
@@ -145,7 +145,7 @@ class DistributionController extends Controller
     {
         $clients = Client::with('shops')->get();
         $products = Product::all();
-        $productCategories = ProductCategory::orderBy('name')->get();
+        $productCategories = ProductCategory::orderByDesc('usage_priority')->orderBy('name')->orderBy('id')->get();
         $suppliers = Supplier::all();
 
         return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'productCategories', 'suppliers'));

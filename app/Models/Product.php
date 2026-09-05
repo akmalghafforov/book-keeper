@@ -18,10 +18,12 @@ class Product extends Model
         'default_unit',
         'default_provider_id',
         'buy_price',
+        'usage_priority',
     ];
 
     protected $casts = [
         'buy_price' => 'decimal:4',
+        'usage_priority' => 'integer',
     ];
 
     public function defaultProvider(): BelongsTo

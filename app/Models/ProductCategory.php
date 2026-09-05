@@ -10,7 +10,11 @@ class ProductCategory extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'usage_priority'];
+
+    protected $casts = [
+        'usage_priority' => 'integer',
+    ];
 
     public function products(): HasMany
     {

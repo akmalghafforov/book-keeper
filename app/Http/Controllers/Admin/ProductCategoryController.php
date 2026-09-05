@@ -51,7 +51,9 @@ class ProductCategoryController extends Controller
     {
         return response()->json($productCategory->products()
             ->whereNull('deleted_at')
+            ->orderByDesc('usage_priority')
             ->orderBy('name')
+            ->orderBy('id')
             ->get(['id', 'name', 'default_unit', 'default_provider_id', 'buy_price'])
             ->map(fn ($product) => [
                 'id' => $product->id,
