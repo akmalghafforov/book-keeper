@@ -62,7 +62,7 @@
                                 @foreach($group['records'] as $distribution)
                                     <tr>
                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">#{{ $distribution->id }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ optional($distribution->distribution_date)->format('d/m/Y') ?? 'N/A' }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ optional($distribution->distribution_date)->format('d/n/Y') ?? 'N/A' }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $distribution->client->name }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $distribution->product->name }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $distribution->supplier?->car_number ?? '—' }}</td>

@@ -16,6 +16,21 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
+    Route::post('/current-date', function (\Illuminate\Http\Request $request) {
+        $validated = $request->validate([
+            'current_date' => ['required', 'date_format:d/n/Y,d/m/Y,Y-m-d'],
+        ]);
+
+        $format = str_contains($validated['current_date'], '-') ? '!Y-m-d' : '!d/n/Y';
+
+        $request->session()->put(
+            'current_date',
+            \Carbon\Carbon::createFromFormat($format, $validated['current_date'])->toDateString(),
+        );
+
+        return redirect()->back();
+    })->name('set-current-date');
+
     Route::get('/', function () {
         return redirect()->route('admin.debt-ledgers.index');
     });

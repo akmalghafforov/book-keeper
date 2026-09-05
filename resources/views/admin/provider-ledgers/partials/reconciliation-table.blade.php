@@ -19,7 +19,7 @@
                 <tr>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $showSourceRow ? $entry['source_row'] : $entry['ledger_id'] }}</td>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ __('Delivery') }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ date('d/m/Y', strtotime($entry['date'])) }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ date('d/n/Y', strtotime($entry['date'])) }}</td>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $entry['quantity'] === null ? __('N/A') : number_format((float) $entry['quantity'], 3) }}</td>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $entry['price'] === null ? __('N/A') : number_format((float) $entry['price'], 4) }}</td>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ number_format((float) $entry['amount'], 4) }}</td>
@@ -30,7 +30,7 @@
                 <tr>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $showSourceRow ? $entry['source_row'] : $entry['ledger_id'] }}</td>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ __('Payment') }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ date('d/m/Y', strtotime($entry['date'])) }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ date('d/n/Y', strtotime($entry['date'])) }}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">&mdash;</td>
                     <td class="px-6 py-4 text-sm text-gray-500">&mdash;</td>
                     <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ number_format((float) $entry['amount'], 4) }}</td>

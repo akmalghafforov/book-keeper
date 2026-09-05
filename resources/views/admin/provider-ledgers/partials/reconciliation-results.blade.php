@@ -16,7 +16,7 @@
 <div class="bg-white dark:bg-[#161615] shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-6">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ __('Comparison Checks') }}</h3>
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        {{ $provider->name }} &middot; {{ $dateFrom->format('d/m/Y') }} &ndash; {{ $dateTo->format('d/m/Y') }}
+        {{ $provider->name }} &middot; {{ $dateFrom->format('d/n/Y') }} &ndash; {{ $dateTo->format('d/n/Y') }}
     </p>
     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
         {{ __('Delivery dates within ±1 day are treated as matching.') }}
@@ -116,7 +116,7 @@
                 <div class="p-6">
                     <h4 class="font-semibold text-gray-900 dark:text-white">{{ __('Excel Row') }} {{ $delivery['source_row'] }}</h4>
                     <div class="mt-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                        <div><span class="text-gray-500">{{ __('Date') }}:</span> {{ date('d/m/Y', strtotime($delivery['date'])) }}</div>
+                        <div><span class="text-gray-500">{{ __('Date') }}:</span> {{ date('d/n/Y', strtotime($delivery['date'])) }}</div>
                         <div><span class="text-gray-500">{{ __('Car Number') }}:</span> {{ $delivery['car_number'] ?: __('N/A') }}</div>
                         <div><span class="text-gray-500">{{ __('Weight') }}:</span> {{ number_format((float) $delivery['quantity'], 3) }}</div>
                         <div><span class="text-gray-500">{{ __('Buy Price') }}:</span> {{ number_format((float) $delivery['price'], 4) }}</div>
@@ -142,14 +142,14 @@
                                         <tr>
                                             <td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">{{ $candidate['ledger_id'] }}</td>
                                             @foreach ([
-                                                ['date', date('d/m/Y', strtotime($candidate['date']))],
+                                                ['date', date('d/n/Y', strtotime($candidate['date']))],
                                                 ['car_number', $candidate['car_number'] ?: __('N/A')],
                                                 ['quantity', number_format((float) $candidate['quantity'], 3)],
                                                 ['price', number_format((float) $candidate['price'], 4)],
                                             ] as [$field, $value])
                                                 <td class="px-3 py-2 text-sm font-medium {{ $candidate['field_matches'][$field] ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300' }}">
                                                     <span class="block text-xs font-normal opacity-75">{{ __('Excel') }}:
-                                                        @if ($field === 'date') {{ date('d/m/Y', strtotime($delivery['date'])) }}
+                                                        @if ($field === 'date') {{ date('d/n/Y', strtotime($delivery['date'])) }}
                                                         @elseif ($field === 'car_number') {{ $delivery['car_number'] ?: __('N/A') }}
                                                         @elseif ($field === 'quantity') {{ number_format((float) $delivery['quantity'], 3) }}
                                                         @else {{ number_format((float) $delivery['price'], 4) }}
@@ -183,7 +183,7 @@
             <div class="divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                 @foreach ($groups as $group)
                     <div class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        <span class="font-semibold">{{ date('d/m/Y', strtotime($group['date'])) }} &middot; {{ $group['car_number'] }}</span>
+                        <span class="font-semibold">{{ date('d/n/Y', strtotime($group['date'])) }} &middot; {{ $group['car_number'] }}</span>
                         <span class="ml-3 text-gray-500">{{ $referenceLabel }}: {{ implode(', ', $group['references']) }}</span>
                     </div>
                 @endforeach
@@ -237,7 +237,7 @@
                         <tr>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $entry['row'] }}</td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ __($entry['entry_type']) }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $entry['date'] ? date('d/m/Y', strtotime($entry['date'])) : ($entry['date_value'] ?: __('N/A')) }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $entry['date'] ? date('d/n/Y', strtotime($entry['date'])) : ($entry['date_value'] ?: __('N/A')) }}</td>
                             <td class="px-6 py-4 text-sm text-red-600 dark:text-red-400">{{ implode(' ', array_map(fn ($error) => __($error), $entry['errors'])) }}</td>
                         </tr>
                     @endforeach

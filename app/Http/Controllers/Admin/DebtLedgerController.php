@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\DebtLedger;
 use App\Models\Client;
+use App\Models\DebtLedger;
 use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -31,8 +31,8 @@ class DebtLedgerController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('notes', 'like', '%' . $search . '%')
-                  ->orWhere('reference_id', 'like', '%' . $search . '%');
+                $q->where('notes', 'like', '%'.$search.'%')
+                    ->orWhere('reference_id', 'like', '%'.$search.'%');
             });
         }
 
@@ -82,6 +82,7 @@ class DebtLedgerController extends Controller
     {
         $clients = Client::orderBy('name')->get();
         $selectedClientId = $request->query('client_id');
+
         return view('admin.debt-ledgers.create', compact('clients', 'selectedClientId'));
     }
 
@@ -94,12 +95,12 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'amount' => 'required|numeric|min:0.01',
-            'transaction_date' => 'required|date_format:d/m/Y',
+            'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);
 
-        $validated['transaction_date'] = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d');
+        $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
 
         DebtLedger::create($validated);
 
@@ -113,6 +114,7 @@ class DebtLedgerController extends Controller
     public function show(DebtLedger $debtLedger)
     {
         $debtLedger->load('client');
+
         return view('admin.debt-ledgers.show', compact('debtLedger'));
     }
 
@@ -122,6 +124,7 @@ class DebtLedgerController extends Controller
     public function edit(DebtLedger $debtLedger)
     {
         $clients = Client::orderBy('name')->get();
+
         return view('admin.debt-ledgers.edit', compact('debtLedger', 'clients'));
     }
 
@@ -134,12 +137,12 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'amount' => 'required|numeric|min:0.01',
-            'transaction_date' => 'required|date_format:d/m/Y',
+            'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);
 
-        $validated['transaction_date'] = Carbon::createFromFormat('d/m/Y', $validated['transaction_date'])->format('Y-m-d');
+        $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
 
         $debtLedger->update($validated);
 

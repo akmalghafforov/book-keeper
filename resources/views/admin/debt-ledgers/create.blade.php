@@ -75,8 +75,8 @@
                 <div x-data="{
                     init() {
                         flatpickr($refs.datepicker, {
-                            dateFormat: 'd/m/Y',
-                            defaultDate: '{{ old('transaction_date', now()->format('d/m/Y')) }}',
+                            dateFormat: 'd/n/Y',
+                            defaultDate: '{{ old('transaction_date', $currentDate->format('d/n/Y')) }}',
                             allowInput: true,
                         });
                     }

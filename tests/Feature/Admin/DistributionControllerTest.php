@@ -9,6 +9,7 @@ use App\Models\Provider;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\PotentialDuplicateDetector;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -32,6 +33,22 @@ class DistributionControllerTest extends TestCase
         $this->client = Client::factory()->create();
         $this->product = Product::factory()->create();
         $this->supplier = Supplier::factory()->create();
+    }
+
+    public function test_create_uses_the_selected_current_date_for_distribution_defaults(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 8, 9, 16, 45, 0, config('app.timezone')));
+
+        try {
+            $this->actingAs($this->user)
+                ->withSession(['current_date' => '2026-07-23'])
+                ->get(route('admin.distributions.create'))
+                ->assertOk()
+                ->assertSee("defaultDate: '23/7/2026'", false)
+                ->assertSee("defaultDate: '23/7/2026 16:45'", false);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_store_creates_distribution_and_charge_ledger(): void

@@ -12,6 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
@@ -111,6 +112,20 @@
                 </div>
 
                 <div class="flex items-center gap-4">
+                    <form action="{{ route('set-current-date') }}" method="POST" class="flex items-center gap-2">
+                        @csrf
+                        <label for="current_date" class="hidden text-sm font-medium text-gray-700 dark:text-gray-300 lg:block">{{ __('Current date') }}</label>
+                        <input
+                            type="text"
+                            name="current_date"
+                            id="current_date"
+                            value="{{ $currentDate->format('d/n/Y') }}"
+                            x-data
+                            x-init="flatpickr($el, { dateFormat: 'd/n/Y', defaultDate: '{{ $currentDate->format('d/n/Y') }}', allowInput: true, onChange: () => $el.form.submit() })"
+                            class="w-36 rounded-md border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-gray-300"
+                        >
+                    </form>
+
                     <!-- Language Switcher -->
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-800 focus:outline-none bg-gray-100 dark:bg-[#2A2A28] px-3 py-1.5 rounded-md">
@@ -156,6 +171,7 @@
             </main>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     @stack('scripts')
 </body>
 

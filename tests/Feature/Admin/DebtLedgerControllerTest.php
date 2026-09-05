@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\DebtLedger;
 use App\Models\User;
 use App\Services\PotentialDuplicateDetector;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,6 +15,7 @@ class DebtLedgerControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Client $client;
 
     protected function setUp(): void
@@ -27,6 +29,46 @@ class DebtLedgerControllerTest extends TestCase
     // ---------------------------------------------------------------
     // Store
     // ---------------------------------------------------------------
+
+    public function test_current_date_selector_sets_the_default_for_new_debt_ledger_entries(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 8, 9, 16, 45, 0, config('app.timezone')));
+
+        try {
+            $this->actingAs($this->user)
+                ->post(route('set-current-date'), ['current_date' => '2026-07-23'])
+                ->assertRedirect();
+
+            $this->actingAs($this->user)
+                ->get(route('admin.debt-ledgers.create'))
+                ->assertOk()
+                ->assertSee('value="23/7/2026"', false)
+                ->assertSee("defaultDate: '23/7/2026'", false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_old_transaction_date_overrides_the_current_date_default(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 8, 9, 16, 45, 0, config('app.timezone')));
+
+        try {
+            $this->actingAs($this->user)
+                ->from(route('admin.debt-ledgers.create'))
+                ->post(route('admin.debt-ledgers.store'), [
+                    'transaction_date' => '01/01/2020',
+                ])
+                ->assertRedirect(route('admin.debt-ledgers.create'));
+
+            $this->actingAs($this->user)
+                ->get(route('admin.debt-ledgers.create'))
+                ->assertOk()
+                ->assertSee("defaultDate: '01/01/2020'", false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
 
     public function test_store_creates_payment_ledger_entry(): void
     {

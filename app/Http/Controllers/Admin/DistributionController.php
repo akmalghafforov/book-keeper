@@ -37,12 +37,12 @@ class DistributionController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_from)->startOfDay();
+            $startDate = \Carbon\Carbon::createFromFormat('d/n/Y', $request->date_from)->startOfDay();
             $query->where('distribution_date', '>=', $startDate);
         }
 
         if ($request->filled('date_to')) {
-            $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_to)->endOfDay();
+            $endDate = \Carbon\Carbon::createFromFormat('d/n/Y', $request->date_to)->endOfDay();
             $query->where('distribution_date', '<=', $endDate);
         }
 
@@ -110,8 +110,8 @@ class DistributionController extends Controller
             'quantity' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'provider_buy_price' => 'nullable|numeric|min:0',
-            'distribution_date' => 'required|date_format:d/m/Y',
-            'provider_received_at' => 'nullable|date_format:d/m/Y H:i',
+            'distribution_date' => 'required|date_format:d/n/Y,d/m/Y',
+            'provider_received_at' => 'nullable|date_format:d/n/Y H:i,d/m/Y H:i',
         ]);
 
         $validated = $this->normalizeDates($validated);
@@ -160,8 +160,8 @@ class DistributionController extends Controller
             'quantity' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'provider_buy_price' => 'nullable|numeric|min:0',
-            'distribution_date' => 'required|date_format:d/m/Y',
-            'provider_received_at' => 'nullable|date_format:d/m/Y H:i',
+            'distribution_date' => 'required|date_format:d/n/Y,d/m/Y',
+            'provider_received_at' => 'nullable|date_format:d/n/Y H:i,d/m/Y H:i',
         ]);
 
         $validated = $this->normalizeDates($validated);
@@ -186,11 +186,11 @@ class DistributionController extends Controller
 
     private function normalizeDates(array $validated): array
     {
-        $distributionDate = Carbon::createFromFormat('d/m/Y', $validated['distribution_date'])
+        $distributionDate = Carbon::createFromFormat('d/n/Y', $validated['distribution_date'])
             ->startOfDay();
 
         $providerReceivedAt = isset($validated['provider_received_at'])
-            ? Carbon::createFromFormat('d/m/Y H:i', $validated['provider_received_at'])
+            ? Carbon::createFromFormat('d/n/Y H:i', $validated['provider_received_at'])
             : $distributionDate->copy();
 
         $validated['distribution_date'] = $distributionDate->toDateString();

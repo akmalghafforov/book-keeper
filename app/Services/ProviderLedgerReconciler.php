@@ -301,7 +301,7 @@ class ProviderLedgerReconciler
 
         $value = trim($value);
 
-        foreach (['d/m/Y', 'd.m.Y', 'Y-m-d'] as $format) {
+        foreach (['d/n/Y', 'd.m.Y', 'Y-m-d'] as $format) {
             $date = \DateTimeImmutable::createFromFormat('!'.$format, $value);
             $errors = \DateTimeImmutable::getLastErrors();
 

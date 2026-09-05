@@ -85,8 +85,8 @@
                         flatpickr($refs.datepicker, {
                             enableTime: true,
                             time_24hr: true,
-                            dateFormat: 'd/m/Y H:i',
-                            defaultDate: '{{ old('transaction_date', now()->format('d/m/Y H:i')) }}',
+                            dateFormat: 'd/n/Y H:i',
+                            defaultDate: '{{ old('transaction_date', $currentDate->format('d/n/Y H:i')) }}',
                             allowInput: true,
                         });
                     }

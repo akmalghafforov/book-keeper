@@ -71,7 +71,7 @@ class Distribution extends Model
             'amount' => $this->subtotal,
             'transaction_date' => $this->distribution_date,
             'reference_id' => $this->id,
-            'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+            'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
         ]);
 
         if ($this->credit_client_id) {
@@ -81,7 +81,7 @@ class Distribution extends Model
                 'amount' => $this->subtotal,
                 'transaction_date' => $this->distribution_date,
                 'reference_id' => $this->id,
-                'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
             ]);
         }
     }
@@ -97,7 +97,7 @@ class Distribution extends Model
                 'client_id' => $this->client_id,
                 'amount' => $this->subtotal,
                 'transaction_date' => $this->distribution_date,
-                'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
             ]);
         } else {
             DebtLedger::create([
@@ -106,7 +106,7 @@ class Distribution extends Model
                 'amount' => $this->subtotal,
                 'transaction_date' => $this->distribution_date,
                 'reference_id' => $this->id,
-                'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
             ]);
         }
 
@@ -120,7 +120,7 @@ class Distribution extends Model
                     'client_id' => $this->credit_client_id,
                     'amount' => $this->subtotal,
                     'transaction_date' => $this->distribution_date,
-                    'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                    'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
                 ]);
             } else {
                 DebtLedger::create([
@@ -129,7 +129,7 @@ class Distribution extends Model
                     'amount' => $this->subtotal,
                     'transaction_date' => $this->distribution_date,
                     'reference_id' => $this->id,
-                    'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/m/Y')})",
+                    'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
                 ]);
             }
         } elseif ($creditLedger) {
@@ -169,7 +169,7 @@ class Distribution extends Model
 
         $amount = round((float) $this->quantity * (float) $buyPrice, 4);
         $providerReceivedAt = $this->provider_received_at ?? $this->distribution_date?->copy()->startOfDay();
-        $providerReceivedAtLabel = $providerReceivedAt?->format('d/m/Y H:i') ?? $this->distribution_date->format('d/m/Y');
+        $providerReceivedAtLabel = $providerReceivedAt?->format('d/n/Y H:i') ?? $this->distribution_date->format('d/n/Y');
         $data = [
             'provider_id' => $product->default_provider_id,
             'type' => 'charge',

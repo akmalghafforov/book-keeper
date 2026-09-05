@@ -23,8 +23,8 @@
     <div class="bg-white dark:bg-[#161615] shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-6">
         <form action="{{ route('admin.provider-ledgers.compare') }}" method="POST" enctype="multipart/form-data" x-data="{
             init() {
-                flatpickr($refs.dateFrom, { dateFormat: 'd/m/Y', allowInput: true });
-                flatpickr($refs.dateTo, { dateFormat: 'd/m/Y', allowInput: true });
+                flatpickr($refs.dateFrom, { dateFormat: 'd/n/Y', allowInput: true });
+                flatpickr($refs.dateTo, { dateFormat: 'd/n/Y', allowInput: true });
                 $($refs.provider).select2({ placeholder: '{{ __('Select a provider') }}', width: '100%' });
             }
         }">
@@ -53,12 +53,12 @@
 
                 <div>
                     <label for="date_from" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Start Date') }}</label>
-                    <input type="text" name="date_from" id="date_from" x-ref="dateFrom" required value="{{ old('date_from', isset($dateFrom) ? $dateFrom->format('d/m/Y') : '') }}" placeholder="{{ __('DD/MM/YYYY') }}" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white rounded-lg shadow-sm">
+                    <input type="text" name="date_from" id="date_from" x-ref="dateFrom" required value="{{ old('date_from', isset($dateFrom) ? $dateFrom->format('d/n/Y') : '') }}" placeholder="{{ __('DD/M/YYYY') }}" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white rounded-lg shadow-sm">
                 </div>
 
                 <div>
                     <label for="date_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('End Date') }}</label>
-                    <input type="text" name="date_to" id="date_to" x-ref="dateTo" required value="{{ old('date_to', isset($dateTo) ? $dateTo->format('d/m/Y') : '') }}" placeholder="{{ __('DD/MM/YYYY') }}" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white rounded-lg shadow-sm">
+                    <input type="text" name="date_to" id="date_to" x-ref="dateTo" required value="{{ old('date_to', isset($dateTo) ? $dateTo->format('d/n/Y') : '') }}" placeholder="{{ __('DD/M/YYYY') }}" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white rounded-lg shadow-sm">
                 </div>
 
                 <div>

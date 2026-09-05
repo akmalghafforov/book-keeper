@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Provider;
 use App\Models\ProviderLedger;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -110,6 +111,20 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('charge')
             ->assertSee('payment')
             ->assertSee('North Cement');
+    }
+
+    public function test_create_uses_the_application_datetime_as_the_default(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 8, 9, 16, 45, 0, config('app.timezone')));
+
+        try {
+            $this->actingAs($this->user)
+                ->get(route('admin.provider-ledgers.create'))
+                ->assertOk()
+                ->assertSee("defaultDate: '09/8/2026 16:45'", false);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_store_creates_provider_payment(): void

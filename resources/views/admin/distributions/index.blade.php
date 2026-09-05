@@ -29,11 +29,11 @@
         <form action="{{ route('admin.distributions.index') }}" method="GET" x-data="{
             init() {
                 flatpickr($refs.dateFrom, {
-                    dateFormat: 'd/m/Y',
+                    dateFormat: 'd/n/Y',
                     allowInput: true,
                 });
                 flatpickr($refs.dateTo, {
-                    dateFormat: 'd/m/Y',
+                    dateFormat: 'd/n/Y',
                     allowInput: true,
                 });
                 $($refs.selectClient).select2({
@@ -151,10 +151,10 @@
                     @forelse ($distributions as $distribution)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {{ $distribution->distribution_date->format('d/m/Y') }}
+                                {{ $distribution->distribution_date->format('d/n/Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ ($distribution->provider_received_at ?? $distribution->distribution_date)->format('d/m/Y H:i') }}
+                                {{ ($distribution->provider_received_at ?? $distribution->distribution_date)->format('d/n/Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $distribution->client->name }}

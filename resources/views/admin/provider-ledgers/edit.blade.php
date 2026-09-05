@@ -86,8 +86,8 @@
                         flatpickr($refs.datepicker, {
                             enableTime: true,
                             time_24hr: true,
-                            dateFormat: 'd/m/Y H:i',
-                            defaultDate: '{{ old('transaction_date', optional($providerLedger->provider_received_at ?? $providerLedger->transaction_date)?->format('d/m/Y H:i')) }}',
+                            dateFormat: 'd/n/Y H:i',
+                            defaultDate: '{{ old('transaction_date', optional($providerLedger->provider_received_at ?? $providerLedger->transaction_date)?->format('d/n/Y H:i')) }}',
                             allowInput: true,
                         });
                     }

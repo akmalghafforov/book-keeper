@@ -64,7 +64,7 @@
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $ledger->client->name }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ __($ledger->type) }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ number_format($ledger->amount, 2) }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ optional($ledger->transaction_date)->format('d/m/Y') ?? 'N/A' }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ optional($ledger->transaction_date)->format('d/n/Y') ?? 'N/A' }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{{ $ledger->reference_id ?? '—' }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs">{{ $ledger->notes ?: '—' }}</td>
                                         <td class="px-4 py-3 text-right text-sm font-medium whitespace-nowrap">

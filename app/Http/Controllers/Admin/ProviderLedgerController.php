@@ -29,14 +29,14 @@ class ProviderLedgerController extends Controller
                 'required',
                 Rule::exists('providers', 'id')->whereNull('deleted_at'),
             ],
-            'date_from' => ['required', 'date_format:d/m/Y'],
-            'date_to' => ['required', 'date_format:d/m/Y', 'after_or_equal:date_from'],
+            'date_from' => ['required', 'date_format:d/n/Y,d/m/Y'],
+            'date_to' => ['required', 'date_format:d/n/Y,d/m/Y', 'after_or_equal:date_from'],
             'excel_file' => ['required', 'file', 'extensions:xlsx', 'mimes:xlsx', 'max:10240'],
         ]);
 
         $provider = Provider::findOrFail($validated['provider_id']);
-        $dateFrom = Carbon::createFromFormat('!d/m/Y', $validated['date_from']);
-        $dateTo = Carbon::createFromFormat('!d/m/Y', $validated['date_to']);
+        $dateFrom = Carbon::createFromFormat('!d/n/Y', $validated['date_from']);
+        $dateTo = Carbon::createFromFormat('!d/n/Y', $validated['date_to']);
 
         try {
             /** @var UploadedFile $file */
@@ -207,14 +207,14 @@ class ProviderLedgerController extends Controller
             'type' => ['required', Rule::in(['charge', 'payment'])],
             'amount' => 'required|numeric|min:0.01',
             'car_number' => 'nullable|string|max:50',
-            'transaction_date' => 'required|date_format:d/m/Y H:i',
+            'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
             'notes' => 'nullable|string|max:1000',
         ];
     }
 
     private function parseManualTransactionDate(string $transactionDate): Carbon
     {
-        return Carbon::createFromFormat('d/m/Y H:i', $transactionDate);
+        return Carbon::createFromFormat('d/n/Y H:i', $transactionDate);
     }
 
     private function ensureManualEntry(ProviderLedger $providerLedger): void

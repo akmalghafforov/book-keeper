@@ -23,11 +23,11 @@
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8">
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Distribution Date') }}</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->distribution_date->format('d/m/Y') }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->distribution_date->format('d/n/Y') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Provider Date & Time') }}</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ ($distribution->provider_received_at ?? $distribution->distribution_date)->format('d/m/Y H:i') }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ ($distribution->provider_received_at ?? $distribution->distribution_date)->format('d/n/Y H:i') }}</dd>
                 </div>
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Supplier (Car)') }}</dt>
@@ -61,7 +61,7 @@
                     <dd class="mt-1 text-sm font-bold text-indigo-600 dark:text-indigo-400">{{ number_format($distribution->subtotal, 4) }}</dd>
                     </div>
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('Created At') }}</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->created_at->format('d/m/Y H:i') }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ $distribution->created_at->format('d/n/Y H:i') }}</dd>
                 </div>
             </dl>
         </div>

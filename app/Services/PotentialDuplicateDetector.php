@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 class PotentialDuplicateDetector
 {
     public const CONTEXT_DEBT_LEDGER = 'debt_ledgers';
+
     public const CONTEXT_DISTRIBUTION = 'distributions';
 
     public function detectDebtLedgers(Collection $records, int $limit = 8): Collection
@@ -115,7 +116,7 @@ class PotentialDuplicateDetector
 
         return [
             'confidence' => $confidence,
-            'confidence_label' => ucfirst($confidence) . ' confidence',
+            'confidence_label' => ucfirst($confidence).' confidence',
             'count' => $records->count(),
             'signature' => $this->debtLedgerSignature($records),
             'record_ids' => $records->pluck('id')->values()->all(),
@@ -123,8 +124,8 @@ class PotentialDuplicateDetector
                 '%d similar %s entries for %s on %s',
                 $records->count(),
                 str_replace('_', ' ', $sample->type),
-                $sample->client?->name ?? ('Client #' . $sample->client_id),
-                optional($sample->transaction_date)->format('d/m/Y') ?? 'N/A',
+                $sample->client?->name ?? ('Client #'.$sample->client_id),
+                optional($sample->transaction_date)->format('d/n/Y') ?? 'N/A',
             ),
             'reasons' => $reasons->values(),
             'records' => $records,
@@ -186,16 +187,16 @@ class PotentialDuplicateDetector
 
         return [
             'confidence' => $confidence,
-            'confidence_label' => ucfirst($confidence) . ' confidence',
+            'confidence_label' => ucfirst($confidence).' confidence',
             'count' => $records->count(),
             'signature' => $this->distributionSignature($records),
             'record_ids' => $records->pluck('id')->values()->all(),
             'summary' => sprintf(
                 '%d similar distributions for %s / %s on %s',
                 $records->count(),
-                $sample->client?->name ?? ('Client #' . $sample->client_id),
-                $sample->product?->name ?? ('Product #' . $sample->product_id),
-                optional($sample->distribution_date)->format('d/m/Y') ?? 'N/A',
+                $sample->client?->name ?? ('Client #'.$sample->client_id),
+                $sample->product?->name ?? ('Product #'.$sample->product_id),
+                optional($sample->distribution_date)->format('d/n/Y') ?? 'N/A',
             ),
             'reasons' => $reasons->values(),
             'records' => $records,
@@ -289,7 +290,7 @@ class PotentialDuplicateDetector
             ->values()
             ->implode('||');
 
-        return hash('sha256', $context . '|' . $payload);
+        return hash('sha256', $context.'|'.$payload);
     }
 
     private function debtLedgerDuplicateKey(DebtLedger $ledger): string
