@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Provider;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,7 +16,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with('defaultProvider')->latest()->paginate(10);
+        $products = Product::with(['defaultProvider', 'productCategory'])->latest()->paginate(10);
 
         return view('admin.products.index', compact('products'));
     }
@@ -26,8 +27,9 @@ class ProductController extends Controller
     public function create()
     {
         $providers = Provider::orderBy('name')->get();
+        $productCategories = ProductCategory::orderBy('name')->get();
 
-        return view('admin.products.create', compact('providers'));
+        return view('admin.products.create', compact('providers', 'productCategories'));
     }
 
     /**
@@ -48,7 +50,7 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        $product->load('defaultProvider');
+        $product->load(['defaultProvider', 'productCategory']);
 
         return view('admin.products.show', compact('product'));
     }
@@ -59,8 +61,9 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $providers = Provider::orderBy('name')->get();
+        $productCategories = ProductCategory::orderBy('name')->get();
 
-        return view('admin.products.edit', compact('product', 'providers'));
+        return view('admin.products.edit', compact('product', 'providers', 'productCategories'));
     }
 
     /**
@@ -80,6 +83,7 @@ class ProductController extends Controller
     {
         return [
             'name' => 'required|string|max:255',
+            'product_category_id' => ['required', Rule::exists('product_categories', 'id')],
             'default_unit' => 'nullable|in:per_ton,per_bag,per_piece',
             'buy_price' => 'nullable|numeric|min:0',
             'default_provider_id' => [

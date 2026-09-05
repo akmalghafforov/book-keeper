@@ -31,7 +31,8 @@
     newShop: { name: '', address: '' },
     isSavingShop: false,
     shopError: '',
-    products: @js($products->map(fn($p) => ['id' => $p->id, 'default_unit' => $p->default_unit, 'buy_price' => $p->buy_price, 'has_default_provider' => $p->default_provider_id !== null])->keyBy('id')),
+    products: {},
+    productCategoryId: '{{ old('product_category_id') }}',
     productId: '{{ old('product_id') }}',
     unit: '{{ old('quantity_unit', 'per_ton') }}',
     get subtotal() {
@@ -47,7 +48,15 @@
         this.$watch('price', () => {
             if (this.creditClientId && !this.creditPriceOverridden) this.creditClientPrice = this.price;
         });
-        this.$nextTick(() => this.syncProduct(true));
+        this.$nextTick(() => { if (this.productCategoryId) this.loadProducts(true); });
+    },
+    async loadProducts(preserveProduct = false) {
+        if (!this.productCategoryId) { this.products = {}; this.productId = ''; this.syncProduct(); return; }
+        if (!preserveProduct) { this.productId = ''; this.providerBuyPrice = null; }
+        const response = await fetch(`/admin/product-categories/${this.productCategoryId}/products`, {headers: {'Accept': 'application/json'}});
+        this.products = response.ok ? Object.fromEntries((await response.json()).map(product => [product.id, product])) : {};
+        if (this.productId && !this.products[this.productId]) this.productId = '';
+        this.syncProduct(preserveProduct);
     },
     syncProduct(preserveProviderPrice = false) {
         const product = this.products[this.productId];
@@ -304,17 +313,18 @@
                                 @enderror
                             </div>
                             <div>
+                                <label for="product_category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product Category') }}</label>
+                                <select name="product_category_id" id="product_category_id" x-model="productCategoryId" @change="loadProducts()" required class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg"><option value="">{{ __('Select Product Category') }}</option>@foreach($productCategories as $category)<option value="{{ $category->id }}">{{ $category->name }}</option>@endforeach</select>
+                                @error('product_category_id')<p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
                                 <label for="product_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product') }}</label>
-                                <select name="product_id" id="product_id" required
+                                <select name="product_id" id="product_id" required :disabled="!productCategoryId"
                                     x-model="productId"
                                     @change="syncProduct()"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                                    <option value="">Select Product</option>
-                                    @foreach($products as $product)
-                                        <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>
-                                            {{ $product->name }}
-                                        </option>
-                                    @endforeach
+                                    <option value="">{{ __('Select Product') }}</option>
+                                    <template x-for="product in Object.values(products)" :key="product.id"><option :value="product.id" x-text="product.name"></option></template>
                                 </select>
                                 @error('product_id')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>

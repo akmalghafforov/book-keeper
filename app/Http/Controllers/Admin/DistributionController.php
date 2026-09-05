@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Distribution;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Supplier;
 use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DistributionController extends Controller
 {
@@ -90,9 +92,10 @@ class DistributionController extends Controller
     {
         $clients = Client::with('shops')->get();
         $products = Product::all();
+        $productCategories = ProductCategory::orderBy('name')->get();
         $suppliers = Supplier::all();
 
-        return view('admin.distributions.create', compact('clients', 'products', 'suppliers'));
+        return view('admin.distributions.create', compact('clients', 'products', 'productCategories', 'suppliers'));
     }
 
     /**
@@ -100,20 +103,8 @@ class DistributionController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'client_id' => 'required|exists:clients,id',
-            'shop_id' => 'nullable|exists:shops,id',
-            'credit_client_id' => 'nullable|exists:clients,id',
-            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
-            'product_id' => 'required|exists:products,id',
-            'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
-            'quantity' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'provider_buy_price' => 'nullable|numeric|min:0',
-            'distribution_date' => 'required|date_format:d/n/Y,d/m/Y',
-            'provider_received_at' => 'nullable|date_format:d/n/Y H:i,d/m/Y H:i',
-        ]);
+        $validated = $request->validate($this->rules());
+        unset($validated['product_category_id']);
 
         $validated = $this->normalizeDates($validated);
         $hasDefaultProvider = Product::query()
@@ -154,9 +145,10 @@ class DistributionController extends Controller
     {
         $clients = Client::with('shops')->get();
         $products = Product::all();
+        $productCategories = ProductCategory::orderBy('name')->get();
         $suppliers = Supplier::all();
 
-        return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'suppliers'));
+        return view('admin.distributions.edit', compact('distribution', 'clients', 'products', 'productCategories', 'suppliers'));
     }
 
     /**
@@ -164,20 +156,8 @@ class DistributionController extends Controller
      */
     public function update(Request $request, Distribution $distribution)
     {
-        $validated = $request->validate([
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'client_id' => 'required|exists:clients,id',
-            'shop_id' => 'nullable|exists:shops,id',
-            'credit_client_id' => 'nullable|exists:clients,id',
-            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
-            'product_id' => 'required|exists:products,id',
-            'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
-            'quantity' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'provider_buy_price' => 'nullable|numeric|min:0',
-            'distribution_date' => 'required|date_format:d/n/Y,d/m/Y',
-            'provider_received_at' => 'nullable|date_format:d/n/Y H:i,d/m/Y H:i',
-        ]);
+        $validated = $request->validate($this->rules());
+        unset($validated['product_category_id']);
 
         $validated = $this->normalizeDates($validated);
         if (empty($validated['credit_client_id'])) {
@@ -215,5 +195,24 @@ class DistributionController extends Controller
         $validated['provider_received_at'] = $providerReceivedAt->format('Y-m-d H:i:s');
 
         return $validated;
+    }
+
+    private function rules(): array
+    {
+        return [
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'client_id' => 'required|exists:clients,id',
+            'shop_id' => 'nullable|exists:shops,id',
+            'credit_client_id' => 'nullable|exists:clients,id',
+            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
+            'product_category_id' => ['required', Rule::exists('product_categories', 'id')],
+            'product_id' => ['required', Rule::exists('products', 'id')->where(fn ($query) => $query->where('product_category_id', request('product_category_id'))->whereNull('deleted_at'))],
+            'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
+            'quantity' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'provider_buy_price' => 'nullable|numeric|min:0',
+            'distribution_date' => 'required|date_format:d/n/Y,d/m/Y',
+            'provider_received_at' => 'nullable|date_format:d/n/Y H:i,d/m/Y H:i',
+        ];
     }
 }

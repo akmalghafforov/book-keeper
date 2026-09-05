@@ -240,5 +240,15 @@
     "On behalf of :payerName": "On behalf of :payerName",
     "Currency": "Currency",
     "Exchange Rate": "Exchange Rate",
-    "Converted amount": "Converted amount"
+    "Converted amount": "Converted amount",
+    "Product Categories": "Product Categories",
+    "Product Category": "Product Category",
+    "Select Product Category": "Select Product Category",
+    "Add Product Category": "Add Product Category",
+    "Edit Product Category": "Edit Product Category",
+    "Product Category Details": "Product Category Details",
+    "No product categories found.": "No product categories found.",
+    "Product category created successfully.": "Product category created successfully.",
+    "Product category updated successfully.": "Product category updated successfully.",
+    "Select Product": "Select Product"
 }

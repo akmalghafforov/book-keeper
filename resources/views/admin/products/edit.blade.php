@@ -29,6 +29,14 @@
                 </div>
 
                 <div>
+                    <label for="product_category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Product Category') }}</label>
+                    <select name="product_category_id" id="product_category_id" required class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg">
+                        <option value="">{{ __('Select Product Category') }}</option>
+                        @foreach($productCategories as $category)<option value="{{ $category->id }}" @selected(old('product_category_id', $product->product_category_id) == $category->id)>{{ $category->name }}</option>@endforeach
+                    </select>
+                    @error('product_category_id')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
                     <label for="default_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Default Unit (Optional)') }}</label>
                     <select name="default_unit" id="default_unit"
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">

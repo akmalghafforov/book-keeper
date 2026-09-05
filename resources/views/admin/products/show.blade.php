@@ -27,6 +27,10 @@
                     <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $product->name }}</p>
                 </div>
                 <div class="space-y-1">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Product Category') }}</h3>
+                    <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $product->productCategory->name }}</p>
+                </div>
+                <div class="space-y-1">
                     <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Default Provider') }}</h3>
                     <p class="text-gray-900 dark:text-white">{{ $product->defaultProvider?->name ?? __('None') }}</p>
                 </div>

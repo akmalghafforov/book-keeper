@@ -14,6 +14,7 @@ class Product extends Model
 
     protected $fillable = [
         'name',
+        'product_category_id',
         'default_unit',
         'default_provider_id',
         'buy_price',
@@ -26,6 +27,11 @@ class Product extends Model
     public function defaultProvider(): BelongsTo
     {
         return $this->belongsTo(Provider::class, 'default_provider_id');
+    }
+
+    public function productCategory(): BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class);
     }
 
     public function distributions(): HasMany

@@ -1,0 +1,1 @@
+<div><label class="block mb-1" for="name">{{ __('Name') }}</label><input class="w-full rounded border-gray-300" id="name" name="name" value="{{ old('name', $productCategory->name ?? '') }}" required>@error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>

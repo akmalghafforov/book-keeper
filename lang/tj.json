@@ -245,5 +245,15 @@
     "On behalf of :payerName": "Аз номи :payerName",
     "Currency": "Асъор",
     "Exchange Rate": "Қурби асъор",
-    "Converted amount": "Маблағи табдилшуда"
+    "Converted amount": "Маблағи табдилшуда",
+    "Product Categories": "Гурӯҳҳои маҳсулот",
+    "Product Category": "Гурӯҳи маҳсулот",
+    "Select Product Category": "Гурӯҳи маҳсулотро интихоб кунед",
+    "Add Product Category": "Иловаи гурӯҳи маҳсулот",
+    "Edit Product Category": "Таҳрири гурӯҳи маҳсулот",
+    "Product Category Details": "Маълумоти гурӯҳи маҳсулот",
+    "No product categories found.": "Гурӯҳҳои маҳсулот ёфт нашуданд.",
+    "Product category created successfully.": "Гурӯҳи маҳсулот бомуваффақият сохта шуд.",
+    "Product category updated successfully.": "Гурӯҳи маҳсулот бомуваффақият нав шуд.",
+    "Select Product": "Маҳсулотро интихоб кунед"
 }

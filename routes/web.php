@@ -45,6 +45,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('shops', \App\Http\Controllers\Admin\ShopController::class)->only(['store']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class)->except(['destroy']);
+        Route::get('product-categories/{productCategory}/products', [\App\Http\Controllers\Admin\ProductCategoryController::class, 'products'])
+            ->name('product-categories.products');
+        Route::resource('product-categories', \App\Http\Controllers\Admin\ProductCategoryController::class)->except(['destroy']);
         Route::resource('providers', \App\Http\Controllers\Admin\ProviderController::class);
         Route::get('provider-ledgers/compare', [\App\Http\Controllers\Admin\ProviderLedgerController::class, 'compareForm'])
             ->name('provider-ledgers.compare.form');

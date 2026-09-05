@@ -245,5 +245,15 @@
     "On behalf of :payerName": "От имени :payerName",
     "Currency": "Валюта",
     "Exchange Rate": "Курс обмена",
-    "Converted amount": "Конвертированная сумма"
+    "Converted amount": "Конвертированная сумма",
+    "Product Categories": "Категории продуктов",
+    "Product Category": "Категория продукта",
+    "Select Product Category": "Выберите категорию продукта",
+    "Add Product Category": "Добавить категорию продукта",
+    "Edit Product Category": "Редактировать категорию продукта",
+    "Product Category Details": "Сведения о категории продукта",
+    "No product categories found.": "Категории продуктов не найдены.",
+    "Product category created successfully.": "Категория продукта успешно создана.",
+    "Product category updated successfully.": "Категория продукта успешно обновлена.",
+    "Select Product": "Выберите продукт"
 }
