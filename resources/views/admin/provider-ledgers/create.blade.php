@@ -9,7 +9,7 @@
 @endpush
 
 @section('content')
-<div class="max-w-2xl mx-auto space-y-6" x-data="{ providerId: '{{ old('provider_id', $selectedProviderId ?? '') }}', type: '{{ old('type', 'payment') }}' }">
+<div class="max-w-2xl mx-auto space-y-6" x-data="{ providerId: '{{ old('provider_id', $selectedProviderId ?? '') }}', type: '{{ old('type', 'payment') }}', paymentPurpose: @js(old('payment_purpose', '')) }">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('Add Provider Ledger Entry') }}</h2>
         <a href="{{ route('admin.provider-ledgers.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
@@ -74,6 +74,8 @@
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                 </div>
+
+                @include('admin.partials.payment-purpose-fields', ['paymentPurpose' => old('payment_purpose', ''), 'payerName' => old('payer_name')])
 
                 <div>
                     <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Amount') }}</label>

@@ -229,5 +229,12 @@
     "Excel Buy Price": "Excel Buy Price",
     "Ledger Buy Price": "Ledger Buy Price",
     "Informational": "Informational",
-    "Delivery dates within ±1 day are treated as matching.": "Delivery dates within ±1 day are treated as matching."
+    "Delivery dates within ±1 day are treated as matching.": "Delivery dates within ±1 day are treated as matching.",
+    "Payment Purpose": "Payment Purpose",
+    "Select a payment purpose": "Select a payment purpose",
+    "Payer Name": "Payer Name",
+    "Money for vehicle and labor": "Money for vehicle and labor",
+    "Money for vehicle": "Money for vehicle",
+    "Money for labor": "Money for labor",
+    "On behalf of :payerName": "On behalf of :payerName"
 }

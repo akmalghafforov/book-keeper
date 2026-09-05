@@ -234,5 +234,12 @@
     "Excel Buy Price": "Нархи хариди Excel",
     "Ledger Buy Price": "Нархи хариди дафтар",
     "Informational": "Иттилоотӣ",
-    "Delivery dates within ±1 day are treated as matching.": "Санаҳои таҳвил бо фарқи то ±1 рӯз мувофиқ ҳисобида мешаванд."
+    "Delivery dates within ±1 day are treated as matching.": "Санаҳои таҳвил бо фарқи то ±1 рӯз мувофиқ ҳисобида мешаванд.",
+    "Payment Purpose": "Мақсади пардохт",
+    "Select a payment purpose": "Мақсади пардохтро интихоб кунед",
+    "Payer Name": "Номи пардохткунанда",
+    "Money for vehicle and labor": "Пули мошин ва мардикор",
+    "Money for vehicle": "Пули мошин",
+    "Money for labor": "Пули мардикор",
+    "On behalf of :payerName": "Аз номи :payerName"
 }

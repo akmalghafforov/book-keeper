@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentPurpose;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,8 @@ class ProviderLedger extends Model
         'provider_id',
         'type',
         'payment_method',
+        'payment_purpose',
+        'payer_name',
         'distribution_id',
         'product_id',
         'car_number',
@@ -36,6 +39,7 @@ class ProviderLedger extends Model
         'buy_price' => 'decimal:4',
         'amount' => 'decimal:4',
         'payment_method' => PaymentMethod::class,
+        'payment_purpose' => PaymentPurpose::class,
         'transaction_date' => 'date',
         'provider_received_at' => 'datetime',
         'sort_order' => 'integer',

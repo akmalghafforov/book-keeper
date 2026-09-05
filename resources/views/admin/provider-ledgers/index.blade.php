@@ -123,6 +123,7 @@
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Provider') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Type') }}</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Payment Purpose') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Amount') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Product') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Car Number') }}</th>
@@ -140,6 +141,9 @@
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $ledger->type === 'payment' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                     {{ __($ledger->type) }}
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                {{ $ledger->payment_purpose?->label($ledger->payer_name) ?? __('N/A') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $ledger->type === 'payment' ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white' }}">
                                 <div>{{ $ledger->type === 'payment' ? '-' : '' }}{{ number_format((float) $ledger->amount, 4) }}</div>
@@ -188,7 +192,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
                                 {{ __('No provider ledger entries found.') }}
                             </td>
                         </tr>

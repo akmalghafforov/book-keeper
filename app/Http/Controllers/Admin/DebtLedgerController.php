@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentPurpose;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\DebtLedger;
@@ -97,6 +98,8 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
+            'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class)],
+            'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
             'amount' => 'required|numeric|min:0.01',
             'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
@@ -105,6 +108,7 @@ class DebtLedgerController extends Controller
 
         $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
         $validated['payment_method'] = $validated['type'] === 'payment' ? $validated['payment_method'] : null;
+        $this->normalizePaymentPurpose($validated);
 
         DebtLedger::create($validated);
 
@@ -141,6 +145,8 @@ class DebtLedgerController extends Controller
             'client_id' => 'required|exists:clients,id',
             'type' => 'required|in:charge,payment,credit_note',
             'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
+            'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class)],
+            'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
             'amount' => 'required|numeric|min:0.01',
             'transaction_date' => 'required|date_format:d/n/Y,d/m/Y',
             'reference_id' => 'nullable|integer',
@@ -149,6 +155,7 @@ class DebtLedgerController extends Controller
 
         $validated['transaction_date'] = Carbon::createFromFormat('d/n/Y', $validated['transaction_date'])->format('Y-m-d');
         $validated['payment_method'] = $validated['type'] === 'payment' ? $validated['payment_method'] : null;
+        $this->normalizePaymentPurpose($validated);
 
         $debtLedger->update($validated);
 
@@ -165,5 +172,20 @@ class DebtLedgerController extends Controller
 
         return redirect()->route('admin.debt-ledgers.index')
             ->with('success', 'Debt ledger entry deleted successfully.');
+    }
+
+    private function normalizePaymentPurpose(array &$validated): void
+    {
+        if ($validated['type'] !== 'payment') {
+            $validated['payment_purpose'] = null;
+            $validated['payer_name'] = null;
+
+            return;
+        }
+
+        $validated['payment_purpose'] = $validated['payment_purpose'] ?? null;
+        $validated['payer_name'] = $validated['payment_purpose'] === PaymentPurpose::OnBehalfOf->value
+            ? $validated['payer_name']
+            : null;
     }
 }

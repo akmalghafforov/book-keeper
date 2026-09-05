@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentPurpose;
 use App\Exceptions\InvalidProviderLedgerWorkbook;
 use App\Http\Controllers\Controller;
 use App\Models\Provider;
@@ -124,6 +125,8 @@ class ProviderLedgerController extends Controller
             'provider_id' => $validated['provider_id'],
             'type' => $validated['type'],
             'payment_method' => $validated['type'] === 'payment' ? $validated['payment_method'] : null,
+            'payment_purpose' => $this->paymentPurpose($validated),
+            'payer_name' => $this->payerName($validated),
             'amount' => $validated['amount'],
             'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
             'transaction_date' => $transactionDate->toDateString(),
@@ -175,6 +178,8 @@ class ProviderLedgerController extends Controller
             'provider_id' => $validated['provider_id'],
             'type' => $validated['type'],
             'payment_method' => $validated['type'] === 'payment' ? $validated['payment_method'] : null,
+            'payment_purpose' => $this->paymentPurpose($validated),
+            'payer_name' => $this->payerName($validated),
             'distribution_id' => null,
             'product_id' => null,
             'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
@@ -209,6 +214,8 @@ class ProviderLedgerController extends Controller
             'provider_id' => 'required|exists:providers,id',
             'type' => ['required', Rule::in(['charge', 'payment'])],
             'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
+            'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class)],
+            'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
             'amount' => 'required|numeric|min:0.01',
             'car_number' => 'nullable|string|max:50',
             'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
@@ -219,6 +226,18 @@ class ProviderLedgerController extends Controller
     private function parseManualTransactionDate(string $transactionDate): Carbon
     {
         return Carbon::createFromFormat('d/n/Y H:i', $transactionDate);
+    }
+
+    private function paymentPurpose(array $validated): ?string
+    {
+        return $validated['type'] === 'payment' ? ($validated['payment_purpose'] ?? null) : null;
+    }
+
+    private function payerName(array $validated): ?string
+    {
+        return $this->paymentPurpose($validated) === PaymentPurpose::OnBehalfOf->value
+            ? $validated['payer_name']
+            : null;
     }
 
     private function ensureManualEntry(ProviderLedger $providerLedger): void

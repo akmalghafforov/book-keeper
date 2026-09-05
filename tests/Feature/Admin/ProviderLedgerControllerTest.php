@@ -375,4 +375,60 @@ class ProviderLedgerControllerTest extends TestCase
             ->delete(route('admin.provider-ledgers.destroy', $ledger))
             ->assertForbidden();
     }
+
+    public function test_payment_purpose_is_persisted_displayed_and_cleared_when_changing_to_charge(): void
+    {
+        $payload = [
+            'provider_id' => $this->provider->id,
+            'type' => 'payment',
+            'payment_method' => 'cash',
+            'amount' => '25.0000',
+            'transaction_date' => '03/06/2026 12:00',
+        ];
+
+        foreach (['vehicle_and_labor', 'vehicle', 'labor'] as $purpose) {
+            $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
+                ...$payload,
+                'payment_purpose' => $purpose,
+            ])->assertRedirect(route('admin.provider-ledgers.index'));
+
+            $this->assertDatabaseHas('provider_ledgers', ['payment_purpose' => $purpose, 'payer_name' => null]);
+        }
+
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
+            ...$payload,
+            'payment_purpose' => 'on_behalf_of',
+        ])->assertSessionHasErrors('payer_name');
+
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
+            ...$payload,
+            'payment_purpose' => 'on_behalf_of',
+            'payer_name' => 'Farid',
+        ])->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $ledger = ProviderLedger::latest('id')->firstOrFail();
+        $this->assertDatabaseHas('provider_ledgers', [
+            'id' => $ledger->id,
+            'payment_purpose' => 'on_behalf_of',
+            'payer_name' => 'Farid',
+        ]);
+
+        $this->actingAs($this->user)->get(route('admin.provider-ledgers.show', $ledger))
+            ->assertOk()
+            ->assertSee('Аз номи Farid');
+        $this->actingAs($this->user)->get(route('admin.provider-ledgers.index'))
+            ->assertOk()
+            ->assertSee('Аз номи Farid');
+
+        $this->actingAs($this->user)->put(route('admin.provider-ledgers.update', $ledger), [
+            'provider_id' => $this->provider->id,
+            'type' => 'charge',
+            'payment_purpose' => 'on_behalf_of',
+            'payer_name' => 'Farid',
+            'amount' => '25.0000',
+            'transaction_date' => '03/06/2026 12:00',
+        ])->assertRedirect(route('admin.provider-ledgers.index'));
+
+        $this->assertDatabaseHas('provider_ledgers', ['id' => $ledger->id, 'payment_purpose' => null, 'payer_name' => null]);
+    }
 }

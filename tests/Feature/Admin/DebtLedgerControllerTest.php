@@ -313,6 +313,51 @@ class DebtLedgerControllerTest extends TestCase
         $this->assertDatabaseHas('debt_ledgers', ['id' => $ledger->id, 'payment_method' => null]);
     }
 
+    public function test_payment_purpose_is_optional_and_on_behalf_of_is_persisted_and_cleared(): void
+    {
+        $payload = [
+            'client_id' => $this->client->id,
+            'type' => 'payment',
+            'payment_method' => 'cash',
+            'amount' => 100,
+            'transaction_date' => '10/03/2026',
+        ];
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), $payload)
+            ->assertRedirect(route('admin.debt-ledgers.index'));
+        $this->assertDatabaseHas('debt_ledgers', ['payment_purpose' => null, 'payer_name' => null]);
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [
+            ...$payload,
+            'payment_purpose' => 'on_behalf_of',
+        ])->assertSessionHasErrors('payer_name');
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [
+            ...$payload,
+            'payment_purpose' => 'on_behalf_of',
+            'payer_name' => 'Farid',
+        ])->assertRedirect(route('admin.debt-ledgers.index'));
+
+        $ledger = DebtLedger::latest('id')->firstOrFail();
+        $this->actingAs($this->user)->get(route('admin.debt-ledgers.show', $ledger))
+            ->assertOk()
+            ->assertSee('Аз номи Farid');
+        $this->actingAs($this->user)->get(route('admin.debt-ledgers.index'))
+            ->assertOk()
+            ->assertSee('Аз номи Farid');
+
+        $this->actingAs($this->user)->put(route('admin.debt-ledgers.update', $ledger), [
+            'client_id' => $this->client->id,
+            'type' => 'credit_note',
+            'payment_purpose' => 'on_behalf_of',
+            'payer_name' => 'Farid',
+            'amount' => 100,
+            'transaction_date' => '10/03/2026',
+        ])->assertRedirect(route('admin.debt-ledgers.index'));
+
+        $this->assertDatabaseHas('debt_ledgers', ['id' => $ledger->id, 'payment_purpose' => null, 'payer_name' => null]);
+    }
+
     // ---------------------------------------------------------------
     // Destroy
     // ---------------------------------------------------------------

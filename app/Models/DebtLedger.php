@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentPurpose;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,8 @@ class DebtLedger extends Model
         'client_id',
         'type',
         'payment_method',
+        'payment_purpose',
+        'payer_name',
         'amount',
         'transaction_date',
         'reference_id',
@@ -25,6 +28,7 @@ class DebtLedger extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_method' => PaymentMethod::class,
+        'payment_purpose' => PaymentPurpose::class,
         'transaction_date' => 'date',
     ];
 
