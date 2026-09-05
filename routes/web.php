@@ -39,6 +39,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', function () {
             return redirect()->route('admin.debt-ledgers.index');
         });
+        Route::get('database/download', \App\Http\Controllers\Admin\DatabaseDownloadController::class)
+            ->name('database.download');
         Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class)->except(['destroy']);
         Route::resource('shops', \App\Http\Controllers\Admin\ShopController::class)->only(['store']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
