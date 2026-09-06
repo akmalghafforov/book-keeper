@@ -241,7 +241,8 @@
                                         $($refs.select).select2({
                                             placeholder: 'Select Client',
                                             allowClear: true,
-                                            width: '100%'
+                                            width: '100%',
+                                            matcher: window.clientSelect2Matcher
                                         });
                                         $($refs.select).on('change', () => { clientId = $($refs.select).val() });
                                     "
@@ -429,7 +430,8 @@
                                         $($refs.selectCredit).select2({
                                             placeholder: 'Select Credit Client',
                                             allowClear: true,
-                                            width: '100%'
+                                            width: '100%',
+                                            matcher: window.clientSelect2Matcher
                                         });
                                         $($refs.selectCredit).on('change', () => { setCreditClient($($refs.selectCredit).val()) });
                                     "

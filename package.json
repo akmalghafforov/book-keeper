@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:client-matcher": "node tests/js/client-select2-matcher.test.js"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

@@ -33,7 +33,8 @@
                             $($refs.select).select2({
                                 placeholder: '{{ __('Select a client') }}',
                                 allowClear: true,
-                                width: '100%'
+                                width: '100%',
+                                matcher: window.clientSelect2Matcher
                             });
                             $($refs.select).on('change', () => { clientId = $($refs.select).val() });
                         "

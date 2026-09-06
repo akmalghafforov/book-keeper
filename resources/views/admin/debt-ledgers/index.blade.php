@@ -39,7 +39,8 @@
                 $($refs.selectClient).select2({
                     placeholder: '{{ __('All Clients') }}',
                     allowClear: true,
-                    width: '100%'
+                    width: '100%',
+                    matcher: window.clientSelect2Matcher
                 });
                 $($refs.selectType).select2({
                     placeholder: '{{ __('All Types') }}',
