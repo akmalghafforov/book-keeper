@@ -44,6 +44,15 @@
     get selectedProduct() {
         return this.products.find(product => String(product.id) === String(this.productId));
     },
+    selectAdjacentProduct(direction) {
+        const currentIndex = this.products.findIndex(product => String(product.id) === String(this.productId));
+        const nextProduct = this.products[currentIndex + direction];
+
+        if (!nextProduct) return;
+
+        this.productId = nextProduct.id;
+        this.syncProduct();
+    },
     get hasSelectedClientShops() {
         return Boolean(this.clientId && this.clientShops[this.clientId]?.length);
     },
@@ -359,6 +368,8 @@
                                 <select name="product_id" id="product_id" required :disabled="!productCategoryId"
                                     x-model="productId"
                                     @change="syncProduct()"
+                                    @keydown.left.prevent="selectAdjacentProduct(-1)"
+                                    @keydown.right.prevent="selectAdjacentProduct(1)"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">{{ __('Select Product') }}</option>
                                     <template x-for="product in products" :key="product.id"><option :value="product.id" x-text="product.name"></option></template>

@@ -79,6 +79,16 @@ class DistributionControllerTest extends TestCase
                 && $products->contains(fn (Product $product) => $product->default_provider_id === null));
     }
 
+    public function test_create_product_select_supports_left_and_right_priority_navigation(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertSee('selectAdjacentProduct(direction)', false)
+            ->assertSee('@keydown.left.prevent="selectAdjacentProduct(-1)"', false)
+            ->assertSee('@keydown.right.prevent="selectAdjacentProduct(1)"', false);
+    }
+
     public function test_create_defaults_to_the_highest_positive_usage_priority_category(): void
     {
         $lessUsed = ProductCategory::factory()->create(['name' => 'Alpha', 'usage_priority' => 2]);
