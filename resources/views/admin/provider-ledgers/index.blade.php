@@ -31,11 +31,11 @@
     <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A] p-6 mb-6">
         <form action="{{ route('admin.provider-ledgers.index') }}" method="GET" x-data="{
             init() {
-                flatpickr($refs.dateFrom, {
+                flatpickr($refs.providerDateFrom, {
                     dateFormat: 'Y-m-d',
                     allowInput: true,
                 });
-                flatpickr($refs.dateTo, {
+                flatpickr($refs.providerDateTo, {
                     dateFormat: 'Y-m-d',
                     allowInput: true,
                 });
@@ -84,22 +84,37 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Date Range') }}</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Provider Date') }}</label>
                     <div class="flex items-center space-x-2">
                         <div class="relative flex-1">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             </div>
-                            <input type="text" name="date_from" id="date_from" x-ref="dateFrom" value="{{ request('date_from') }}" placeholder="{{ __('From') }}" class="block w-full pl-10 border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
+                            <input type="text" name="provider_date_from" id="provider_date_from" x-ref="providerDateFrom" value="{{ request('provider_date_from') }}" placeholder="{{ __('From') }}" class="block w-full pl-10 border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
                         </div>
                         <span class="text-gray-500">-</span>
                         <div class="relative flex-1">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             </div>
-                            <input type="text" name="date_to" id="date_to" x-ref="dateTo" value="{{ request('date_to') }}" placeholder="{{ __('To') }}" class="block w-full pl-10 border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
+                            <input type="text" name="provider_date_to" id="provider_date_to" x-ref="providerDateTo" value="{{ request('provider_date_to') }}" placeholder="{{ __('To') }}" class="block w-full pl-10 border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
                         </div>
                     </div>
+                </div>
+
+                <div>
+                    <label for="tonnage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Tonnage') }}</label>
+                    <input type="number" name="tonnage" id="tonnage" value="{{ request('tonnage') }}" step="0.001" min="0" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
+                </div>
+
+                <div>
+                    <label for="vehicle_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Vehicle number') }}</label>
+                    <input type="text" name="vehicle_number" id="vehicle_number" value="{{ request('vehicle_number') }}" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
+                </div>
+
+                <div>
+                    <label for="paid_amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('Paid amount') }}</label>
+                    <input type="number" name="paid_amount" id="paid_amount" value="{{ request('paid_amount') }}" step="0.0001" min="0" class="block w-full border-gray-300 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm text-sm py-2">
                 </div>
             </div>
 

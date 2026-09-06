@@ -65,7 +65,7 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('25.0000');
     }
 
-    public function test_index_displays_full_history_running_balances_and_split_charge_payment_columns(): void
+    public function test_index_filters_by_provider_date_and_displays_full_history_running_balances(): void
     {
         ProviderLedger::factory()->create([
             'provider_id' => $this->provider->id,
@@ -84,8 +84,8 @@ class ProviderLedgerControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)->get(route('admin.provider-ledgers.index', [
-            'date_from' => '2026-06-02',
-            'date_to' => '2026-06-02',
+            'provider_date_from' => '2026-06-02',
+            'provider_date_to' => '2026-06-02',
         ]));
 
         $response
@@ -94,6 +94,41 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('70.0000')
             ->assertSee('-')
             ->assertDontSee('AA-1000');
+    }
+
+    public function test_index_filters_by_tonnage_vehicle_number_and_paid_amount(): void
+    {
+        ProviderLedger::factory()->create([
+            'provider_id' => $this->provider->id,
+            'quantity' => '7.500',
+            'car_number' => 'TJ-7777',
+            'amount' => '200.0000',
+        ]);
+        ProviderLedger::factory()->payment()->create([
+            'provider_id' => $this->provider->id,
+            'amount' => '75.2500',
+            'notes' => 'Matching payment',
+        ]);
+        ProviderLedger::factory()->payment()->create([
+            'provider_id' => $this->provider->id,
+            'amount' => '99.0000',
+            'notes' => 'Other payment',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.provider-ledgers.index', [
+                'tonnage' => '7.500',
+                'vehicle_number' => '7777',
+            ]))
+            ->assertOk()
+            ->assertSee('TJ-7777')
+            ->assertDontSee('75.2500');
+
+        $this->actingAs($this->user)
+            ->get(route('admin.provider-ledgers.index', ['paid_amount' => '75.2500']))
+            ->assertOk()
+            ->assertSee('75.2500')
+            ->assertDontSee('99.0000');
     }
 
     public function test_index_does_not_expose_provider_ledger_reordering(): void

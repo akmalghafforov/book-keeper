@@ -89,15 +89,28 @@ class ProviderLedgerController extends Controller
             });
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('transaction_date', '>=', $request->date_from);
+        if ($request->filled('provider_date_from')) {
+            $query->whereDate('provider_received_at', '>=', $request->provider_date_from);
         }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('transaction_date', '<=', $request->date_to);
+        if ($request->filled('provider_date_to')) {
+            $query->whereDate('provider_received_at', '<=', $request->provider_date_to);
         }
 
-        $providerLedgers = $query->paginate(15)->withQueryString();
+        if ($request->filled('tonnage')) {
+            $query->where('quantity', $request->tonnage);
+        }
+
+        if ($request->filled('vehicle_number')) {
+            $query->where('car_number', 'like', '%'.$request->vehicle_number.'%');
+        }
+
+        if ($request->filled('paid_amount')) {
+            $query->where('type', 'payment')
+                ->where('amount', $request->paid_amount);
+        }
+
+        $providerLedgers = $query->paginate(100)->withQueryString();
 
         $providers = Provider::orderBy('name')->get();
 
