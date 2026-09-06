@@ -279,6 +279,7 @@
                                             width: '100%',
                                             matcher: window.clientSelect2Matcher
                                         });
+                                        window.enableSelect2SearchOnTyping($refs.select);
                                         $($refs.select).on('change', () => { clientId = $($refs.select).val() });
                                     "
                                     x-effect="$($refs.select).val(clientId).trigger('change')"
@@ -431,6 +432,7 @@
                                             allowClear: true,
                                             width: '100%'
                                         });
+                                        window.enableSelect2SearchOnTyping($refs.selectSupplier);
                                         $($refs.selectSupplier).on('change', () => { supplierId = $($refs.selectSupplier).val() });
                                     "
                                     x-effect="$($refs.selectSupplier).val(supplierId).trigger('change')"
@@ -471,6 +473,7 @@
                                             width: '100%',
                                             matcher: window.clientSelect2Matcher
                                         });
+                                        window.enableSelect2SearchOnTyping($refs.selectCredit);
                                         $($refs.selectCredit).on('change', () => { setCreditClient($($refs.selectCredit).val()) });
                                     "
                                     x-effect="$($refs.selectCredit).val(creditClientId).trigger('change')"

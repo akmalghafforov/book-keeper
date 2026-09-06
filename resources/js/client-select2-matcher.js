@@ -50,4 +50,26 @@ export function clientSelect2Matcher(params, data) {
         : null;
 }
 
+/**
+ * Makes a closed Select2 client selector open as soon as a searchable
+ * character is typed, preserving that first character in its search field.
+ */
+export function enableSelect2SearchOnTyping(select) {
+    const $select = window.jQuery(select);
+    const $selection = $select.next('.select2-container').find('.select2-selection');
+
+    $selection.on('keydown.client-search', (event) => {
+        if (event.isComposing || event.keyCode === 229 || event.key.length !== 1 || $select.data('select2')?.isOpen()) {
+            return;
+        }
+
+        event.preventDefault();
+        $select.select2('open');
+
+        const $search = window.jQuery('.select2-container--open .select2-search__field').last();
+        $search.val(event.key).trigger('input').trigger('focus');
+    });
+}
+
 window.clientSelect2Matcher = clientSelect2Matcher;
+window.enableSelect2SearchOnTyping = enableSelect2SearchOnTyping;
