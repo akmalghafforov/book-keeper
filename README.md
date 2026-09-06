@@ -34,7 +34,7 @@ The development app is available to Traefik as `taqsimot-app-dev:80`. The produc
 cp .env.production.example .env.production
 ```
 
-Set `APP_KEY` and the required integration secrets in that private file. The shared production Traefik resolver currently uses Let’s Encrypt staging; move that resolver to the production ACME endpoint before a public cutover.
+Set `APP_KEY`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`, and the required integration secrets in that private file. The two Basic Auth values protect every production HTTP request; use a strong, unique password. The container will refuse to start if either is missing. The shared production Traefik resolver currently uses Let’s Encrypt staging; move that resolver to the production ACME endpoint before a public cutover.
 
 ### Stage deployment and disk recovery
 
