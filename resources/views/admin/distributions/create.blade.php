@@ -31,15 +31,18 @@
     newShop: { name: '', address: '' },
     isSavingShop: false,
     shopError: '',
-    products: {},
-    productCategoryId: '{{ old('product_category_id') }}',
-    productId: '{{ old('product_id') }}',
+    products: @js($initialProducts),
+    productCategoryId: @js(old('product_category_id', $defaultProductCategoryId)),
+    productId: @js($initialProductId),
     unit: '{{ old('quantity_unit', 'per_ton') }}',
     get subtotal() {
         return (this.quantity * this.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4});
     },
     get hasDefaultProvider() {
-        return Boolean(this.productId && this.products[this.productId]?.has_default_provider);
+        return Boolean(this.productId && this.selectedProduct?.has_default_provider);
+    },
+    get selectedProduct() {
+        return this.products.find(product => String(product.id) === String(this.productId));
     },
     get hasSelectedClientShops() {
         return Boolean(this.clientId && this.clientShops[this.clientId]?.length);
@@ -48,18 +51,23 @@
         this.$watch('price', () => {
             if (this.creditClientId && !this.creditPriceOverridden) this.creditClientPrice = this.price;
         });
-        this.$nextTick(() => { if (this.productCategoryId) this.loadProducts(true); });
+        this.$nextTick(() => {
+            if (!this.productId && this.products.length) this.productId = this.products[0].id;
+            this.syncProduct(true);
+            if (this.productCategoryId) this.loadProducts(true);
+        });
     },
     async loadProducts(preserveProduct = false) {
-        if (!this.productCategoryId) { this.products = {}; this.productId = ''; this.syncProduct(); return; }
+        if (!this.productCategoryId) { this.products = []; this.productId = ''; this.syncProduct(); return; }
         if (!preserveProduct) { this.productId = ''; this.providerBuyPrice = null; }
         const response = await fetch(`/admin/product-categories/${this.productCategoryId}/products`, {headers: {'Accept': 'application/json'}});
-        this.products = response.ok ? Object.fromEntries((await response.json()).map(product => [product.id, product])) : {};
-        if (this.productId && !this.products[this.productId]) this.productId = '';
+        this.products = response.ok ? await response.json() : [];
+        if (this.productId && !this.selectedProduct) this.productId = '';
+        if (!this.productId && this.products.length) this.productId = this.products[0].id;
         this.syncProduct(preserveProduct);
     },
     syncProduct(preserveProviderPrice = false) {
-        const product = this.products[this.productId];
+        const product = this.selectedProduct;
 
         if (product?.default_unit) {
             this.unit = product.default_unit;
@@ -325,7 +333,10 @@
                                     @change="syncProduct()"
                                     class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                                     <option value="">{{ __('Select Product') }}</option>
-                                    <template x-for="product in Object.values(products)" :key="product.id"><option :value="product.id" x-text="product.name"></option></template>
+                                    <template x-for="product in products" :key="product.id"><option :value="product.id" x-text="product.name"></option></template>
+                                    @foreach($initialProducts as $product)
+                                        <option x-show="!products.length" value="{{ $product->id }}" {{ (string) $initialProductId === (string) $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+                                    @endforeach
                                 </select>
                                 @error('product_id')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>

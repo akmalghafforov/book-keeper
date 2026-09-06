@@ -91,11 +91,39 @@ class DistributionController extends Controller
     public function create()
     {
         $clients = Client::with('shops')->get();
-        $products = Product::all();
+        $products = Product::query()
+            ->orderByDesc('usage_priority')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get();
         $productCategories = ProductCategory::orderByDesc('usage_priority')->orderBy('name')->orderBy('id')->get();
+        $defaultProduct = Product::query()
+            ->where('usage_priority', '>', 0)
+            ->orderByDesc('usage_priority')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->first();
+        $defaultProductCategoryId = $defaultProduct?->product_category_id
+            ?? $productCategories
+            ->first(fn (ProductCategory $category) => $category->usage_priority > 0)
+            ?->id;
+        $initialProductCategoryId = old('product_category_id', $defaultProductCategoryId);
+        $initialProducts = $products
+            ->where('product_category_id', $initialProductCategoryId)
+            ->values();
+        $initialProductId = old('product_id') ?: $initialProducts->first()?->id;
         $suppliers = Supplier::all();
 
-        return view('admin.distributions.create', compact('clients', 'products', 'productCategories', 'suppliers'));
+        return view('admin.distributions.create', compact(
+            'clients',
+            'products',
+            'productCategories',
+            'defaultProduct',
+            'defaultProductCategoryId',
+            'initialProducts',
+            'initialProductId',
+            'suppliers',
+        ));
     }
 
     /**

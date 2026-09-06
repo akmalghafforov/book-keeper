@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Client;
 use App\Models\Distribution;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Provider;
 use App\Models\Supplier;
 use App\Models\User;
@@ -65,6 +66,81 @@ class DistributionControllerTest extends TestCase
             ->assertSee(':disabled="!hasDefaultProvider"', false)
             ->assertViewHas('products', fn ($products) => $products->contains($this->product)
                 && $products->contains(fn (Product $product) => $product->default_provider_id === null));
+    }
+
+    public function test_create_defaults_to_the_highest_positive_usage_priority_category(): void
+    {
+        $lessUsed = ProductCategory::factory()->create(['name' => 'Alpha', 'usage_priority' => 2]);
+        $mostUsed = ProductCategory::factory()->create(['name' => 'Zulu', 'usage_priority' => 3]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertViewHas('defaultProductCategoryId', $mostUsed->id)
+            ->assertSee("productCategoryId: {$mostUsed->id}", false);
+
+        $this->assertNotSame($lessUsed->id, $mostUsed->id);
+    }
+
+    public function test_create_defaults_to_the_highest_positive_usage_priority_product(): void
+    {
+        $lessUsedCategory = ProductCategory::factory()->create(['usage_priority' => 5]);
+        $mostUsedCategory = ProductCategory::factory()->create(['usage_priority' => 1]);
+        Product::factory()->create([
+            'product_category_id' => $lessUsedCategory->id,
+            'usage_priority' => 2,
+        ]);
+        $mostUsed = Product::factory()->create([
+            'product_category_id' => $mostUsedCategory->id,
+            'usage_priority' => 3,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertViewHas('defaultProduct', fn (?Product $product) => $product?->is($mostUsed))
+            ->assertViewHas('defaultProductCategoryId', $mostUsedCategory->id)
+            ->assertViewHas('initialProductId', $mostUsed->id)
+            ->assertSee("productId: {$mostUsed->id}", false)
+            ->assertSee($mostUsed->name, false);
+    }
+
+    public function test_create_uses_existing_category_ordering_to_break_usage_priority_ties(): void
+    {
+        $first = ProductCategory::factory()->create(['name' => 'Alpha', 'usage_priority' => 3]);
+        ProductCategory::factory()->create(['name' => 'Bravo', 'usage_priority' => 3]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertViewHas('defaultProductCategoryId', $first->id);
+    }
+
+    public function test_create_leaves_category_unselected_when_all_usage_priorities_are_zero(): void
+    {
+        ProductCategory::factory()->create(['usage_priority' => 0]);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertViewHas('defaultProductCategoryId', null)
+            ->assertSee('productCategoryId: null', false);
+    }
+
+    public function test_create_preserves_old_category_input_over_the_computed_default(): void
+    {
+        $default = ProductCategory::factory()->create(['usage_priority' => 3]);
+        $selected = ProductCategory::factory()->create(['usage_priority' => 1]);
+
+        $this->actingAs($this->user)
+            ->post(route('admin.distributions.store'), ['product_category_id' => $selected->id])
+            ->assertSessionHasErrors(['client_id']);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertViewHas('defaultProductCategoryId', $default->id)
+            ->assertSee("productCategoryId: {$selected->id}", false);
     }
 
     public function test_store_creates_distribution_and_charge_ledger(): void

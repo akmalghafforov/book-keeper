@@ -98,6 +98,23 @@ class UsagePriorityTest extends TestCase
             ->assertViewHas('productCategories', fn ($categories) => $categories->pluck('id')->take(2)->all() === [$first->id, $second->id]);
     }
 
+    public function test_catalog_indexes_display_usage_priorities(): void
+    {
+        $category = ProductCategory::factory()->create(['usage_priority' => 7]);
+        $product = Product::factory()->create(['product_category_id' => $category->id, 'usage_priority' => 4]);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('admin.products.index'))
+            ->assertOk()
+            ->assertSee('Usage Priority')
+            ->assertSee((string) $product->usage_priority);
+
+        $this->actingAs($user)->get(route('admin.product-categories.index'))
+            ->assertOk()
+            ->assertSee('Usage Priority')
+            ->assertSee((string) $category->usage_priority);
+    }
+
     public function test_recalculation_command_is_scheduled_daily_without_overlapping(): void
     {
         $event = collect(app(Schedule::class)->events())
