@@ -84,6 +84,35 @@ class ProviderLedger extends Model
             ->orderBy('id');
     }
 
+    /**
+     * Include the provider's balance at each ledger entry, without letting
+     * filters or pagination change the running total.
+     */
+    public function scopeWithRunningBalance(Builder $query): Builder
+    {
+        $table = $this->getTable();
+        $operationDateTime = static::operationDateTimeExpression();
+        $balanceOperationDateTime = 'COALESCE(balance_ledgers.provider_received_at, balance_ledgers.transaction_date)';
+
+        return $query->select("{$table}.*")->selectSub(function ($balanceQuery) use ($table, $operationDateTime, $balanceOperationDateTime): void {
+            $balanceQuery
+                ->from("{$table} as balance_ledgers")
+                ->selectRaw("COALESCE(SUM(CASE WHEN balance_ledgers.type = 'payment' THEN -balance_ledgers.amount ELSE balance_ledgers.amount END), 0)")
+                ->whereColumn('balance_ledgers.provider_id', "{$table}.provider_id")
+                ->whereNull('balance_ledgers.deleted_at')
+                ->whereRaw("(
+                    {$balanceOperationDateTime} < {$operationDateTime}
+                    OR (
+                        {$balanceOperationDateTime} = {$operationDateTime}
+                        AND (
+                            balance_ledgers.sort_order < {$table}.sort_order
+                            OR (balance_ledgers.sort_order = {$table}.sort_order AND balance_ledgers.id <= {$table}.id)
+                        )
+                    )
+                )");
+        }, 'running_balance');
+    }
+
     public static function operationDateTimeExpression(): string
     {
         $table = (new static)->getTable();

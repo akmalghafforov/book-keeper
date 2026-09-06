@@ -8,8 +8,8 @@ use App\Exceptions\InvalidProviderLedgerWorkbook;
 use App\Http\Controllers\Controller;
 use App\Models\Provider;
 use App\Models\ProviderLedger;
-use App\Services\ProviderLedgerReconciler;
 use App\Services\PaymentCurrencyConverter;
+use App\Services\ProviderLedgerReconciler;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -67,7 +67,8 @@ class ProviderLedgerController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ProviderLedger::with(['provider', 'product', 'distribution'])
+        $query = ProviderLedger::with(['provider', 'product'])
+            ->withRunningBalance()
             ->inReverseOperationOrder();
 
         if ($request->filled('provider_id')) {

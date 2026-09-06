@@ -46,12 +46,54 @@ class ProviderLedgerControllerTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Provider Ledgers')
+            ->assertSeeInOrder([
+                __('Provider Date'),
+                __('Tonnage'),
+                __('Price'),
+                __('Total amount'),
+                __('Vehicle number'),
+                __('Paid amount'),
+                __('Balance'),
+                __('Provider'),
+                __('Product'),
+                __('Actions'),
+            ])
             ->assertSee('North Cement')
             ->assertSee('AA-1234')
             ->assertSee('4.000')
-            ->assertSee('payment')
-            ->assertSee(route('admin.reports.export-provider-ledger-debt', $chargeLedger), false)
+            ->assertDontSee(route('admin.reports.export-provider-ledger-debt', $chargeLedger), false)
             ->assertSee('25.0000');
+    }
+
+    public function test_index_displays_full_history_running_balances_and_split_charge_payment_columns(): void
+    {
+        ProviderLedger::factory()->create([
+            'provider_id' => $this->provider->id,
+            'amount' => '100.0000',
+            'quantity' => '3.500',
+            'buy_price' => '28.5714',
+            'car_number' => 'AA-1000',
+            'transaction_date' => '2026-06-01',
+            'provider_received_at' => '2026-06-01 09:00:00',
+        ]);
+        ProviderLedger::factory()->payment()->create([
+            'provider_id' => $this->provider->id,
+            'amount' => '30.0000',
+            'transaction_date' => '2026-06-02',
+            'provider_received_at' => '2026-06-02 09:00:00',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('admin.provider-ledgers.index', [
+            'date_from' => '2026-06-02',
+            'date_to' => '2026-06-02',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('30.0000')
+            ->assertSee('70.0000')
+            ->assertSee('-')
+            ->assertDontSee('AA-1000');
     }
 
     public function test_index_does_not_expose_provider_ledger_reordering(): void
@@ -432,7 +474,7 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('Аз номи Farid');
         $this->actingAs($this->user)->get(route('admin.provider-ledgers.index'))
             ->assertOk()
-            ->assertSee('Аз номи Farid');
+            ->assertDontSee('Аз номи Farid');
 
         $this->actingAs($this->user)->put(route('admin.provider-ledgers.update', $ledger), [
             'provider_id' => $this->provider->id,
