@@ -52,6 +52,17 @@ class DistributionControllerTest extends TestCase
         }
     }
 
+    public function test_create_date_picker_is_focused_without_opening_and_uses_keyboard_date_controls(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('admin.distributions.create'))
+            ->assertOk()
+            ->assertSee('clickOpens: false', false)
+            ->assertSee("if (event.key === 'Enter')", false)
+            ->assertSee("['ArrowLeft', 'ArrowRight'].includes(event.key)", false)
+            ->assertSee("setTimeout(() => input.focus(), 0)", false);
+    }
+
     public function test_create_exposes_provider_availability_and_conditionally_disables_provider_fields(): void
     {
         $provider = Provider::factory()->create();

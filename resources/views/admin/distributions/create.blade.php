@@ -219,7 +219,34 @@
                                         dateFormat: 'd/n/Y',
                                         defaultDate: '{{ old('distribution_date', $currentDate->format('d/n/Y')) }}',
                                         allowInput: true,
-                                        onReady: () => setTimeout(() => $refs.datepicker.focus(), 0),
+                                        clickOpens: false,
+                                        onReady: (_, __, picker) => {
+                                            const input = $refs.datepicker;
+
+                                            input.addEventListener('keydown', (event) => {
+                                                if (event.isComposing || event.keyCode === 229) return;
+
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    if (!picker.isOpen) picker.open();
+                                                    return;
+                                                }
+
+                                                if (picker.isOpen || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+
+                                                event.preventDefault();
+                                                event.stopPropagation();
+
+                                                const date = picker.parseDate(input.value, picker.config.dateFormat)
+                                                    || picker.selectedDates[0]
+                                                    || new Date();
+                                                date.setDate(date.getDate() + (event.key === 'ArrowRight' ? 1 : -1));
+                                                picker.setDate(date, true);
+                                            });
+
+                                            setTimeout(() => input.focus(), 0);
+                                        },
                                     });
                                 }
                             }">
