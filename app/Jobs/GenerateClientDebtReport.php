@@ -108,7 +108,13 @@ class GenerateClientDebtReport implements ShouldQueue
             $this->applyMobileShareImageCompatibility($combined, $format);
 
             $imageContent = $combined->getImageBlob();
-            Storage::disk('public')->put($path, $imageContent);
+            // Client reports contain personal financial data. Keep newly
+            // generated client images off the public storage symlink; the
+            // authenticated report image endpoint streams them when needed.
+            $storageDisk = in_array($this->report->type, ['single_client_debt', 'single_client_debt_range'], true)
+                ? 'local'
+                : 'public';
+            Storage::disk($storageDisk)->put($path, $imageContent);
 
             $imagick->clear();
             $combined->clear();

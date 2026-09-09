@@ -11,6 +11,7 @@ use App\Models\ProviderLedger;
 use App\Services\GeneratedReportLedgerBoundaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class ReportController extends Controller
 {
@@ -59,11 +60,10 @@ class ReportController extends Controller
         ]);
 
         $cutoff = now();
-        $parameters = [
-            'client_id' => $client->id,
+        $parameters = $this->clientReportParameters($client, [
             'locale' => app()->getLocale(),
             'cutoff_at' => $cutoff->toDateTimeString(),
-        ];
+        ]);
 
         $report = GeneratedReport::create([
             'name' => 'Debt Report: '.$client->name.' ('.$cutoff->format('Y-m-d H:i').')',
@@ -93,13 +93,12 @@ class ReportController extends Controller
             ? Carbon::parse($validated['end_date'])->startOfDay()
             : null;
         $cutoff = now();
-        $parameters = [
-            'client_id' => $client->id,
+        $parameters = $this->clientReportParameters($client, [
             'locale' => app()->getLocale(),
             'cutoff_at' => $cutoff->toDateTimeString(),
             'range_start_date' => $rangeStart->toDateString(),
             'range_end_date' => $rangeEnd?->toDateString(),
-        ];
+        ]);
         $rangeLabel = $rangeEnd
             ? $rangeStart->format('Y-m-d').' - '.$rangeEnd->format('Y-m-d')
             : 'from '.$rangeStart->format('Y-m-d');
@@ -129,14 +128,13 @@ class ReportController extends Controller
 
         $rangeStart = Carbon::parse($operation->transaction_date ?? $operation->created_at)->startOfDay();
         $cutoff = now();
-        $parameters = [
-            'client_id' => $operation->client_id,
+        $parameters = $this->clientReportParameters($operation->client, [
             'locale' => app()->getLocale(),
             'cutoff_at' => $cutoff->toDateTimeString(),
             'range_start_date' => $rangeStart->toDateString(),
             'range_end_date' => null,
             'range_start_ledger_id' => $operation->id,
-        ];
+        ]);
 
         $report = GeneratedReport::create([
             'name' => 'Debt Report: '.$operation->client->name.' (from operation #'.$operation->id.')',
@@ -213,5 +211,93 @@ class ReportController extends Controller
 
         return redirect()->route('admin.reports.index')
             ->with('success', __('Report regeneration started in the background. Please wait.'));
+    }
+
+    public function shareData(GeneratedReport $report)
+    {
+        $this->ensureShareableClientReport($report);
+
+        $parameters = $report->parameters ?? [];
+        $client = isset($parameters['client_id']) ? Client::withTrashed()->find($parameters['client_id']) : null;
+        $clientName = $parameters['client_name'] ?? $client?->name;
+
+        abort_if(blank($clientName), 422, __('This report has no client available for sharing.'));
+
+        $generatedAt = $report->report_generated_at?->format('Y-m-d H:i') ?? $report->created_at?->format('Y-m-d H:i');
+        $message = __('Debt report for :client (report #:serial, generated :generatedAt).', [
+            'client' => $clientName,
+            'serial' => $report->formatted_serial_number,
+            'generatedAt' => $generatedAt,
+        ]);
+
+        if ($context = $this->shareContext($parameters)) {
+            $message .= "\n".$context;
+        }
+
+        return response()->json([
+            'client_name' => $clientName,
+            'phone' => $parameters['client_phone'] ?? $client?->phone,
+            'message' => $message,
+            'image_url' => route('admin.reports.image', $report),
+            'file_name' => 'debt-report-'.$report->formatted_serial_number.'.'.$report->format,
+        ]);
+    }
+
+    public function image(GeneratedReport $report)
+    {
+        $this->ensureShareableClientReport($report);
+
+        return $this->reportStorageDisk($report)->response($report->file_path, null, [
+            'Content-Type' => $report->format === 'png' ? 'image/png' : 'image/jpeg',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    private function clientReportParameters(Client $client, array $parameters): array
+    {
+        return array_merge($parameters, [
+            'client_id' => $client->id,
+            'client_name' => $client->name,
+            'client_phone' => $client->phone,
+        ]);
+    }
+
+    private function ensureShareableClientReport(GeneratedReport $report): void
+    {
+        abort_unless(in_array($report->type, ['single_client_debt', 'single_client_debt_range'], true), 404);
+        abort_unless($report->status === 'completed' && filled($report->file_path), 404);
+
+        $path = (string) $report->file_path;
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        abort_unless(
+            str_starts_with($path, 'reports/')
+            && ! str_contains($path, '..')
+            && in_array($extension, ['png', 'jpg', 'jpeg'], true)
+            && ($this->reportStorageDisk($report)->exists($path)),
+            404,
+        );
+    }
+
+    private function reportStorageDisk(GeneratedReport $report)
+    {
+        // Existing reports remain on public storage. New client reports are
+        // private, so allow both locations during the transition.
+        return Storage::disk('local')->exists((string) $report->file_path)
+            ? Storage::disk('local')
+            : Storage::disk('public');
+    }
+
+    private function shareContext(array $parameters): ?string
+    {
+        $start = $parameters['range_start_date'] ?? null;
+        $end = $parameters['range_end_date'] ?? null;
+
+        if (! $start) {
+            return null;
+        }
+
+        return $end
+            ? __('Report period: :start to :end.', ['start' => $start, 'end' => $end])
+            : __('Report period: from :start.', ['start' => $start]);
     }
 }

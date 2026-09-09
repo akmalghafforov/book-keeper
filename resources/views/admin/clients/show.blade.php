@@ -26,7 +26,7 @@
             @if($client->latestReport)
                 <div class="h-4 w-px bg-gray-300 dark:bg-[#3E3E3A]"></div>
                 <button
-                    onclick="copyReportToClipboard(this, '{{ $client->latestReport->name }}', '{{ Storage::url($client->latestReport->file_path) }}')"
+                    onclick="copyReportToClipboard(this, '{{ $client->latestReport->name }}', '{{ route('admin.reports.image', $client->latestReport) }}')"
                     class="inline-flex items-center px-3 py-1.5 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm"
                     title="{{ __('Copy Last Report') }}"
                 >

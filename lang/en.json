@@ -280,5 +280,18 @@
     "No product categories found.": "No product categories found.",
     "Product category created successfully.": "Product category created successfully.",
     "Product category updated successfully.": "Product category updated successfully.",
-    "Select Product": "Select Product"
+    "Select Product": "Select Product",
+    "Share": "Share",
+    "Share via WhatsApp": "Share via WhatsApp",
+    "Close": "Close",
+    "Message": "Message",
+    "Include the country code to open a direct chat. You can leave this blank to choose a recipient in WhatsApp.": "Include the country code to open a direct chat. You can leave this blank to choose a recipient in WhatsApp.",
+    "Unable to prepare this report for sharing.": "Unable to prepare this report for sharing.",
+    "Enter a valid phone number including country code.": "Enter a valid phone number including country code.",
+    "Your browser cannot share or copy this report image.": "Your browser cannot share or copy this report image.",
+    "Unable to share this report.": "Unable to share this report.",
+    "This report has no client available for sharing.": "This report has no client available for sharing.",
+    "Debt report for :client (report #:serial, generated :generatedAt).": "Debt report for :client (report #:serial, generated :generatedAt).",
+    "Report period: :start to :end.": "Report period: :start to :end.",
+    "Report period: from :start.": "Report period: from :start."
 }

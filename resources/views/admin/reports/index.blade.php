@@ -60,20 +60,18 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 @if($report->status === 'completed' && $report->file_path)
-                                    <a href="{{ Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300" title="{{ __('Download') }}">
+                                    <a href="{{ in_array($report->type, ['single_client_debt', 'single_client_debt_range'], true) ? route('admin.reports.image', $report) : Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300" title="{{ __('Download') }}">
                                         {{ __('Download') }}
                                     </a>
 
-                                    <button
-                                        onclick="copyReportToClipboard(this, '{{ $report->name }}', '{{ Storage::url($report->file_path) }}')"
-                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center"
-                                        title="{{ __('Copy for WhatsApp') }}"
-                                    >
+                                    @if(in_array($report->type, ['single_client_debt', 'single_client_debt_range'], true))
+                                        <button type="button" onclick="openWhatsAppShare('{{ route('admin.reports.share-data', $report) }}')" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 inline-flex items-center" title="{{ __('Share via WhatsApp') }}">
                                         <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                                         </svg>
-                                        <span class="btn-text">{{ __('Copy') }}</span>
-                                    </button>
+                                        <span>{{ __('Share') }}</span>
+                                        </button>
+                                    @endif
 
                                 @endif
 

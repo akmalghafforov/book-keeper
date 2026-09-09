@@ -285,5 +285,18 @@
     "No product categories found.": "Категории продуктов не найдены.",
     "Product category created successfully.": "Категория продукта успешно создана.",
     "Product category updated successfully.": "Категория продукта успешно обновлена.",
-    "Select Product": "Выберите продукт"
+    "Select Product": "Выберите продукт",
+    "Share": "Поделиться",
+    "Share via WhatsApp": "Поделиться через WhatsApp",
+    "Close": "Закрыть",
+    "Message": "Сообщение",
+    "Include the country code to open a direct chat. You can leave this blank to choose a recipient in WhatsApp.": "Укажите код страны, чтобы открыть чат с клиентом. Оставьте поле пустым, чтобы выбрать получателя в WhatsApp.",
+    "Unable to prepare this report for sharing.": "Не удалось подготовить этот отчёт к отправке.",
+    "Enter a valid phone number including country code.": "Введите корректный номер телефона с кодом страны.",
+    "Your browser cannot share or copy this report image.": "Ваш браузер не может отправить или скопировать изображение отчёта.",
+    "Unable to share this report.": "Не удалось отправить этот отчёт.",
+    "This report has no client available for sharing.": "Для этого отчёта нет клиента для отправки.",
+    "Debt report for :client (report #:serial, generated :generatedAt).": "Отчёт о задолженности для :client (отчёт №:serial, сформирован :generatedAt).",
+    "Report period: :start to :end.": "Период отчёта: с :start по :end.",
+    "Report period: from :start.": "Период отчёта: с :start."
 }

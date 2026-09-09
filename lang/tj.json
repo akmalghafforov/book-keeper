@@ -285,5 +285,18 @@
     "No product categories found.": "Гурӯҳҳои маҳсулот ёфт нашуданд.",
     "Product category created successfully.": "Гурӯҳи маҳсулот бомуваффақият сохта шуд.",
     "Product category updated successfully.": "Гурӯҳи маҳсулот бомуваффақият нав шуд.",
-    "Select Product": "Маҳсулотро интихоб кунед"
+    "Select Product": "Маҳсулотро интихоб кунед",
+    "Share": "Мубодила",
+    "Share via WhatsApp": "Мубодила тавассути WhatsApp",
+    "Close": "Пӯшидан",
+    "Message": "Паём",
+    "Include the country code to open a direct chat. You can leave this blank to choose a recipient in WhatsApp.": "Барои кушодани чат коди кишварро ворид кунед. Майдонро холӣ гузоред, то қабулкунандаро дар WhatsApp интихоб кунед.",
+    "Unable to prepare this report for sharing.": "Омода кардани ин ҳисобот барои мубодила имконнопазир аст.",
+    "Enter a valid phone number including country code.": "Рақами дурусти телефонро бо коди кишвар ворид кунед.",
+    "Your browser cannot share or copy this report image.": "Браузери шумо тасвири ҳисоботро мубодила ё нусхабардорӣ карда наметавонад.",
+    "Unable to share this report.": "Мубодилаи ин ҳисобот имконнопазир аст.",
+    "This report has no client available for sharing.": "Барои ин ҳисобот мизоҷ барои мубодила дастрас нест.",
+    "Debt report for :client (report #:serial, generated :generatedAt).": "Ҳисоботи қарз барои :client (ҳисоботи №:serial, сохта шуд :generatedAt).",
+    "Report period: :start to :end.": "Давраи ҳисобот: аз :start то :end.",
+    "Report period: from :start.": "Давраи ҳисобот: аз :start."
 }

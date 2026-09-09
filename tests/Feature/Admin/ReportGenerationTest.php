@@ -15,6 +15,7 @@ use App\Services\ProviderDebtReportDataBuilder;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ReportGenerationTest extends TestCase
@@ -51,6 +52,8 @@ class ReportGenerationTest extends TestCase
         $this->assertSame($report->id, $report->serial_number);
         $this->assertSame($ledger->id, $report->last_included_ledger_id);
         $this->assertNotEmpty($report->parameters['cutoff_at']);
+        $this->assertSame($client->name, $report->parameters['client_name']);
+        $this->assertSame($client->phone, $report->parameters['client_phone']);
         Bus::assertDispatched(GenerateClientDebtReport::class);
     }
 
@@ -937,5 +940,64 @@ class ReportGenerationTest extends TestCase
         $this->assertStringContainsString('Selected Date Range Balance', $normalizedHtml);
         $this->assertMatchesRegularExpression('/Selected Date Range Balance:<\/strong> <span class="debt-positive"> 130 <\/span>/', $normalizedHtml);
         $this->assertStringNotContainsString('>110<', $normalizedHtml);
+    }
+
+    public function test_completed_client_report_exposes_share_context_and_a_protected_image(): void
+    {
+        Storage::fake('public');
+        $client = Client::factory()->create(['name' => 'Share Client', 'phone' => '+992 900 12 34 56']);
+        Storage::disk('public')->put('reports/share-client.jpg', 'image-content');
+
+        $report = GeneratedReport::create([
+            'name' => 'Debt Report: Share Client',
+            'type' => 'single_client_debt_range',
+            'format' => 'jpg',
+            'parameters' => [
+                'client_id' => $client->id,
+                'client_name' => 'Share Client',
+                'client_phone' => '+992 900 12 34 56',
+                'locale' => 'en',
+                'cutoff_at' => '2026-09-09 12:30:00',
+                'range_start_date' => '2026-09-01',
+                'range_end_date' => '2026-09-09',
+            ],
+            'status' => 'completed',
+            'file_path' => 'reports/share-client.jpg',
+        ]);
+
+        $shareResponse = $this->actingAs($this->user)
+            ->getJson(route('admin.reports.share-data', $report));
+
+        $shareResponse
+            ->assertOk()
+            ->assertJsonPath('client_name', 'Share Client')
+            ->assertJsonPath('phone', '+992 900 12 34 56')
+            ->assertJsonPath('image_url', route('admin.reports.image', $report))
+            ->assertJsonPath('file_name', 'debt-report-'.$report->formatted_serial_number.'.jpg');
+        $this->assertStringContainsString('Share Client', $shareResponse->json('message'));
+        $this->assertStringContainsString('2026-09-01', $shareResponse->json('message'));
+
+        $this->actingAs($this->user)
+            ->get(route('admin.reports.image', $report))
+            ->assertOk()
+            ->assertHeader('cache-control');
+    }
+
+    public function test_report_share_endpoints_require_authentication_and_reject_non_client_reports(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('reports/all-clients.jpg', 'image-content');
+        $report = GeneratedReport::create([
+            'name' => 'All clients',
+            'type' => 'client_debt',
+            'format' => 'jpg',
+            'parameters' => [],
+            'status' => 'completed',
+            'file_path' => 'reports/all-clients.jpg',
+        ]);
+
+        $this->get(route('admin.reports.share-data', $report))->assertRedirect(route('login'));
+        $this->actingAs($this->user)->get(route('admin.reports.share-data', $report))->assertNotFound();
+        $this->actingAs($this->user)->get(route('admin.reports.image', $report))->assertNotFound();
     }
 }

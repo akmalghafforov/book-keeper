@@ -170,7 +170,7 @@
                                 </button>
                                 @if($client->latestReport)
                                     <button
-                                        onclick="copyReportToClipboard(this, '{{ $client->latestReport->name }}', '{{ Storage::url($client->latestReport->file_path) }}')"
+                                        onclick="copyReportToClipboard(this, '{{ $client->latestReport->name }}', '{{ route('admin.reports.image', $client->latestReport) }}')"
                                         class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 inline-block"
                                         title="{{ __('Copy Last Report') }}"
                                     >
