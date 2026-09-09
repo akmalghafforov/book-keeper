@@ -6,6 +6,8 @@ DEV_COMPOSE_FILE := compose.dev.yaml
 PROD_COMPOSE_FILE := compose.prod.yaml
 DEV_SERVICE := laravel.test
 DEV_IMAGE := sail-8.5/app
+SAIL_RUNTIME := vendor/laravel/sail/runtimes/8.5/Dockerfile
+COMPOSER_IMAGE := laravelsail/php84-composer:latest
 TRAEFIK_PROJECT ?= ../mrstairs-backend
 TRAEFIK_LOCAL_CERT_DIR ?= $(TRAEFIK_PROJECT)/traefik/local/certs
 LOCAL_DOMAIN := taqsimot.fannjourney.test
@@ -35,6 +37,7 @@ help:
 	@echo "  logs-prod     Tail production container logs"
 	@echo "  restart-local Restart local Nginx and PHP-FPM daemons"
 	@echo "  build         Build the development Docker containers"
+	@echo "  composer-install Install locked Composer dependencies when Sail is missing"
 	@echo "  setup         Initial project setup (composer, env, key, migrate, npm)"
 	@echo "  test          Run PHPUnit tests"
 	@echo "  lint          Run Laravel Pint for code formatting"
@@ -47,7 +50,7 @@ help:
 	@echo "  composer c=   Run a composer command"
 	@echo "  npm c=        Run an npm command"
 
-up:
+up: composer-install
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) up -d
 
 down:
@@ -56,7 +59,7 @@ down:
 restart:
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) restart
 
-up-dev:
+up-dev: composer-install
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) up -d
 
 down-dev:
@@ -65,7 +68,7 @@ down-dev:
 restart-dev:
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) restart
 
-build-dev:
+build-dev: composer-install
 	@if docker image inspect $(DEV_IMAGE) >/dev/null 2>&1; then \
 		echo "The $(DEV_IMAGE) image already exists locally."; \
 		echo "Use 'make up-dev' to start the stack or 'make rebuild-dev' to force a fresh rebuild."; \
@@ -73,8 +76,14 @@ build-dev:
 		$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) build; \
 	fi
 
-rebuild-dev:
+rebuild-dev: composer-install
 	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) build --no-cache
+
+composer-install:
+	@if [ ! -f $(SAIL_RUNTIME) ]; then \
+		echo "Laravel Sail is missing; installing locked Composer dependencies..."; \
+		MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/var/www/html" -w /var/www/html $(COMPOSER_IMAGE) composer install --ignore-platform-req=ext-gd; \
+	fi
 
 up-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) up -d --build
@@ -162,4 +171,4 @@ supervisor-install:
 supervisor-status:
 	sudo supervisorctl status
 
-.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev up-prod down-prod restart-prod build-prod rebuild-prod cert-local logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status
+.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev composer-install up-prod down-prod restart-prod build-prod rebuild-prod cert-local logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status

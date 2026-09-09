@@ -10,7 +10,17 @@ services:
                 WWWGROUP: '${WWWGROUP:-1000}'
         image: 'sail-8.5/app'
         labels:
-            traefik.enable: 'false'
+            traefik.enable: 'true'
+            traefik.docker.network: 'traefik-net'
+            traefik.http.services.taqsimot-dev.loadbalancer.server.port: '80'
+            traefik.http.routers.taqsimot-dev.rule: 'Host(`taqsimot.fannjourney.test`)'
+            traefik.http.routers.taqsimot-dev.entrypoints: 'web'
+            traefik.http.routers.taqsimot-dev.middlewares: 'https-redirect@file'
+            traefik.http.routers.taqsimot-dev.priority: '100'
+            traefik.http.routers.taqsimot-dev-secure.rule: 'Host(`taqsimot.fannjourney.test`)'
+            traefik.http.routers.taqsimot-dev-secure.entrypoints: 'websecure'
+            traefik.http.routers.taqsimot-dev-secure.tls: 'true'
+            traefik.http.routers.taqsimot-dev-secure.priority: '100'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
