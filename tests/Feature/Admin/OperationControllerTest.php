@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Client;
 use App\Models\DebtLedger;
+use App\Models\Distribution;
 use App\Models\GeneratedReport;
 use App\Models\User;
 use Carbon\Carbon;
@@ -49,7 +50,7 @@ class OperationControllerTest extends TestCase
         $response->assertSeeInOrder(['145.00', '95.00', '125.00']);
     }
 
-    public function test_operations_index_marks_latest_client_debt_report_records_with_reported_button_when_client_filter_is_selected(): void
+    public function test_operations_index_marks_latest_client_debt_report_records_with_report_status_icon_when_client_filter_is_selected(): void
     {
         $user = User::factory()->create();
         $client = Client::factory()->create();
@@ -113,19 +114,20 @@ class OperationControllerTest extends TestCase
         $response->assertOk();
         $this->assertSame(1, substr_count($response->getContent(), 'bg-red-600'));
         $this->assertStringContainsString('bg-red-600', $this->tableRowContaining($response->getContent(), 'Latest report ledger'));
-        $this->assertStringContainsString(__('Reported'), $this->tableRowContaining($response->getContent(), 'Latest report ledger'));
+        $this->assertStringContainsString('aria-label="'.__('Included in the latest completed debt report for this client').'"', $this->tableRowContaining($response->getContent(), 'Latest report ledger'));
+        $this->assertStringContainsString('<svg', $this->tableRowContaining($response->getContent(), 'Latest report ledger'));
         $this->assertStringNotContainsString('bg-red-600', $this->tableRowContaining($response->getContent(), 'Already summarized ledger'));
-        $this->assertStringNotContainsString(__('Reported'), $this->tableRowContaining($response->getContent(), 'Already summarized ledger'));
+        $this->assertStringNotContainsString(__('Included in the latest completed debt report for this client'), $this->tableRowContaining($response->getContent(), 'Already summarized ledger'));
         $this->assertStringNotContainsString('bg-red-600', $this->tableRowContaining($response->getContent(), 'After report ledger'));
-        $this->assertStringNotContainsString(__('Reported'), $this->tableRowContaining($response->getContent(), 'After report ledger'));
+        $this->assertStringContainsString('aria-label="'.__('Generate debt report from this operation').'"', $this->tableRowContaining($response->getContent(), 'After report ledger'));
 
         $responseWithoutClientFilter = $this->actingAs($user)->get(route('admin.operations.index'));
 
         $this->assertStringNotContainsString('bg-red-600', $responseWithoutClientFilter->getContent());
-        $this->assertStringNotContainsString(__('Reported'), $responseWithoutClientFilter->getContent());
+        $this->assertStringNotContainsString(__('Included in the latest completed debt report for this client'), $responseWithoutClientFilter->getContent());
     }
 
-    public function test_operations_index_marks_operation_range_report_records_with_reported_button_when_client_filter_is_selected(): void
+    public function test_operations_index_marks_operation_range_report_records_with_report_status_icon_when_client_filter_is_selected(): void
     {
         $user = User::factory()->create();
         $client = Client::factory()->create();
@@ -179,11 +181,63 @@ class OperationControllerTest extends TestCase
         $response->assertOk();
         $this->assertSame(2, substr_count($response->getContent(), 'bg-red-600'));
         $this->assertStringContainsString('bg-red-600', $this->tableRowContaining($response->getContent(), 'Range selected ledger'));
-        $this->assertStringContainsString(__('Reported'), $this->tableRowContaining($response->getContent(), 'Range selected ledger'));
+        $this->assertStringContainsString('aria-label="'.__('Included in the latest completed debt report for this client').'"', $this->tableRowContaining($response->getContent(), 'Range selected ledger'));
         $this->assertStringContainsString('bg-red-600', $this->tableRowContaining($response->getContent(), 'Range later ledger'));
-        $this->assertStringContainsString(__('Reported'), $this->tableRowContaining($response->getContent(), 'Range later ledger'));
+        $this->assertStringContainsString('aria-label="'.__('Included in the latest completed debt report for this client').'"', $this->tableRowContaining($response->getContent(), 'Range later ledger'));
         $this->assertStringNotContainsString('bg-red-600', $this->tableRowContaining($response->getContent(), 'Same day opening ledger'));
-        $this->assertStringNotContainsString(__('Reported'), $this->tableRowContaining($response->getContent(), 'Same day opening ledger'));
+        $this->assertStringContainsString('aria-label="'.__('Generate debt report from this operation').'"', $this->tableRowContaining($response->getContent(), 'Same day opening ledger'));
+    }
+
+    public function test_operations_index_renders_refined_table_columns_and_values(): void
+    {
+        $user = User::factory()->create();
+        $client = Client::factory()->create(['name' => 'Sticky Client']);
+        $distribution = Distribution::factory()->create([
+            'client_id' => $client->id,
+            'quantity' => 12.5,
+            'price' => 20,
+            'credit_client_price' => 18.75,
+            'subtotal' => 250,
+            'distribution_date' => '2026-09-09',
+        ]);
+
+        $creditNote = DebtLedger::query()
+            ->where('reference_id', $distribution->id)
+            ->where('type', 'credit_note')
+            ->first();
+
+        if (! $creditNote) {
+            $creditNote = DebtLedger::factory()->creditNote()->create([
+                'client_id' => $client->id,
+                'reference_id' => $distribution->id,
+                'transaction_date' => '2026-09-09',
+                'notes' => 'Credit price fallback operation',
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('admin.operations.index'));
+
+        $response->assertOk();
+        $response->assertSeeInOrder([
+            __('Actions'), __('Date'), __('Client'), __('Product'), __('Qty × Price'),
+            __('Amount'), __('Balance'), __('Notes'),
+        ]);
+        $response->assertDontSee('>'.__('Operation').'<', false);
+        $response->assertSee('sticky left-0', false);
+        $response->assertSee('sticky left-16', false);
+        $response->assertSee('sticky left-[7.5rem]', false);
+        $response->assertSee('9/9', false);
+        $response->assertSee('bg-blue-500', false);
+        $response->assertSee('aria-label="'.__('credit_note').'"', false);
+        $response->assertSee('12.50 × 18.75', false);
+    }
+
+    public function test_operations_index_empty_state_spans_refined_columns(): void
+    {
+        $response = $this->actingAs(User::factory()->create())->get(route('admin.operations.index'));
+
+        $response->assertOk();
+        $response->assertSee('colspan="8"', false);
     }
 
     private function tableRowContaining(string $content, string $needle): string
