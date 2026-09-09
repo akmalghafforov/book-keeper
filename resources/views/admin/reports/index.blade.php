@@ -60,7 +60,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 @if($report->status === 'completed' && $report->file_path)
-                                    <a href="{{ in_array($report->type, ['single_client_debt', 'single_client_debt_range'], true) ? route('admin.reports.image', $report) : Storage::url($report->file_path) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300" title="{{ __('Download') }}">
+                                    <a href="{{ route('admin.reports.image', $report) }}" target="_blank" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300" title="{{ __('Download') }}">
                                         {{ __('Download') }}
                                     </a>
 

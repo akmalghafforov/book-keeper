@@ -983,7 +983,7 @@ class ReportGenerationTest extends TestCase
             ->assertHeader('cache-control');
     }
 
-    public function test_report_share_endpoints_require_authentication_and_reject_non_client_reports(): void
+    public function test_report_share_endpoints_require_authentication_and_reject_non_client_shares(): void
     {
         Storage::fake('public');
         Storage::disk('public')->put('reports/all-clients.jpg', 'image-content');
@@ -998,6 +998,6 @@ class ReportGenerationTest extends TestCase
 
         $this->get(route('admin.reports.share-data', $report))->assertRedirect(route('login'));
         $this->actingAs($this->user)->get(route('admin.reports.share-data', $report))->assertNotFound();
-        $this->actingAs($this->user)->get(route('admin.reports.image', $report))->assertNotFound();
+        $this->actingAs($this->user)->get(route('admin.reports.image', $report))->assertOk();
     }
 }

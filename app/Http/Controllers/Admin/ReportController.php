@@ -245,7 +245,7 @@ class ReportController extends Controller
 
     public function image(GeneratedReport $report)
     {
-        $this->ensureShareableClientReport($report);
+        $this->ensureReportImageAvailable($report);
 
         return $this->reportStorageDisk($report)->response($report->file_path, null, [
             'Content-Type' => $report->format === 'png' ? 'image/png' : 'image/jpeg',
@@ -265,6 +265,11 @@ class ReportController extends Controller
     private function ensureShareableClientReport(GeneratedReport $report): void
     {
         abort_unless(in_array($report->type, ['single_client_debt', 'single_client_debt_range'], true), 404);
+        $this->ensureReportImageAvailable($report);
+    }
+
+    private function ensureReportImageAvailable(GeneratedReport $report): void
+    {
         abort_unless($report->status === 'completed' && filled($report->file_path), 404);
 
         $path = (string) $report->file_path;
