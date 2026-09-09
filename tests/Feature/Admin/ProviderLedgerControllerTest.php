@@ -197,7 +197,38 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('value="1"', false)
             ->assertSee(__('Converted amount'), false)
             ->assertDontSee('<option value="other">'.__('Other').'</option>', false)
+            ->assertDontSee('id="payment_purpose"', false)
+            ->assertSeeInOrder([
+                'id="transaction_date"',
+                'id="provider_id"',
+                'id="type"',
+                'id="amount"',
+                'id="currency"',
+                'id="exchange_rate"',
+                'id="payment_method"',
+                'id="car_number"',
+                'id="notes"',
+            ], false)
+            ->assertSee("dateFormat: 'd/n/Y H:i'", false)
+            ->assertSee('clickOpens: false', false)
+            ->assertSee("event.key === 'Enter'", false)
+            ->assertSee("['ArrowLeft', 'ArrowRight']", false)
+            ->assertSee('window.enableSelect2SearchOnTyping($refs.select)', false)
+            ->assertSee('formatAmount(value)', false)
+            ->assertSee('<input type="hidden" name="amount" :value="amount">', false)
+            ->assertSee("x-show=\"currency !== 'TJS'\"", false)
+            ->assertSee(':required="type === \'payment\' && currency !== \'TJS\'"', false)
             ->assertSee('North Cement');
+    }
+
+    public function test_create_defaults_to_the_first_provider(): void
+    {
+        $firstProvider = Provider::factory()->create(['name' => 'Apex Supplies']);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.provider-ledgers.create'))
+            ->assertOk()
+            ->assertSee('<option value="'.$firstProvider->id.'" selected>Apex Supplies</option>', false);
     }
 
     public function test_create_uses_the_application_datetime_as_the_default(): void
