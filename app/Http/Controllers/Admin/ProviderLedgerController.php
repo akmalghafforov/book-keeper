@@ -230,7 +230,7 @@ class ProviderLedgerController extends Controller
             'provider_id' => 'required|exists:providers,id',
             'type' => ['required', Rule::in(['charge', 'payment'])],
             'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
-            'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class)],
+            'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class), Rule::notIn([PaymentPurpose::Other->value])],
             'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
             'amount' => 'required|numeric|min:0.01',
             ...($paymentCurrencyConverter?->rules() ?? []),

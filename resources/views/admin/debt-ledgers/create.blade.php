@@ -16,9 +16,21 @@
     currency: '{{ old('currency', 'TJS') }}',
     exchangeRate: '{{ old('exchange_rate', '1') }}',
     amount: '{{ old('amount', '') }}',
+    init() {
+        this.enforceTjsRate();
+    },
     convertedAmount() {
         const converted = Number(this.amount) * Number(this.exchangeRate);
         return Number.isFinite(converted) ? converted.toFixed(2) : '0.00';
+    },
+    formatAmount(value) {
+        const [whole, ...decimalParts] = String(value).replace(/,/g, '').replace(/[^\d.]/g, '').split('.');
+        const decimal = decimalParts.join('');
+        const rawAmount = `${whole}${decimalParts.length ? `.${decimal}` : ''}`;
+
+        this.amount = rawAmount;
+
+        return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${decimalParts.length ? `.${decimal}` : ''}`;
     },
     enforceTjsRate() {
         if (this.currency === 'TJS') this.exchangeRate = '1';
@@ -36,7 +48,57 @@
         <div class="p-8">
             <form action="{{ route('admin.debt-ledgers.store') }}" method="POST" class="space-y-6" data-arrow-navigation>
                 @csrf
-                
+
+                <div x-data="{
+                    init() {
+                        flatpickr($refs.datepicker, {
+                            dateFormat: 'd/n/Y',
+                            defaultDate: '{{ old('transaction_date', $currentDate->format('d/n/Y')) }}',
+                            allowInput: true,
+                            clickOpens: false,
+                            onReady: (_, __, picker) => {
+                                const input = $refs.datepicker;
+
+                                input.addEventListener('keydown', (event) => {
+                                    if (event.isComposing || event.keyCode === 229) return;
+
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        if (!picker.isOpen) picker.open();
+                                        return;
+                                    }
+
+                                    if (picker.isOpen || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+
+                                    event.preventDefault();
+                                    event.stopPropagation();
+
+                                    const date = picker.parseDate(input.value, picker.config.dateFormat)
+                                        || picker.selectedDates[0]
+                                        || new Date();
+                                    date.setDate(date.getDate() + (event.key === 'ArrowRight' ? 1 : -1));
+                                    picker.setDate(date, true);
+                                });
+
+                                setTimeout(() => input.focus(), 0);
+                            },
+                        });
+                    }
+                }">
+                    <label for="transaction_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Transaction Date') }}</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <input type="text" name="transaction_date" id="transaction_date" x-ref="datepicker" required
+                            class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                            placeholder="dd/mm/yyyy">
+                    </div>
+                    @error('transaction_date')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Client') }}</label>
@@ -49,6 +111,7 @@
                                 width: '100%',
                                 matcher: window.clientSelect2Matcher
                             });
+                            window.enableSelect2SearchOnTyping($refs.select);
                             $($refs.select).on('change', () => { clientId = $($refs.select).val() });
                         "
                         x-effect="$($refs.select).val(clientId).trigger('change')"
@@ -77,27 +140,12 @@
                     @enderror
                 </div>
 
-                <div x-show="type === 'payment'" x-cloak>
-                    <label for="payment_method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Payment Method') }}</label>
-                    <select name="payment_method" id="payment_method" :required="type === 'payment'"
-                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
-                        <option value="">{{ __('Select a payment method') }}</option>
-                        @foreach(\App\Enums\PaymentMethod::cases() as $paymentMethod)
-                            <option value="{{ $paymentMethod->value }}" {{ old('payment_method', 'cash') === $paymentMethod->value ? 'selected' : '' }}>{{ $paymentMethod->label() }}</option>
-                        @endforeach
-                    </select>
-                    @error('payment_method')
-                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                @include('admin.partials.payment-purpose-fields', ['paymentPurpose' => old('payment_purpose', ''), 'payerName' => old('payer_name')])
-
                 <div>
                     <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Amount') }}</label>
-                    <input type="number" name="amount" id="amount" x-model="amount" value="{{ old('amount') }}" step="0.01" min="0.01" required
+                    <input type="text" id="amount" value="{{ old('amount') }}" x-init="$el.value = formatAmount($el.value)" @input="$el.value = formatAmount($el.value)" inputmode="decimal" required
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
                         placeholder="0.00">
+                    <input type="hidden" name="amount" :value="amount">
                     @error('amount')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
@@ -116,9 +164,9 @@
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                         @enderror
                     </div>
-                    <div>
+                    <div x-show="currency !== 'TJS'" x-cloak>
                         <label for="exchange_rate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Exchange Rate') }}</label>
-                        <input type="number" name="exchange_rate" id="exchange_rate" x-model="exchangeRate" value="{{ old('exchange_rate', '1') }}" :readonly="currency === 'TJS'" :required="type === 'payment'" step="0.0001" min="0.0001"
+                        <input type="number" name="exchange_rate" id="exchange_rate" x-model="exchangeRate" value="{{ old('exchange_rate', '1') }}" :required="type === 'payment' && currency !== 'TJS'" step="0.0001" min="0.0001"
                             class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
                         @error('exchange_rate')
                             <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -127,30 +175,23 @@
                     <p class="sm:col-span-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Converted amount') }}: <span x-text="convertedAmount()"></span> TJS</p>
                 </div>
 
-                <div x-data="{
-                    init() {
-                        flatpickr($refs.datepicker, {
-                            dateFormat: 'd/n/Y',
-                            defaultDate: '{{ old('transaction_date', $currentDate->format('d/n/Y')) }}',
-                            allowInput: true,
-                        });
-                    }
-                }">
-                    <label for="transaction_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Transaction Date') }}</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </div>
-                        <input type="text" name="transaction_date" id="transaction_date" x-ref="datepicker" required
-                            class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                            placeholder="dd/mm/yyyy">
-                    </div>
-                    @error('transaction_date')
+                <div x-show="type === 'payment'" x-cloak>
+                    <label for="payment_method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Payment Method') }}</label>
+                    <select name="payment_method" id="payment_method" :required="type === 'payment'"
+                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
+                        <option value="">{{ __('Select a payment method') }}</option>
+                        @foreach(\App\Enums\PaymentMethod::cases() as $paymentMethod)
+                            <option value="{{ $paymentMethod->value }}" {{ old('payment_method', 'cash') === $paymentMethod->value ? 'selected' : '' }}>{{ $paymentMethod->label() }}</option>
+                        @endforeach
+                    </select>
+                    @error('payment_method')
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <div>
+                @include('admin.partials.payment-purpose-fields', ['paymentPurpose' => old('payment_purpose', ''), 'payerName' => old('payer_name'), 'includeOther' => true])
+
+                <div x-show="type !== 'payment'" x-cloak>
                     <label for="reference_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Reference ID (Optional)') }}</label>
                     <input type="number" name="reference_id" id="reference_id" value="{{ old('reference_id') }}"
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
@@ -159,7 +200,7 @@
                     @enderror
                 </div>
 
-                <div>
+                <div x-show="type !== 'payment' || paymentPurpose === 'other'" x-cloak>
                     <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Notes (Optional)') }}</label>
                     <textarea name="notes" id="notes" rows="3"
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">{{ old('notes') }}</textarea>

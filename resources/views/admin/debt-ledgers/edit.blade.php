@@ -9,7 +9,21 @@
 @endpush
 
 @section('content')
-<div class="max-w-2xl mx-auto space-y-6" x-data="{ clientId: '{{ old('client_id') ?? $debtLedger->client_id }}', type: '{{ old('type', $debtLedger->type) }}', paymentPurpose: @js(old('payment_purpose', $debtLedger->payment_purpose?->value)) }">
+<div class="max-w-2xl mx-auto space-y-6" x-data="{
+    clientId: '{{ old('client_id') ?? $debtLedger->client_id }}',
+    type: '{{ old('type', $debtLedger->type) }}',
+    paymentPurpose: @js(old('payment_purpose', $debtLedger->payment_purpose?->value)),
+    amount: @js(old('amount', $debtLedger->amount)),
+    formatAmount(value) {
+        const [whole, ...decimalParts] = String(value).replace(/,/g, '').replace(/[^\d.]/g, '').split('.');
+        const decimal = decimalParts.join('');
+        const rawAmount = `${whole}${decimalParts.length ? `.${decimal}` : ''}`;
+
+        this.amount = rawAmount;
+
+        return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${decimalParts.length ? `.${decimal}` : ''}`;
+    },
+}">
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Debt Ledger Entry</h2>
         <a href="{{ route('admin.debt-ledgers.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200">
@@ -23,7 +37,57 @@
             <form action="{{ route('admin.debt-ledgers.update', $debtLedger) }}" method="POST" class="space-y-6">
                 @csrf
                 @method('PUT')
-                
+
+                <div x-data="{
+                    init() {
+                        flatpickr($refs.datepicker, {
+                            dateFormat: 'd/n/Y',
+                            defaultDate: '{{ old('transaction_date', optional($debtLedger->transaction_date)?->format('d/n/Y')) }}',
+                            allowInput: true,
+                            clickOpens: false,
+                            onReady: (_, __, picker) => {
+                                const input = $refs.datepicker;
+
+                                input.addEventListener('keydown', (event) => {
+                                    if (event.isComposing || event.keyCode === 229) return;
+
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        if (!picker.isOpen) picker.open();
+                                        return;
+                                    }
+
+                                    if (picker.isOpen || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+
+                                    event.preventDefault();
+                                    event.stopPropagation();
+
+                                    const date = picker.parseDate(input.value, picker.config.dateFormat)
+                                        || picker.selectedDates[0]
+                                        || new Date();
+                                    date.setDate(date.getDate() + (event.key === 'ArrowRight' ? 1 : -1));
+                                    picker.setDate(date, true);
+                                });
+
+                                setTimeout(() => input.focus(), 0);
+                            },
+                        });
+                    }
+                }">
+                    <label for="transaction_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Transaction Date') }}</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <input type="text" name="transaction_date" id="transaction_date" x-ref="datepicker" required
+                            class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                            placeholder="dd/mm/yyyy">
+                    </div>
+                    @error('transaction_date')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Client') }}</label>
@@ -36,6 +100,7 @@
                                 width: '100%',
                                 matcher: window.clientSelect2Matcher
                             });
+                            window.enableSelect2SearchOnTyping($refs.select);
                             $($refs.select).on('change', () => { clientId = $($refs.select).val() });
                         "
                         x-effect="$($refs.select).val(clientId).trigger('change')"
@@ -64,6 +129,17 @@
                     @enderror
                 </div>
 
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Amount') }}</label>
+                    <input type="text" id="amount" value="{{ old('amount') ?? $debtLedger->amount }}" x-init="$el.value = formatAmount($el.value)" @input="$el.value = formatAmount($el.value)" inputmode="decimal" required
+                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
+                        placeholder="0.00">
+                    <input type="hidden" name="amount" :value="amount">
+                    @error('amount')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <div x-show="type === 'payment'" x-cloak>
                     <label for="payment_method" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Payment Method') }}</label>
                     <select name="payment_method" id="payment_method" :required="type === 'payment'"
@@ -78,42 +154,9 @@
                     @enderror
                 </div>
 
-                @include('admin.partials.payment-purpose-fields', ['paymentPurpose' => old('payment_purpose', $debtLedger->payment_purpose?->value), 'payerName' => old('payer_name', $debtLedger->payer_name)])
+                @include('admin.partials.payment-purpose-fields', ['paymentPurpose' => old('payment_purpose', $debtLedger->payment_purpose?->value), 'payerName' => old('payer_name', $debtLedger->payer_name), 'includeOther' => true])
 
-                <div>
-                    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Amount') }}</label>
-                    <input type="number" name="amount" id="amount" value="{{ old('amount') ?? $debtLedger->amount }}" step="0.01" min="0.01" required
-                        class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                        placeholder="0.00">
-                    @error('amount')
-                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div x-data="{
-                    init() {
-                        flatpickr($refs.datepicker, {
-                            dateFormat: 'd/n/Y',
-                            defaultDate: '{{ old('transaction_date', optional($debtLedger->transaction_date)?->format('d/n/Y')) }}',
-                            allowInput: true,
-                        });
-                    }
-                }">
-                    <label for="transaction_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Transaction Date') }}</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </div>
-                        <input type="text" name="transaction_date" id="transaction_date" x-ref="datepicker" required
-                            class="block w-full pl-10 pr-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200"
-                            placeholder="dd/mm/yyyy">
-                    </div>
-                    @error('transaction_date')
-                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
+                <div x-show="type !== 'payment'" x-cloak>
                     <label for="reference_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Reference ID (Optional)') }}</label>
                     <input type="number" name="reference_id" id="reference_id" value="{{ old('reference_id') ?? $debtLedger->reference_id }}"
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
@@ -122,7 +165,7 @@
                     @enderror
                 </div>
 
-                <div>
+                <div x-show="type !== 'payment' || paymentPurpose === 'other'" x-cloak>
                     <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('Notes (Optional)') }}</label>
                     <textarea name="notes" id="notes" rows="3"
                         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">{{ old('notes') ?? $debtLedger->notes }}</textarea>

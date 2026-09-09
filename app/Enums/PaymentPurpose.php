@@ -8,6 +8,7 @@ enum PaymentPurpose: string
     case VehicleAndLabor = 'vehicle_and_labor';
     case Vehicle = 'vehicle';
     case Labor = 'labor';
+    case Other = 'other';
 
     public function label(?string $payerName = null): string
     {
@@ -18,6 +19,7 @@ enum PaymentPurpose: string
             self::VehicleAndLabor => __('Money for vehicle and labor'),
             self::Vehicle => __('Money for vehicle'),
             self::Labor => __('Money for labor'),
+            self::Other => __('Other'),
         };
     }
 }

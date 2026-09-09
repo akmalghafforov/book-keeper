@@ -52,7 +52,24 @@ class DebtLedgerControllerTest extends TestCase
                 ->assertSee('<option value="UZS"', false)
                 ->assertSee('<option value="RUB"', false)
                 ->assertSee('value="1"', false)
-                ->assertSee(__('Converted amount'), false);
+                ->assertSee(__('Converted amount'), false)
+                ->assertSeeInOrder([
+                    'id="transaction_date"',
+                    'id="client_id"',
+                    'id="type"',
+                    'id="amount"',
+                    'id="currency"',
+                    'id="payment_method"',
+                    'id="payment_purpose"',
+                ], false)
+                ->assertSee('clickOpens: false', false)
+                ->assertSee("event.key === 'Enter'", false)
+                ->assertSee("['ArrowLeft', 'ArrowRight']", false)
+                ->assertSee('window.enableSelect2SearchOnTyping($refs.select)', false)
+                ->assertSee('formatAmount(value)', false)
+                ->assertSee('<input type="hidden" name="amount" :value="amount">', false)
+                ->assertSee("currency !== 'TJS'", false)
+                ->assertSee(':required="type === \'payment\' && currency !== \'TJS\'"', false);
         } finally {
             Carbon::setTestNow();
         }
@@ -77,6 +94,74 @@ class DebtLedgerControllerTest extends TestCase
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_debt_ledger_forms_show_other_only_for_debt_payments_and_conditionally_show_notes_and_reference_id(): void
+    {
+        $create = $this->actingAs($this->user)->get(route('admin.debt-ledgers.create'));
+
+        $create
+            ->assertOk()
+            ->assertSee('value="other"', false)
+            ->assertSee(__('Other'), false)
+            ->assertSee("x-show=\"type !== 'payment'\"", false)
+            ->assertSee("x-show=\"type !== 'payment' || paymentPurpose === 'other'\"", false);
+
+        $ledger = DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'payment_purpose' => 'other',
+            'notes' => 'Saved other-purpose note',
+        ]);
+
+        $this->actingAs($this->user)->get(route('admin.debt-ledgers.edit', $ledger))
+            ->assertOk()
+            ->assertSee('<option value="other" selected>'.__('Other').'</option>', false)
+            ->assertSee('Saved other-purpose note', false)
+            ->assertSeeInOrder([
+                'id="transaction_date"',
+                'id="client_id"',
+                'id="type"',
+                'id="amount"',
+                'id="payment_method"',
+                'id="payment_purpose"',
+            ], false)
+            ->assertSee('clickOpens: false', false)
+            ->assertSee('window.enableSelect2SearchOnTyping($refs.select)', false)
+            ->assertSee('formatAmount(value)', false)
+            ->assertSee('<input type="hidden" name="amount" :value="amount">', false)
+            ->assertSee("x-show=\"type !== 'payment'\"", false)
+            ->assertSee("x-show=\"type !== 'payment' || paymentPurpose === 'other'\"", false);
+    }
+
+    public function test_other_payment_purpose_is_accepted_and_old_notes_are_retained(): void
+    {
+        $payload = [
+            'type' => 'payment',
+            'payment_method' => 'cash',
+            'payment_purpose' => 'other',
+            'amount' => 100,
+            'currency' => 'TJS',
+            'exchange_rate' => 1,
+            'transaction_date' => '10/03/2026',
+            'notes' => 'Retained after validation error',
+        ];
+
+        $this->actingAs($this->user)
+            ->from(route('admin.debt-ledgers.create'))
+            ->post(route('admin.debt-ledgers.store'), $payload)
+            ->assertSessionHasErrors('client_id');
+
+        $this->actingAs($this->user)->get(route('admin.debt-ledgers.create'))
+            ->assertSee('<option value="other" selected>'.__('Other').'</option>', false)
+            ->assertSee('Retained after validation error', false);
+
+        $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payload, 'client_id' => $this->client->id])
+            ->assertRedirect(route('admin.debt-ledgers.index'));
+
+        $this->assertDatabaseHas('debt_ledgers', [
+            'payment_purpose' => 'other',
+            'notes' => 'Retained after validation error',
+        ]);
     }
 
     public function test_store_creates_payment_ledger_entry(): void

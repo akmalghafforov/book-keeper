@@ -4,6 +4,7 @@
         class="block w-full px-3 py-2 bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[#3E3E3A] text-gray-900 dark:text-white rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all duration-200">
         <option value="">{{ __('Select a payment purpose') }}</option>
         @foreach(\App\Enums\PaymentPurpose::cases() as $purpose)
+            @continue($purpose === \App\Enums\PaymentPurpose::Other && !($includeOther ?? false))
             <option value="{{ $purpose->value }}" {{ $paymentPurpose === $purpose->value ? 'selected' : '' }}>{{ $purpose->label() }}</option>
         @endforeach
     </select>

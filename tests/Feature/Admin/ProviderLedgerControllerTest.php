@@ -196,6 +196,7 @@ class ProviderLedgerControllerTest extends TestCase
             ->assertSee('<option value="RUB"', false)
             ->assertSee('value="1"', false)
             ->assertSee(__('Converted amount'), false)
+            ->assertDontSee('<option value="other">'.__('Other').'</option>', false)
             ->assertSee('North Cement');
     }
 
@@ -485,6 +486,11 @@ class ProviderLedgerControllerTest extends TestCase
 
             $this->assertDatabaseHas('provider_ledgers', ['payment_purpose' => $purpose, 'payer_name' => null]);
         }
+
+        $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
+            ...$payload,
+            'payment_purpose' => 'other',
+        ])->assertSessionHasErrors('payment_purpose');
 
         $this->actingAs($this->user)->post(route('admin.provider-ledgers.store'), [
             ...$payload,
