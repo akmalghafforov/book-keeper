@@ -41,6 +41,8 @@ Route::middleware(['auth'])->group(function () {
         });
         Route::get('database/download', \App\Http\Controllers\Admin\DatabaseDownloadController::class)
             ->name('database.download');
+        Route::post('database/import', \App\Http\Controllers\Admin\DatabaseImportController::class)
+            ->name('database.import');
         Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class)->except(['destroy']);
         Route::resource('shops', \App\Http\Controllers\Admin\ShopController::class)->only(['store']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);

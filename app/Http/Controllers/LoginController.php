@@ -4,16 +4,25 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 
 class LoginController extends Controller
 {
-    public function show()
+    public function show(Request $request)
     {
         if (Auth::check()) {
             return redirect()->intended('dashboard');
         }
 
-        return view('auth.login');
+        $response = response()->view('auth.login', [
+            'databaseImportStatus' => $request->cookie('database_import_status'),
+        ]);
+
+        if ($request->hasCookie('database_import_status')) {
+            $response->withCookie(Cookie::forget('database_import_status'));
+        }
+
+        return $response;
     }
 
     public function login(Request $request)

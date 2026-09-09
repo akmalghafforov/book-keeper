@@ -152,6 +152,17 @@
                         <span class="sr-only">{{ __('Download database') }}</span>
                     </a>
 
+                    <form action="{{ route('admin.database.import') }}" method="POST" enctype="multipart/form-data" x-data x-ref="databaseImportForm" onsubmit="return confirm('{{ __('Importing a database will replace the current project database and sign you out. Continue?') }}')">
+                        @csrf
+                        <label for="database_import" title="{{ __('Import database') }}" class="cursor-pointer p-2 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21V9m0 0l-4 4m4-4l4 4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path>
+                            </svg>
+                            <span class="sr-only">{{ __('Import database') }}</span>
+                        </label>
+                        <input id="database_import" name="database" type="file" accept=".sqlite,application/vnd.sqlite3" class="sr-only" onchange="this.form.requestSubmit()">
+                    </form>
+
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-800 focus:outline-none">
                             <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name ?? 'Admin') }}&color=7F9CF5&background=EBF4FF" class="w-8 h-8 rounded-full" alt="User avatar">
@@ -172,6 +183,11 @@
 
             <!-- Page Content -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-[#0a0a0a] p-6">
+                @if ($errors->has('database'))
+                    <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded dark:bg-red-900 dark:text-red-100 dark:border-red-800" role="alert">
+                        {{ $errors->first('database') }}
+                    </div>
+                @endif
                 @yield('content')
             </main>
         </div>

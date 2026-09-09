@@ -29,6 +29,12 @@
                     </div>
                 @endif
 
+                @if ($databaseImportStatus === 'success')
+                    <div class="mb-4 p-3 rounded bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-200 text-sm" role="alert">
+                        {{ __('Database imported successfully. Please sign in using an account from the imported database.') }}
+                    </div>
+                @endif
+
                 <form method="POST" action="{{ route('login') }}" class="space-y-6">
                     @csrf
                     <div>
