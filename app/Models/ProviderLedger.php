@@ -32,6 +32,7 @@ class ProviderLedger extends Model
         'provider_received_at',
         'sort_order',
         'notes',
+        'origin',
     ];
 
     protected $casts = [

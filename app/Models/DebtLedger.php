@@ -23,6 +23,7 @@ class DebtLedger extends Model
         'transaction_date',
         'reference_id',
         'notes',
+        'origin',
     ];
 
     protected $casts = [
