@@ -506,4 +506,38 @@ class DebtLedgerControllerTest extends TestCase
         $this->actingAs($this->user)->post(route('admin.debt-ledgers.store'), [...$payment, 'currency' => 'TJS', 'exchange_rate' => 99, 'notes' => 'Ordinary note'])->assertRedirect(route('admin.debt-ledgers.index'));
         $this->assertDatabaseHas('debt_ledgers', ['amount' => 100, 'notes' => 'Ordinary note']);
     }
+
+    public function test_selected_debt_ledger_transaction_dates_can_be_changed_in_bulk(): void
+    {
+        $selected = DebtLedger::factory()->count(2)->payment()->create([
+            'client_id' => $this->client->id,
+            'transaction_date' => '2026-01-10',
+        ]);
+        $unselected = DebtLedger::factory()->payment()->create([
+            'client_id' => $this->client->id,
+            'transaction_date' => '2026-01-11',
+        ]);
+
+        $this->actingAs($this->user)
+            ->from(route('admin.debt-ledgers.index'))
+            ->patch(route('admin.debt-ledgers.bulk-transaction-date'), [
+                'record_ids' => $selected->pluck('id')->all(),
+                'transaction_date' => '23/7/2026',
+            ])
+            ->assertRedirect(route('admin.debt-ledgers.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(2, DebtLedger::whereKey($selected->pluck('id'))->whereDate('transaction_date', '2026-07-23')->count());
+        $this->assertTrue($unselected->fresh()->transaction_date->isSameDay('2026-01-11'));
+    }
+
+    public function test_bulk_transaction_date_requires_selected_debt_ledgers_and_a_valid_date(): void
+    {
+        $this->actingAs($this->user)
+            ->patch(route('admin.debt-ledgers.bulk-transaction-date'), [
+                'record_ids' => [],
+                'transaction_date' => '2026-07-23',
+            ])
+            ->assertSessionHasErrors(['record_ids', 'transaction_date']);
+    }
 }

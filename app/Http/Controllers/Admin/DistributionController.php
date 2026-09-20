@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class DistributionController extends Controller
@@ -83,6 +84,27 @@ class DistributionController extends Controller
                 ? 'Potential duplicate group marked as resolved.'
                 : 'The selected records no longer match a potential duplicate group.',
         );
+    }
+
+    public function bulkUpdateTransactionDate(Request $request)
+    {
+        $validated = $request->validate([
+            'record_ids' => ['required', 'array', 'min:1'],
+            'record_ids.*' => ['integer', 'distinct', 'exists:distributions,id'],
+            'transaction_date' => ['required', 'date_format:d/n/Y,d/m/Y'],
+        ]);
+
+        $transactionDate = Carbon::createFromFormat('!d/n/Y', $validated['transaction_date'])->toDateString();
+
+        DB::transaction(function () use ($validated, $transactionDate): void {
+            Distribution::query()
+                ->whereKey($validated['record_ids'])
+                ->eachById(fn (Distribution $distribution) => $distribution->update([
+                    'distribution_date' => $transactionDate,
+                ]));
+        });
+
+        return back()->with('success', count($validated['record_ids']).' distribution transaction date(s) updated successfully.');
     }
 
     /**

@@ -474,4 +474,43 @@ class DistributionControllerTest extends TestCase
             'deleted_at' => null,
         ]);
     }
+
+    public function test_selected_distribution_dates_can_be_changed_in_bulk_and_sync_debt_ledgers(): void
+    {
+        $selected = Distribution::factory()->count(2)->create([
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'supplier_id' => $this->supplier->id,
+            'distribution_date' => '2026-01-10',
+        ]);
+        $unselected = Distribution::factory()->create([
+            'client_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'supplier_id' => $this->supplier->id,
+            'distribution_date' => '2026-01-11',
+        ]);
+
+        $this->actingAs($this->user)
+            ->from(route('admin.distributions.index'))
+            ->patch(route('admin.distributions.bulk-transaction-date'), [
+                'record_ids' => $selected->pluck('id')->all(),
+                'transaction_date' => '23/7/2026',
+            ])
+            ->assertRedirect(route('admin.distributions.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(2, Distribution::whereKey($selected->pluck('id'))->whereDate('distribution_date', '2026-07-23')->count());
+        $this->assertSame(2, \App\Models\DebtLedger::whereIn('reference_id', $selected->pluck('id'))->whereDate('transaction_date', '2026-07-23')->count());
+        $this->assertTrue($unselected->fresh()->distribution_date->isSameDay('2026-01-11'));
+    }
+
+    public function test_bulk_distribution_date_requires_selected_records_and_a_valid_date(): void
+    {
+        $this->actingAs($this->user)
+            ->patch(route('admin.distributions.bulk-transaction-date'), [
+                'record_ids' => [],
+                'transaction_date' => '2026-07-23',
+            ])
+            ->assertSessionHasErrors(['record_ids', 'transaction_date']);
+    }
 }

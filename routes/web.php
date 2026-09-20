@@ -59,9 +59,13 @@ Route::middleware(['auth'])->group(function () {
             ->parameters(['provider-ledgers' => 'providerLedger']);
         Route::post('distributions/potential-duplicates/resolve', [\App\Http\Controllers\Admin\DistributionController::class, 'resolvePotentialDuplicate'])
             ->name('distributions.potential-duplicates.resolve');
+        Route::patch('distributions/bulk-transaction-date', [\App\Http\Controllers\Admin\DistributionController::class, 'bulkUpdateTransactionDate'])
+            ->name('distributions.bulk-transaction-date');
         Route::resource('distributions', \App\Http\Controllers\Admin\DistributionController::class);
         Route::post('debt-ledgers/potential-duplicates/resolve', [\App\Http\Controllers\Admin\DebtLedgerController::class, 'resolvePotentialDuplicate'])
             ->name('debt-ledgers.potential-duplicates.resolve');
+        Route::patch('debt-ledgers/bulk-transaction-date', [\App\Http\Controllers\Admin\DebtLedgerController::class, 'bulkUpdateTransactionDate'])
+            ->name('debt-ledgers.bulk-transaction-date');
         Route::resource('debt-ledgers', \App\Http\Controllers\Admin\DebtLedgerController::class);
         Route::get('operations', [\App\Http\Controllers\Admin\OperationController::class, 'index'])->name('operations.index');
         Route::prefix('reports')->name('reports.')->group(function () {

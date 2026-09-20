@@ -133,11 +133,34 @@
         </form>
     </div>
 
-    <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]">
+    <div class="bg-white dark:bg-[#161615] overflow-hidden shadow-sm sm:rounded-xl border border-gray-200 dark:border-[#3E3E3A]"
+         x-data="{
+             selected: [],
+             allIds: @js($distributions->pluck('id')->map(fn ($id) => (string) $id)->values()),
+             init() {
+                 flatpickr(this.$refs.bulkDate, { dateFormat: 'd/n/Y', allowInput: true });
+             }
+         }">
+        <form id="distribution-bulk-date-form" action="{{ route('admin.distributions.bulk-transaction-date') }}" method="POST" class="flex flex-col gap-3 border-b border-gray-200 p-4 dark:border-[#3E3E3A] sm:flex-row sm:items-end">
+            @csrf
+            @method('PATCH')
+            <div>
+                <label for="distribution-bulk-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Transaction Date') }}</label>
+                <input id="distribution-bulk-date" x-ref="bulkDate" type="text" name="transaction_date" value="{{ old('transaction_date') }}" placeholder="DD/MM/YYYY" required class="mt-1 block w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-[#3E3E3A] dark:bg-[#0a0a0a] dark:text-white">
+            </div>
+            <button type="submit" :disabled="selected.length === 0" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+                {{ __('Change Date for Selected') }} (<span x-text="selected.length">0</span>)
+            </button>
+            @error('record_ids') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+            @error('transaction_date') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+        </form>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                 <thead class="bg-gray-50 dark:bg-[#1C1C1A]">
                     <tr>
+                        <th scope="col" class="px-4 py-3 text-left">
+                            <input type="checkbox" aria-label="{{ __('Select all records on this page') }}" :checked="allIds.length > 0 && selected.length === allIds.length" @change="selected = $event.target.checked ? [...allIds] : []" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Date') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Provider Date/Time') }}</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Client') }}</th>
@@ -151,6 +174,9 @@
                 <tbody class="bg-white dark:bg-[#161615] divide-y divide-gray-200 dark:divide-[#3E3E3A]">
                     @forelse ($distributions as $distribution)
                         <tr>
+                            <td class="px-4 py-4">
+                                <input type="checkbox" name="record_ids[]" value="{{ $distribution->id }}" form="distribution-bulk-date-form" x-model="selected" aria-label="{{ __('Select distribution') }} #{{ $distribution->id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                 {{ $distribution->distribution_date->format('d/n/Y') }}
                             </td>
@@ -190,7 +216,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="9" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
                                 {{ __('No distributions found.') }}
                             </td>
                         </tr>
