@@ -77,7 +77,8 @@ build-dev: composer-install
 	fi
 
 rebuild-dev: composer-install
-	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) build --no-cache
+	$(DOCKER_COMPOSE) -f $(DEV_COMPOSE_FILE) build --pull --no-cache
+	docker run --rm --entrypoint php $(DEV_IMAGE) -r 'if (PHP_VERSION_ID < 80512) { fwrite(STDERR, "PHP 8.5.12 or newer is required for CVE-2026-109618 and CVE-2026-109619.\n"); exit(1); } echo PHP_VERSION, PHP_EOL;'
 
 composer-install:
 	@if [ ! -f $(SAIL_RUNTIME) ]; then \
@@ -98,7 +99,7 @@ build-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build
 
 rebuild-prod:
-	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build --no-cache
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build --pull --no-cache
 
 cert-local:
 	mkcert -cert-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN).pem -key-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN)-key.pem $(LOCAL_DOMAIN)

@@ -24,7 +24,8 @@ COPY public public
 COPY vite.config.js ./
 RUN npm run build
 
-FROM php:8.5-apache
+# PHP 8.5.12 fixes CVE-2026-109618 and CVE-2026-109619.
+FROM php:8.5.12-apache
 
 WORKDIR /var/www/html
 

@@ -36,6 +36,21 @@ cp .env.production.example .env.production
 
 Set `APP_KEY`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`, and the required integration secrets in that private file. The two Basic Auth values protect every production HTTP request; use a strong, unique password. The container will refuse to start if either is missing. The shared production Traefik resolver currently uses Let’s Encrypt staging; move that resolver to the production ACME endpoint before a public cutover.
 
+### PHP security update (21 October 2026)
+
+Production is pinned to PHP 8.5.12, which fixes CVE-2026-109618 and CVE-2026-109619 in the [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5). Rebuild and recreate both the web and queue containers to apply the update:
+
+```bash
+make rebuild-prod
+make up-prod
+docker compose -f compose.prod.yaml exec app php -v
+docker compose -f compose.prod.yaml exec queue php -v
+```
+
+For Sail development, run `make rebuild-dev` and then `docker compose -f compose.dev.yaml up -d --force-recreate`. The clean rebuild fetches current Ubuntu packages and checks that the resulting PHP version is at least 8.5.12. If the package repository still provides an older version, the check fails; wait for patched packages before exposing that runtime. Verify both development services with `docker compose -f compose.dev.yaml exec laravel.test php -v` and `docker compose -f compose.dev.yaml exec queue.work php -v`.
+
+Host PHP installations must also be updated separately. The fixed releases are 8.2.35, 8.3.36, 8.4.27 and 8.5.12; distribution packages may provide equivalent backports.
+
 ### Stage deployment and disk recovery
 
 The production image deliberately excludes `.env*`, `storage`, SQLite databases, dependency directories, and generated caches. `prod-storage` and `prod-database` are persistent named volumes, so rebuilding the image does not remove uploads, logs, or application data. The app and queue use the same `book-keeper-prod-app:latest` image tag; set `BOOK_KEEPER_PROD_IMAGE` when a registry tag is needed.
