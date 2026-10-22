@@ -35,6 +35,9 @@ help:
 	@echo "  cert-local    Generate a trusted local Traefik certificate with mkcert"
 	@echo "  logs-dev      Tail development container logs"
 	@echo "  logs-prod     Tail production container logs"
+	@echo "  shell-prod    Enter the production application container shell"
+	@echo "  migrate-prod  Run production database migrations"
+	@echo "  artisan-prod c= Run a production artisan command"
 	@echo "  restart-local Restart local Nginx and PHP-FPM daemons"
 	@echo "  build         Build the development Docker containers"
 	@echo "  composer-install Install locked Composer dependencies when Sail is missing"
@@ -110,6 +113,18 @@ logs-dev:
 logs-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) logs -f
 
+shell-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app bash || \
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app sh || \
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) run --rm --entrypoint bash app || \
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) run --rm --entrypoint sh app
+
+migrate-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app php artisan migrate --force
+
+artisan-prod:
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app php artisan $(c)
+
 restart-local:
 	@echo "Restarting local services..."
 	sudo systemctl restart nginx
@@ -172,4 +187,4 @@ supervisor-install:
 supervisor-status:
 	sudo supervisorctl status
 
-.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev composer-install up-prod down-prod restart-prod build-prod rebuild-prod cert-local logs-dev logs-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status
+.PHONY: help up down restart up-dev down-dev restart-dev build-dev rebuild-dev composer-install up-prod down-prod restart-prod build-prod rebuild-prod cert-local logs-dev logs-prod shell-prod migrate-prod artisan-prod restart-local build setup test lint migrate fresh tinker vite shell artisan composer npm supervisor-install supervisor-status

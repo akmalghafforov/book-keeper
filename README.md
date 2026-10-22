@@ -22,6 +22,18 @@ Production stack (on the server):
 make up-prod
 ```
 
+Production migrations run automatically when the app container starts. If you need to run them without opening an interactive shell, use:
+
+```bash
+make migrate-prod
+```
+
+For other non-interactive production Artisan commands, use `make artisan-prod c='command:name'`, for example:
+
+```bash
+make artisan-prod c='migrate:status'
+```
+
 Endpoints:
 
 - Dev app: `https://taqsimot.fannjourney.test`
@@ -93,6 +105,7 @@ Useful commands:
 - `make build-prod`
 - `make rebuild-prod`
 - `make logs-dev`
+- `make shell-prod`
 - `make logs-prod`
 - `make cert-local`
 

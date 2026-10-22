@@ -12,6 +12,13 @@ class Product extends Model
 {
     use HasFactory, SoftDeletes;
 
+    private const CATEGORY_RULES = [
+        'Рассыпной' => ['рассыпной', 'рассипной'],
+        'Гипсокартон' => ['гипсокартон', 'гипсакартон', 'гипс'],
+        'Шифер' => ['шифер'],
+        'Цемент' => ['цемент', 'смент', 'm500', 'м500', 'm400', 'м400'],
+    ];
+
     protected $fillable = [
         'name',
         'product_category_id',
@@ -25,6 +32,34 @@ class Product extends Model
         'buy_price' => 'decimal:4',
         'usage_priority' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product): void {
+            if ($product->product_category_id) {
+                return;
+            }
+
+            $product->product_category_id = ProductCategory::query()->firstOrCreate([
+                'name' => self::categoryNameFor($product->name),
+            ])->getKey();
+        });
+    }
+
+    private static function categoryNameFor(string $name): string
+    {
+        $normalized = mb_strtolower($name);
+
+        foreach (self::CATEGORY_RULES as $category => $needles) {
+            foreach ($needles as $needle) {
+                if (str_contains($normalized, $needle)) {
+                    return $category;
+                }
+            }
+        }
+
+        return 'Другое';
+    }
 
     public function defaultProvider(): BelongsTo
     {

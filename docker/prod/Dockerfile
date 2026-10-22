@@ -36,11 +36,14 @@ RUN savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ghostscript \
+        imagemagick \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libmagickwand-dev \
         libpng-dev \
         libsqlite3-dev \
+        libzip5 \
+        zip \
         libzip-dev \
         pkg-config \
         $PHPIZE_DEPS \
@@ -54,9 +57,9 @@ RUN savedAptMark="$(apt-mark showmanual)" \
     && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n    Options FollowSymLinks\n</Directory>\n<Directory /var/www/html/storage/app/public>\n    Require all granted\n    Options FollowSymLinks\n</Directory>\n' > /etc/apache2/conf-available/book-keeper.conf \
     && a2enconf book-keeper \
     && apt-mark auto '.*' > /dev/null \
-    && apt-mark manual $savedAptMark ghostscript \
+    && apt-mark manual $savedAptMark ghostscript imagemagick libzip5 zip \
     && ldd "$(php -r 'echo ini_get("extension_dir");')"/*.so \
-        | awk '/=> \/usr\// { print $3 }' \
+        | awk '/=> \/(usr|lib)\// { print $3 }' \
         | xargs -r dpkg-query --search \
         | cut -d: -f1 \
         | sort -u \
