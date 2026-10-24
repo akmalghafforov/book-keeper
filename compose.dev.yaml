@@ -4,11 +4,11 @@ services:
     laravel.test:
         container_name: taqsimot-app-dev
         build:
-            context: './vendor/laravel/sail/runtimes/8.5'
+            context: './docker/development'
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP:-1000}'
-        image: 'sail-8.5/app'
+        image: 'book-keeper-dev:8.5.12'
         labels:
             traefik.enable: 'true'
             traefik.docker.network: 'traefik-net'
@@ -39,11 +39,11 @@ services:
 
     queue.work:
         build:
-            context: './vendor/laravel/sail/runtimes/8.5'
+            context: './docker/development'
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP:-1000}'
-        image: 'sail-8.5/app'
+        image: 'book-keeper-dev:8.5.12'
         labels:
             traefik.enable: 'false'
         extra_hosts:

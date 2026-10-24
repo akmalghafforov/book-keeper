@@ -27,6 +27,9 @@ RUN npm run build
 # PHP 8.5.12 fixes CVE-2026-109618 and CVE-2026-109619.
 FROM php:8.5.12-apache
 
+RUN php -r 'if (PHP_VERSION !== "8.5.12") { fwrite(STDERR, "Require PHP 8.5.12; got ".PHP_VERSION.PHP_EOL); exit(1); }'
+COPY docker/prod/security.ini /usr/local/etc/php/conf.d/zz-security.ini
+
 WORKDIR /var/www/html
 
 RUN savedAptMark="$(apt-mark showmanual)" \

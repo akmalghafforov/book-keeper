@@ -5,8 +5,8 @@ DOCKER_COMPOSE := docker compose
 DEV_COMPOSE_FILE := compose.dev.yaml
 PROD_COMPOSE_FILE := compose.prod.yaml
 DEV_SERVICE := laravel.test
-DEV_IMAGE := sail-8.5/app
-SAIL_RUNTIME := vendor/laravel/sail/runtimes/8.5/Dockerfile
+DEV_IMAGE := book-keeper-dev:8.5.12
+SAIL_RUNTIME := docker/development/Dockerfile
 COMPOSER_IMAGE := laravelsail/php84-composer:latest
 TRAEFIK_PROJECT ?= ../mrstairs-backend
 TRAEFIK_LOCAL_CERT_DIR ?= $(TRAEFIK_PROJECT)/traefik/local/certs
@@ -81,7 +81,7 @@ rebuild-dev: composer-install
 	docker run --rm --entrypoint php $(DEV_IMAGE) -r 'if (PHP_VERSION_ID < 80512) { fwrite(STDERR, "PHP 8.5.12 or newer is required for CVE-2026-109618 and CVE-2026-109619.\n"); exit(1); } echo PHP_VERSION, PHP_EOL;'
 
 composer-install:
-	@if [ ! -f $(SAIL_RUNTIME) ]; then \
+	@if [ ! -f vendor/autoload.php ] || [ ! -f $(SAIL) ]; then \
 		echo "Laravel Sail is missing; installing locked Composer dependencies..."; \
 		MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/var/www/html" -w /var/www/html $(COMPOSER_IMAGE) composer install --ignore-platform-req=ext-gd; \
 	fi
