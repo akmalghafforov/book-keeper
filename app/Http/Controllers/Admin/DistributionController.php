@@ -172,7 +172,7 @@ class DistributionController extends Controller
         }
         $validated['subtotal'] = $validated['quantity'] * $validated['price'];
 
-        Distribution::create($validated);
+        DB::transaction(fn () => Distribution::create($validated));
 
         return redirect()->route('admin.distributions.index')
             ->with('success', 'Distribution created successfully.');
@@ -215,7 +215,7 @@ class DistributionController extends Controller
         }
         $validated['subtotal'] = $validated['quantity'] * $validated['price'];
 
-        $distribution->update($validated);
+        DB::transaction(fn () => $distribution->update($validated));
 
         return redirect()->route('admin.distributions.index')
             ->with('success', 'Distribution updated successfully.');

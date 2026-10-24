@@ -68,6 +68,8 @@ RUN savedAptMark="$(apt-mark showmanual)" \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
+# Keep migration code outside the persistent database volume.
+COPY database/migrations /opt/book-keeper/migrations
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=frontend /app/public/build ./public/build
 COPY docker/prod/entrypoint.sh /usr/local/bin/book-keeper-entrypoint

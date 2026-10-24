@@ -169,6 +169,7 @@ class DistributionControllerTest extends TestCase
         $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), [
             'supplier_id' => $this->supplier->id,
             'client_id' => $this->client->id,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => 'per_ton',
             'quantity' => 10,
@@ -206,6 +207,7 @@ class DistributionControllerTest extends TestCase
         $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), [
             'supplier_id' => $this->supplier->id,
             'client_id' => $this->client->id,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => 'per_ton',
             'quantity' => 10,
@@ -239,6 +241,7 @@ class DistributionControllerTest extends TestCase
         $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), [
             'supplier_id' => $this->supplier->id,
             'client_id' => $this->client->id,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => 'per_ton',
             'quantity' => 10,
@@ -265,6 +268,7 @@ class DistributionControllerTest extends TestCase
             'supplier_id' => $this->supplier->id,
             'client_id' => $this->client->id,
             'credit_client_id' => $creditClient->id,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => 'per_bag',
             'quantity' => 5,
@@ -285,6 +289,33 @@ class DistributionControllerTest extends TestCase
         ]);
     }
 
+    public function test_store_rolls_back_distribution_if_ledger_creation_fails(): void
+    {
+        $this->withoutExceptionHandling();
+        \Illuminate\Support\Facades\Schema::table('debt_ledgers', function ($table) {
+            $table->dropIndex(['origin']);
+            $table->dropColumn('origin');
+        });
+
+        try {
+            $this->actingAs($this->user)->post(route('admin.distributions.store'), [
+                'client_id' => $this->client->id,
+                'product_category_id' => $this->product->product_category_id,
+                'product_id' => $this->product->id,
+                'quantity_unit' => 'per_ton',
+                'quantity' => 10,
+                'price' => 50,
+                'distribution_date' => '15/01/2026',
+            ]);
+            $this->fail('Expected ledger insertion to fail.');
+        } catch (\Illuminate\Database\QueryException $exception) {
+            $this->assertStringContainsString('origin', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('distributions', 0);
+        $this->assertDatabaseCount('debt_ledgers', 0);
+    }
+
     public function test_store_validates_required_fields(): void
     {
         $response = $this->actingAs($this->user)->post(route('admin.distributions.store'), []);
@@ -299,6 +330,7 @@ class DistributionControllerTest extends TestCase
             'supplier_id' => $this->supplier->id,
             'client_id' => $this->client->id,
             'credit_client_id' => $creditClient->id,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => 'per_ton',
             'quantity' => 10,
@@ -335,6 +367,7 @@ class DistributionControllerTest extends TestCase
             'client_id' => $this->client->id,
             'credit_client_id' => $creditClient->id,
             'credit_client_price' => 70,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => $distribution->quantity_unit,
             'quantity' => 5,
@@ -440,6 +473,7 @@ class DistributionControllerTest extends TestCase
         $this->actingAs($this->user)->put(route('admin.distributions.update', $distribution), [
             'supplier_id' => $this->supplier->id,
             'client_id' => $this->client->id,
+            'product_category_id' => $this->product->product_category_id,
             'product_id' => $this->product->id,
             'quantity_unit' => 'per_ton',
             'quantity' => 20,

@@ -120,7 +120,7 @@ shell-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) run --rm --entrypoint sh app
 
 migrate-prod:
-	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app php artisan migrate --force
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app php artisan migrate --force --path=/opt/book-keeper/migrations --realpath
 
 artisan-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) exec app php artisan $(c)
