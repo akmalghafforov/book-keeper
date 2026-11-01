@@ -90,7 +90,7 @@ composer-install:
 	fi
 
 up-prod:
-	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) up -d --build
+	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) up -d --no-build --pull never --no-deps app queue
 
 down-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) down
@@ -99,10 +99,12 @@ restart-prod:
 	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) restart
 
 build-prod:
-	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build
+	@test "$(LOCAL_BUILD)" = 1 || (echo "Build on the workstation with LOCAL_BUILD=1."; exit 1)
+	DOCKER_DEFAULT_PLATFORM=linux/amd64 $(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build app
 
 rebuild-prod:
-	$(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build --pull --no-cache
+	@test "$(LOCAL_BUILD)" = 1 || (echo "Build on the workstation with LOCAL_BUILD=1."; exit 1)
+	DOCKER_DEFAULT_PLATFORM=linux/amd64 $(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build app --pull --no-cache
 
 cert-local:
 	mkcert -cert-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN).pem -key-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN)-key.pem $(LOCAL_DOMAIN)

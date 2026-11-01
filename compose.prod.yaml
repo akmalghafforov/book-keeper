@@ -1,13 +1,23 @@
+x-bounded-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 name: book-keeper-prod
 
 services:
     app:
+        logging: *bounded-logging
         container_name: taqsimot-app-prod
-        image: '${BOOK_KEEPER_PROD_IMAGE:-book-keeper-prod-app}:latest'
-        pull_policy: build
+        image: '${BOOK_KEEPER_PROD_IMAGE:-book-keeper-prod-app}:${RELEASE_TAG:?Set the immutable commit tag}'
+        pull_policy: never
         build:
             context: .
             dockerfile: docker/prod/Dockerfile
+        environment:
+            LOG_CHANNEL: daily
+            LOG_DAILY_DAYS: "14"
         env_file:
             - .env.production
         volumes:
@@ -18,14 +28,15 @@ services:
             - traefik-net
 
     queue:
-        image: '${BOOK_KEEPER_PROD_IMAGE:-book-keeper-prod-app}:latest'
-        pull_policy: build
-        build:
-            context: .
-            dockerfile: docker/prod/Dockerfile
+        logging: *bounded-logging
+        image: '${BOOK_KEEPER_PROD_IMAGE:-book-keeper-prod-app}:${RELEASE_TAG:?Set the immutable commit tag}'
+        pull_policy: never
         command: php artisan queue:work --verbose --tries=3 --timeout=600
         depends_on:
             - app
+        environment:
+            LOG_CHANNEL: daily
+            LOG_DAILY_DAYS: "14"
         env_file:
             - .env.production
         volumes:

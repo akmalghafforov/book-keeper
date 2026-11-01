@@ -54,8 +54,6 @@ fi
 
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-if [ "${1:-}" = "apache2-foreground" ]; then
-    php artisan migrate --force --path=/opt/book-keeper/migrations --realpath
-fi
+# Schema changes are explicit (make migrate-prod), never a container restart.
 
 exec "$@"

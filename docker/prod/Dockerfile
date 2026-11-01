@@ -59,7 +59,7 @@ RUN savedAptMark="$(apt-mark showmanual)" \
     && apt-mark auto '.*' > /dev/null \
     && apt-mark manual $savedAptMark ghostscript imagemagick libzip5 zip \
     && ldd "$(php -r 'echo ini_get("extension_dir");')"/*.so \
-        | awk '/=> \/(usr|lib)\// { print $3 }' \
+        | awk '/=> \/(usr|lib)\// { so = $3; sub("^/(usr/)?", "", so); print "*" so }' \
         | xargs -r dpkg-query --search \
         | cut -d: -f1 \
         | sort -u \
