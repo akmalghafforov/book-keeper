@@ -18,18 +18,21 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
-        $middleware->web(append: [
+        $middleware->web(prepend: [
+            \App\Http\Middleware\RejectBearerDraftReview::class,
+        ], append: [
             \App\Http\Middleware\SetLocale::class,
         ]);
         $middleware->api(prepend: [\App\Http\Middleware\RequireJsonApi::class]);
         $middleware->alias([
+            'human.web' => \App\Http\Middleware\HumanWebAccess::class,
             'mobile.auth' => \App\Http\Middleware\MobileTokenAuth::class,
             'endpoint-access' => \App\Http\Middleware\EndpointAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Validation\ValidationException $e, \Illuminate\Http\Request $request) {
-            if ($request->is('api/*')) {
+            if ($request->is('api/*', 'admin/transaction-drafts/*')) {
                 return response()->json(['errors' => $e->errors()], 422);
             }
         });

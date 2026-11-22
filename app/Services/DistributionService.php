@@ -26,13 +26,13 @@ class DistributionService
         DB::transaction(fn () => $distribution->delete());
     }
 
-    private function prepare(array $attributes): array
+    public function prepare(array $attributes): array
     {
         $attributes['subtotal'] = round((float) $attributes['quantity'] * (float) $attributes['price'], 4);
         if (empty($attributes['credit_client_id'])) {
             $attributes['credit_client_price'] = null;
         }
 
-return $attributes;
+        return $attributes;
     }
 }

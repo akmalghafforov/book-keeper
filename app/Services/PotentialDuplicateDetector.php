@@ -294,17 +294,17 @@ class PotentialDuplicateDetector
         return hash('sha256', $context.'|'.$payload);
     }
 
-    private function debtLedgerDuplicateKey(DebtLedger $ledger): string
+    public function debtLedgerDuplicateKey(DebtLedger $ledger, bool $includeDate = true): string
     {
         return implode('|', [
             $ledger->client_id,
             $ledger->type,
             $this->normalizeDecimal($ledger->amount, 2),
-            optional($ledger->transaction_date)->toDateString() ?? '',
+            $includeDate ? optional($ledger->transaction_date)->toDateString() : '',
         ]);
     }
 
-    private function distributionDuplicateKey(Distribution $distribution): string
+    public function distributionDuplicateKey(Distribution $distribution, bool $includeDate = true): string
     {
         return implode('|', [
             $distribution->client_id,
@@ -313,7 +313,7 @@ class PotentialDuplicateDetector
             $this->normalizeDecimal($distribution->quantity, 3),
             $this->normalizeDecimal($distribution->price, 4),
             $this->normalizeDecimal($distribution->credit_client_price, 4),
-            optional($distribution->distribution_date)->toDateString() ?? '',
+            $includeDate ? optional($distribution->distribution_date)->toDateString() : '',
         ]);
     }
 

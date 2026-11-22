@@ -15,7 +15,7 @@ Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'human.web'])->group(function () {
     Route::post('/current-date', function (\Illuminate\Http\Request $request) {
         $validated = $request->validate([
             'current_date' => ['required', 'date_format:d/n/Y,d/m/Y,Y-m-d'],
@@ -39,10 +39,23 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', function () {
             return redirect()->route('admin.debt-ledgers.index');
         });
-        Route::get('database/download', \App\Http\Controllers\Admin\DatabaseDownloadController::class)
-            ->name('database.download');
-        Route::post('database/import', \App\Http\Controllers\Admin\DatabaseImportController::class)
-            ->name('database.import');
+        Route::middleware('human.web:database.operate')->group(function () {
+            Route::get('database/download', \App\Http\Controllers\Admin\DatabaseDownloadController::class)
+                ->name('database.download');
+            Route::post('database/import', \App\Http\Controllers\Admin\DatabaseImportController::class)
+                ->name('database.import');
+        });
+        Route::middleware('human.web:transaction_drafts.review')->controller(\App\Http\Controllers\Admin\TransactionDraftController::class)
+            ->prefix('transaction-drafts')->name('transaction-drafts.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::prefix('{draft}')->whereUuid('draft')->group(function () {
+                    Route::get('/', 'show')->name('show');
+                    Route::post('preview', 'preview')->name('preview');
+                    Route::patch('/', 'update')->name('update');
+                    Route::post('approve', 'approve')->name('approve');
+                    Route::post('dismiss', 'dismiss')->name('dismiss');
+                });
+            });
         Route::resource('clients', \App\Http\Controllers\Admin\ClientController::class)->except(['destroy']);
         Route::resource('shops', \App\Http\Controllers\Admin\ShopController::class)->only(['store']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);

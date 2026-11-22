@@ -63,6 +63,15 @@
                     {{ __('Distributions') }}
                 </a>
 
+                @if (!auth()->user()->api_only && auth()->user()->status === 'active' && in_array('transaction_drafts.review', auth()->user()->permissions(), true))
+                    <a href="{{ route('admin.transaction-drafts.index') }}" @if(request()->routeIs('admin.transaction-drafts.*')) aria-current="page" @endif class="flex items-center px-4 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.transaction-drafts.*') ? 'bg-gray-100 dark:bg-[#2A2A28] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1C1C1A]' }}">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 8 2 2 4-4"></path>
+                        </svg>
+                        {{ __('Drafts Records') }}
+                    </a>
+                @endif
+
                 <!-- Example links for existing models -->
                 <a href="{{ route('admin.clients.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.clients.*') ? 'bg-gray-100 dark:bg-[#2A2A28] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1C1C1A]' }}">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,6 +154,7 @@
                         </div>
                     </div>
 
+                    @if (auth()->user()->status === 'active' && in_array('database.operate', auth()->user()->permissions(), true))
                     <a href="{{ route('admin.database.download') }}" title="{{ __('Download database') }}" class="p-2 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14a2 2 0 002-2v-2M3 17v2a2 2 0 002 2"></path>
@@ -162,6 +172,7 @@
                         </label>
                         <input id="database_import" name="database" type="file" accept=".sqlite,application/vnd.sqlite3" class="sr-only" onchange="this.form.requestSubmit()">
                     </form>
+                    @endif
 
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-800 focus:outline-none">

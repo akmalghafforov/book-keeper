@@ -235,3 +235,52 @@ If-Match: "etag-from-response"
 ```
 
 If another change has occurred, the API responds with `412 Precondition Failed` and the client should reload the resource before retrying.
+
+## Transaction drafts
+
+Use the draft queue for transactions derived from WhatsApp exports. Submission can record an incomplete suggestion. Only approval by an active, authorized web reviewer creates posted transactions.
+
+| Method | Route | Permission |
+| --- | --- | --- |
+| POST | `/transaction-drafts` | `transaction_drafts.submit` |
+| GET | `/transaction-drafts?kind=&status=&corrected=&page=&per_page=` | `transaction_drafts.view` |
+| GET | `/transaction-drafts/{id}` | `transaction_drafts.view` |
+
+Send `Content-Type: application/json` and `Idempotency-Key` on submission. The response is `201` for a new draft. The same request key replays the saved response for 24 hours. A fresh or expired key returns `200` and the existing draft for the same source and original suggestion. A different interpretation of the same source returns `409` with `existing_draft_id`.
+
+The durable identity is `source.chat_key`, `source.message_key`, and `source.event_slot`. Use a stable keyed fingerprint for `message_key` and a distinct slot for each transaction in a multi-event message. Include `sent_at` with an offset, an opaque `export_id`, and a positive `line` or `position`. Optional `additional_locators` list related messages, each with `message_key`, `sent_at`, `export_id`, and a `line` or `position`. Export identifiers and positions can change across exports. Keep raw export text, filenames, and attachments in the source workspace.
+
+```json
+{
+  "kind": "debt_ledger",
+  "source": {
+    "chat_key": "taqsimot",
+    "message_key": "example-fingerprint",
+    "sent_at": "2026-11-19T10:02:00+05:00",
+    "export_id": "export-2026-11-22",
+    "line": 261,
+    "event_slot": "customer-receipt-1"
+  },
+  "fields": {
+    "client_id": "42",
+    "type": "payment",
+    "amount": "100.00",
+    "currency": "USD",
+    "exchange_rate": "10.25",
+    "payment_method": "card",
+    "transaction_date": "2026-11-19"
+  }
+}
+```
+
+| Kind | Fields |
+| --- | --- |
+| `distribution` | `client_id`, `product_category_id`, `product_id`, `quantity_unit` (`per_ton`, `per_bag`, `per_piece`), `quantity`, `price`, `distribution_date`. Optional `shop_id`, `supplier_id`, `credit_client_id` with `credit_client_price`, `provider_buy_price`, and `provider_received_at`. |
+| `provider_ledger` | `provider_id`, `type` (`charge`, `payment`), `amount`, and offset-bearing `provider_received_at`. Optional `car_number` and `notes`. |
+| `debt_ledger` | `client_id`, `type` (`charge`, `payment`, `credit_note`), `amount`, and `transaction_date`. Optional `notes` and a payment-only `reference_id`. |
+
+Payments require a `payment_method`, `currency`, and positive `exchange_rate`. Use rate `1` for TJS. The converter supports TJS, USD, EUR, UZS, and RUB. Set `payer_name` for `payment_purpose: "on_behalf_of"`. The `other` purpose is available on debt payments. Date-only values use `YYYY-MM-DD`. Omit unknown fields or use explicit `null` when a field was cleared. Unknown field names and malformed supplied values return `422`. Pending drafts display posting issues for incomplete fields and unresolved catalog references.
+
+Draft details return an ETag such as `"1"`, the original and current fields, field-keyed `validation_issues`, source locators, and `events`. Audit changes distinguish missing fields with `present: false` and explicit nulls with `present: true, value: null`. Approved details include `approval.reviewed_fields`, `approval.posted_values`, `approval.generated_records`, and `posted_record` with current availability. Use `status=approved&corrected=true` for edited examples or `corrected=false` for unchanged approvals. The list orders approved drafts by recent approval.
+
+Open **Drafts Records** at `/admin/transaction-drafts` to review all three transaction kinds. Review uses the regular admin session, CSRF token, and `transaction_drafts.review`. The inline editor can preview validation and duplicate matches with `POST /admin/transaction-drafts/{id}/preview`. Send the current `If-Match` on `PATCH /admin/transaction-drafts/{id}`, `POST /admin/transaction-drafts/{id}/approve`, and `POST /admin/transaction-drafts/{id}/dismiss`. A `412` includes the current draft and ETag. Approval also takes `Idempotency-Key`, optional `fields`, and the current `duplicate_confirmation` from the preview or a `409`. The same reviewer can replay a successful approval using the same key and request, including the original ETag. To dismiss as already recorded, send `reason: "already_recorded"` and a currently matched `posted_record_id`.

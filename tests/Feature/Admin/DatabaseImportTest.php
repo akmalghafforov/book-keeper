@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Client;
+use App\Models\TransactionDraft;
 use App\Models\User;
+use App\Services\TransactionDraftWorkflow;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -57,9 +60,14 @@ class DatabaseImportTest extends TestCase
 
     public function test_valid_database_replaces_active_database_and_creates_a_backup(): void
     {
-        $user = User::factory()->create();
+        $user = $this->operator();
         copy($this->databasePath, $this->sourcePath);
         $source = new \PDO('sqlite:'.$this->sourcePath);
+        $source->exec('DROP TABLE transaction_draft_events; DROP TABLE transaction_drafts; ALTER TABLE users DROP COLUMN api_only');
+        $source->exec("DELETE FROM api_endpoints WHERE endpoint_key LIKE 'transaction_drafts.%'");
+        $source->exec("DELETE FROM role_permissions WHERE permission_id IN (SELECT id FROM permissions WHERE code LIKE 'transaction_drafts.%' OR code = 'database.operate')");
+        $source->exec("DELETE FROM permissions WHERE code LIKE 'transaction_drafts.%' OR code = 'database.operate'");
+        $source->exec("DELETE FROM migrations WHERE migration LIKE '%create_transaction_drafts'");
         $source->exec("INSERT INTO clients (name, created_at, updated_at) VALUES ('Imported client', datetime('now'), datetime('now'))");
 
         $response = $this->actingAs($user)->post(route('admin.database.import'), [
@@ -73,11 +81,13 @@ class DatabaseImportTest extends TestCase
         DB::purge('database_import_test');
         $this->assertDatabaseHas('clients', ['name' => 'Imported client']);
         $this->assertCount(1, File::files($this->databaseDirectory.'/backups'));
+        $this->assertDatabaseCount('transaction_drafts', 0);
+        $this->assertDatabaseCount('transaction_draft_events', 0);
     }
 
     public function test_invalid_database_does_not_replace_the_active_database(): void
     {
-        $user = User::factory()->create();
+        $user = $this->operator();
 
         $this->actingAs($user)->from(route('admin.debt-ledgers.index'))
             ->post(route('admin.database.import'), [
@@ -90,4 +100,44 @@ class DatabaseImportTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->databaseDirectory.'/backups');
     }
 
+    public function test_current_backup_restores_approved_draft_links_and_history(): void
+    {
+        $operator = $this->operator();
+        $this->artisan('drafts:configure-access', ['--reviewer' => [$operator->email]])->assertSuccessful();
+        $client = Client::factory()->create();
+        $input = ['client_id' => $client->id, 'type' => 'charge', 'amount' => '20.00', 'transaction_date' => '2026-11-19'];
+        $source = ['chat_key' => 'test', 'message_key' => 'fingerprint', 'event_slot' => 'charge', 'export_id' => 'test', 'line' => 1, 'sent_at' => '2026-11-19T09:10:00+05:00'];
+        $response = DB::transaction(fn () => app(TransactionDraftWorkflow::class)->submit('debt_ledger', $source, $input, $operator->id));
+        $id = $response->getData()->data->id;
+        $approved = $this->actingAs($operator)->postJson(route('admin.transaction-drafts.approve', $id), [
+            'fields' => ['amount' => '21.00'],
+        ], ['If-Match' => '"1"', 'Idempotency-Key' => 'approved'])->assertOk();
+        $backup = $this->get(route('admin.database.download'))->assertOk()->baseResponse->getFile()->getPathname();
+        DB::table('transaction_draft_events')->delete();
+        DB::table('transaction_drafts')->delete();
+        DB::table('debt_ledgers')->delete();
+
+        try {
+            $this->post(route('admin.database.import'), [
+                'database' => UploadedFile::fake()->createWithContent('backup.sqlite', File::get($backup)),
+            ])->assertRedirect(route('login'))->assertCookie('database_import_status', 'success');
+        } finally {
+            File::delete($backup);
+        }
+
+        $draft = TransactionDraft::findOrFail($id);
+        $this->assertSame('approved', $draft->status);
+        $this->assertSame($approved->json('data.attributes.posted_record.id'), (string) $draft->posted_record_id);
+        $this->assertSame($approved->json('data.attributes.approval'), $draft->approval);
+        $this->assertSame(['submitted', 'edited', 'approved'], $draft->events()->pluck('type')->all());
+        $this->assertDatabaseHas('debt_ledgers', ['id' => $draft->posted_record_id, 'amount' => 21]);
+    }
+
+    private function operator(): User
+    {
+        $user = User::factory()->create();
+        $this->artisan('drafts:configure-access', ['--operator' => [$user->email]])->assertSuccessful();
+
+        return $user->refresh();
+    }
 }

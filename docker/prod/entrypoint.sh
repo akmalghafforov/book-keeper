@@ -23,15 +23,32 @@ chown www-data:www-data /run/book-keeper/.htpasswd
 chmod 600 /run/book-keeper/.htpasswd
 unset BASIC_AUTH_PASSWORD
 
-printf '%s\n' \
-    '<Location />' \
-    '    AuthType Basic' \
-    '    AuthName "Restricted Access"' \
-    '    AuthBasicProvider file' \
-    '    AuthUserFile /run/book-keeper/.htpasswd' \
-    '    Require valid-user' \
-    '</Location>' \
-    > /etc/apache2/conf-available/basic-auth.conf
+# Basic and Bearer share the Authorization header. Let the app handle authentication
+# for the importer routes while retaining Basic authentication for web and other routes.
+cat > /etc/apache2/conf-available/basic-auth.conf <<'APACHE'
+<Location />
+    AuthType Basic
+    AuthName "Restricted Access"
+    AuthBasicProvider file
+    AuthUserFile /run/book-keeper/.htpasswd
+    Require valid-user
+</Location>
+
+<LocationMatch "^/api/v1/(auth/(login|refresh|logout)|transaction-drafts)$">
+    <RequireAny>
+        Require expr "%{REQUEST_METHOD} == 'POST'"
+        Require expr "%{REQUEST_METHOD} in { 'GET', 'HEAD' } && %{REQUEST_URI} == '/api/v1/transaction-drafts'"
+        Require valid-user
+    </RequireAny>
+</LocationMatch>
+
+<LocationMatch "^/api/v1/(transaction-drafts/[0-9a-fA-F-]{36}|clients(/[0-9]+/shops)?|product-categories|products|suppliers|providers)$">
+    <RequireAny>
+        Require expr "%{REQUEST_METHOD} in { 'GET', 'HEAD' }"
+        Require valid-user
+    </RequireAny>
+</LocationMatch>
+APACHE
 a2enconf basic-auth >/dev/null
 
 mkdir -p \

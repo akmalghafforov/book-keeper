@@ -68,10 +68,7 @@ class Distribution extends Model
     public function createDebtLedgerCharge()
     {
         DebtLedger::create([
-            'client_id' => $this->client_id,
-            'type' => 'charge',
-            'amount' => $this->subtotal,
-            'transaction_date' => $this->distribution_date,
+            ...$this->customerChargeValues(),
             'reference_id' => $this->id,
             'notes' => "Auto-generated charge from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
             'origin' => 'distribution',
@@ -79,15 +76,32 @@ class Distribution extends Model
 
         if ($this->credit_client_id) {
             DebtLedger::create([
-                'client_id' => $this->credit_client_id,
-                'type' => 'credit_note',
-                'amount' => $this->creditClientSubtotal(),
-                'transaction_date' => $this->distribution_date,
+                ...$this->creditNoteValues(),
                 'reference_id' => $this->id,
                 'notes' => "Auto-generated credit note from Distribution #{$this->id} ({$this->distribution_date->format('d/n/Y')})",
                 'origin' => 'distribution',
             ]);
         }
+    }
+
+    public function customerChargeValues(): array
+    {
+        return [
+            'client_id' => $this->client_id,
+            'type' => 'charge',
+            'amount' => $this->subtotal,
+            'transaction_date' => $this->distribution_date,
+        ];
+    }
+
+    public function creditNoteValues(): array
+    {
+        return [
+            'client_id' => $this->credit_client_id,
+            'type' => 'credit_note',
+            'amount' => $this->creditClientSubtotal(),
+            'transaction_date' => $this->distribution_date,
+        ];
     }
 
     public function syncDebtLedgerCharge()
@@ -174,30 +188,21 @@ class Distribution extends Model
             ->where('distribution_id', $this->id)
             ->first();
 
-        $buyPrice = $this->provider_buy_price ?? $product?->buy_price;
+        $values = $this->providerChargeValues(
+            $product,
+            Supplier::withTrashed()->whereKey($this->supplier_id)->value('car_number'),
+        );
 
-        if (! $product?->default_provider_id || $buyPrice === null) {
+        if ($values === null) {
             $ledger?->delete();
 
             return;
         }
 
-        $amount = round((float) $this->quantity * (float) $buyPrice, 4);
-        $providerReceivedAt = $this->provider_received_at ?? $this->distribution_date?->copy()->startOfDay();
-        $providerReceivedAtLabel = $providerReceivedAt?->format('d/n/Y H:i') ?? $this->distribution_date->format('d/n/Y');
+        $providerReceivedAtLabel = $values['provider_received_at']?->format('d/n/Y H:i') ?? $this->distribution_date->format('d/n/Y');
         $data = [
-            'provider_id' => $product->default_provider_id,
-            'type' => 'charge',
+            ...$values,
             'distribution_id' => $this->id,
-            'product_id' => $product->id,
-            'car_number' => Supplier::withTrashed()
-                ->whereKey($this->supplier_id)
-                ->value('car_number'),
-            'quantity' => $this->quantity,
-            'buy_price' => $buyPrice,
-            'amount' => $amount,
-            'transaction_date' => $providerReceivedAt?->toDateString() ?? $this->distribution_date,
-            'provider_received_at' => $providerReceivedAt,
             'notes' => "Auto-generated provider balance from Distribution #{$this->id} ({$providerReceivedAtLabel})",
             'origin' => 'distribution',
         ];
@@ -213,6 +218,28 @@ class Distribution extends Model
         }
 
         ProviderLedger::create($data);
+    }
+
+    public function providerChargeValues(?Product $product, ?string $carNumber): ?array
+    {
+        $buyPrice = $this->provider_buy_price ?? $product?->buy_price;
+        if (! $product?->default_provider_id || $buyPrice === null) {
+            return null;
+        }
+
+        $receivedAt = $this->provider_received_at ?? $this->distribution_date?->copy()->startOfDay();
+
+        return [
+            'provider_id' => $product->default_provider_id,
+            'type' => 'charge',
+            'product_id' => $product->id,
+            'car_number' => $carNumber,
+            'quantity' => $this->quantity,
+            'buy_price' => $buyPrice,
+            'amount' => round((float) $this->quantity * (float) $buyPrice, 4),
+            'transaction_date' => $receivedAt?->toDateString() ?? $this->distribution_date,
+            'provider_received_at' => $receivedAt,
+        ];
     }
 
     public function deleteProviderLedger(): void

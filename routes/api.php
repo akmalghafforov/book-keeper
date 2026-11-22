@@ -16,6 +16,11 @@ Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::get('auth/sessions', [AuthController::class, 'sessions']);
         Route::delete('auth/sessions/{session}', [AuthController::class, 'revokeSession']);
+        Route::controller(\App\Http\Controllers\Api\TransactionDraftController::class)->prefix('transaction-drafts')->group(function () {
+            Route::middleware('endpoint-access:transaction_drafts.submit')->post('/', 'store');
+            Route::middleware('endpoint-access:transaction_drafts.view')->get('/', 'index');
+            Route::middleware('endpoint-access:transaction_drafts.view')->get('{draft}', 'show')->whereUuid('draft');
+        });
         Route::middleware('endpoint-access:clients.view')->get('clients', [SupportingDataController::class, 'clients']);
         Route::middleware('endpoint-access:clients.create')->post('clients', [SupportingDataController::class, 'storeClient']);
         Route::middleware('endpoint-access:clients.view')->get('clients/{client}/shops', [SupportingDataController::class, 'shops']);
@@ -41,6 +46,6 @@ Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
         Route::middleware('endpoint-access:distributions.create')->post('distributions', [DistributionController::class, 'store']);
         Route::middleware('endpoint-access:distributions.view')->get('distributions/{distribution}', [DistributionController::class, 'show']);
         Route::middleware('endpoint-access:distributions.update')->patch('distributions/{distribution}', [DistributionController::class, 'update']);
-        Route::middleware('endpoint-access:distributions.delete')->delete('distributions/{distribution}',[DistributionController::class, 'destroy']);
+        Route::middleware('endpoint-access:distributions.delete')->delete('distributions/{distribution}', [DistributionController::class, 'destroy']);
     });
 });

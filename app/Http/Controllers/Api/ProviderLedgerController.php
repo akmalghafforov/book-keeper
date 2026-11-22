@@ -105,12 +105,7 @@ class ProviderLedgerController extends ApiController
         $validated = $request->validate([
             ...ManualProviderLedgerEntry::rules($converter),
             'provider_id' => ['required', 'integer', Rule::exists('providers', 'id')->whereNull('deleted_at')],
-            'provider_received_at' => [
-                'required',
-                'string',
-                'date',
-                'regex:/\A\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?(?:Z|[+-](?:[01]\d|2[0-3]):?[0-5]\d)\z/',
-            ],
+            'provider_received_at' => ['required', ...ManualProviderLedgerEntry::OFFSET_TIMESTAMP],
         ]);
         $receivedAt = Date::parse($validated['provider_received_at'])->setTimezone(config('app.timezone'));
         $validated = $converter?->convert($validated) ?? $validated;

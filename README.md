@@ -130,3 +130,17 @@ Setup in Meta:
 3. Subscribe your app to the WhatsApp Business Account.
 
 The webhook verifies Meta's challenge request, validates the `X-Hub-Signature-256` signature with your app secret, and stores each accepted payload in the `whatsapp_webhook_events` table.
+
+### Draft queue rollout
+
+On staging, migrate and configure a human reviewer, a database operator, and a dedicated Codex service user. Smoke-test one approval per transaction kind, a duplicate conflict and replay, and a SQLite backup restore. Verify that the release proxy lets the importer routes reach Laravel with the Bearer header. The production Apache configuration keeps Basic authentication on the admin pages and delegates the importer methods and paths to Laravel.
+
+After staging verification and a consistent production SQLite backup, run the explicit migration and configure the designated accounts. An existing active human admin can hold both human roles. The command prompts for the Codex password when it creates the separate API-only account.
+
+```bash
+make migrate-prod
+make artisan-prod c='drafts:configure-access --reviewer=REVIEWER_EMAIL --operator=OPERATOR_EMAIL --codex=CODEX_EMAIL'
+make artisan-prod c='drafts:status'
+```
+
+Repeat the three-kind smoke test before resuming imports. Monitor the pending counts and oldest ages with `drafts:status`. The application logs approval validation failures, duplicate conflicts, and approval exceptions without draft field contents. Pause imports during database restores and reconcile the restored draft IDs and posted links against the import journal before replaying an export. Reapply the designated access grants after restoring a pre-rollout backup.

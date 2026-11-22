@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -27,11 +28,14 @@ class DatabaseSeeder extends Seeder
                 $role->permissions()->sync(\App\Models\Permission::pluck('id'));
             }
         }
-        User::factory()->create([
+        $admin = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
         ]);
+        $admin->roles()->syncWithoutDetaching(Role::whereIn('code', [
+            'draft_reviewer', 'draft_operator', 'codex_draft_importer',
+        ])->pluck('id')->all());
 
         $this->call([
             ClientSeeder::class,

@@ -35,7 +35,11 @@ class SqliteDatabaseImporter
         'debt_ledgers',
         'providers',
         'provider_ledgers',
+        'transaction_drafts',
+        'transaction_draft_events',
     ];
+
+    public function __construct(private SqliteDatabaseSnapshot $snapshot) {}
 
     /**
      * @return array{backup_path: string}
@@ -177,7 +181,13 @@ class SqliteDatabaseImporter
         File::ensureDirectoryExists($backupDirectory);
         $backupPath = $backupDirectory.DIRECTORY_SEPARATOR.'taqsimot_db_pre_import_'.now(config('app.timezone'))->format('Ymd_His_u').'.sqlite';
 
-        if (! File::copy($activePath, $backupPath)) {
+        try {
+            if (File::put($backupPath, '') === false || ! chmod($backupPath, 0600)) {
+                throw new DatabaseImportException(__('Unable to prepare the database backup.'));
+            }
+            $this->snapshot->create($activePath, $backupPath);
+        } catch (Throwable) {
+            File::delete($backupPath);
             throw new DatabaseImportException(__('Unable to back up the current database. The import was cancelled.'));
         }
 

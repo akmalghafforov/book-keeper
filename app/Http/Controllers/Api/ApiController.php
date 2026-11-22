@@ -77,8 +77,8 @@ class ApiController extends Controller
                     return response()->json(['message' => 'Idempotency key was used with a different request.'], 409);
                 }
 
-                return response()->json(
-                    json_decode($stored->response, true, flags: JSON_THROW_ON_ERROR),
+                return JsonResponse::fromJsonString(
+                    $stored->response,
                     $stored->status_code,
                     $stored->response_etag === null ? [] : ['ETag' => $stored->response_etag],
                 );
