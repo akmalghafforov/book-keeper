@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 class ApiController extends Controller
 {
@@ -16,7 +20,7 @@ class ApiController extends Controller
             }
         }
 
-return ['data' => ['type' => $type, 'id' => (string) $model->id, 'attributes' => $attributes ?: $model->attributesToArray(), 'relationships' => $relationships]];
+        return ['data' => ['type' => $type, 'id' => (string) $model->id, 'attributes' => $attributes ?: $model->attributesToArray(), 'relationships' => $relationships]];
     }
 
     protected function collection($paginator, string $type, callable $map): array
@@ -29,31 +33,69 @@ return ['data' => ['type' => $type, 'id' => (string) $model->id, 'attributes' =>
         return '"'.sha1($model->getKey().'|'.optional($model->updated_at)->format('U.u')).'"';
     }
 
-    protected function requireMatch(Request $request, Model $model): ?\Illuminate\Http\JsonResponse
+    protected function requireMatch(Request $request, Model $model): ?JsonResponse
     {
         if ($request->header('If-Match') !== $this->etag($model)) {
             return response()->json(['message' => 'The resource has changed.'], 412);
         }
 
-return null;
+        return null;
     }
 
-    protected function idempotent(Request $request, \Closure $create)
+    protected function idempotent(Request $request, Closure $create): JsonResponse
     {
         $key = $request->header('Idempotency-Key');
-        if (! $key) {
+        if (! is_string($key) || trim($key) === '') {
             return response()->json(['errors' => ['Idempotency-Key' => ['The Idempotency-Key header is required.']]], 422);
-        } $hash = hash('sha256', $request->method().'|'.$request->path().'|'.json_encode($request->all()));
-        $old = \Illuminate\Support\Facades\DB::table('idempotency_keys')->where(['user_id' => $request->user()->id, 'route' => $request->path(), 'key' => $key])->where('expires_at', '>', now())->first();
-        if ($old) {
-            if ($old->request_hash !== $hash) {
-                return response()->json(['message' => 'Idempotency key was used with a different request.'], 409);
+        }
+        if (strlen($key) > 255) {
+            return response()->json(['errors' => ['Idempotency-Key' => ['The Idempotency-Key header must be at most 255 bytes.']]], 422);
+        }
+
+        $scope = ['user_id' => $request->user()->id, 'route' => $request->path(), 'key' => $key];
+        $hash = hash('sha256', $request->method().'|'.$request->path().'|'.json_encode($request->all()));
+
+        return DB::transaction(function () use ($scope, $hash, $create) {
+            $now = now();
+
+            // Reserve the unique key before reading it. The upsert serializes concurrent
+            // requests and starts a write transaction before SQLite takes a read snapshot.
+            DB::table('idempotency_keys')->upsert([
+                ...$scope,
+                'request_hash' => $hash,
+                'response' => 'null',
+                'status_code' => 0,
+                'expires_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], array_keys($scope), ['route']);
+
+            $keyQuery = DB::table('idempotency_keys')->where($scope);
+            $stored = $keyQuery->lockForUpdate()->first();
+            if (Date::parse($stored->expires_at)->isFuture()) {
+                if ($stored->request_hash !== $hash) {
+                    return response()->json(['message' => 'Idempotency key was used with a different request.'], 409);
+                }
+
+                return response()->json(
+                    json_decode($stored->response, true, flags: JSON_THROW_ON_ERROR),
+                    $stored->status_code,
+                    $stored->response_etag === null ? [] : ['ETag' => $stored->response_etag],
+                );
             }
 
-return response()->json(json_decode($old->response, true), $old->status_code);
-        } $response = $create();
-        \Illuminate\Support\Facades\DB::table('idempotency_keys')->insert(['user_id' => $request->user()->id, 'route' => $request->path(), 'key' => $key, 'request_hash' => $hash, 'response' => json_encode($response->getData(true)), 'status_code' => $response->getStatusCode(), 'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
+            $response = $create();
+            $now = now();
+            $keyQuery->update([
+                'request_hash' => $hash,
+                'response' => $response->getContent(),
+                'response_etag' => $response->headers->get('ETag'),
+                'status_code' => $response->getStatusCode(),
+                'expires_at' => $now->copy()->addHours(24),
+                'updated_at' => $now,
+            ]);
 
-        return $response;
+            return $response;
+        }, 5);
     }
 }

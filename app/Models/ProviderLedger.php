@@ -44,6 +44,7 @@ class ProviderLedger extends Model
         'transaction_date' => 'date',
         'provider_received_at' => 'datetime',
         'sort_order' => 'integer',
+        'api_revision' => 'integer',
     ];
 
     protected static function booted(): void
@@ -83,6 +84,38 @@ class ProviderLedger extends Model
             ->orderByRaw(static::operationDateTimeExpression().' desc')
             ->orderBy('sort_order')
             ->orderBy('id');
+    }
+
+    public function scopeFilterLedger(Builder $query, array $filters): Builder
+    {
+        foreach (['provider_id' => 'provider_id', 'type' => 'type', 'tonnage' => 'quantity'] as $filter => $column) {
+            if (filled($filters[$filter] ?? null)) {
+                $query->where($column, $filters[$filter]);
+            }
+        }
+
+        if (filled($filters['search'] ?? null)) {
+            $search = '%'.$filters['search'].'%';
+            $query->where(fn (Builder $entries) => $entries->where('notes', 'like', $search)
+                ->orWhere('car_number', 'like', $search)
+                ->orWhere('distribution_id', 'like', $search));
+        }
+
+        foreach (['provider_date_from' => '>=', 'provider_date_to' => '<='] as $filter => $operator) {
+            if (filled($filters[$filter] ?? null)) {
+                $query->whereDate('provider_received_at', $operator, $filters[$filter]);
+            }
+        }
+
+        if (filled($filters['vehicle_number'] ?? null)) {
+            $query->where('car_number', 'like', '%'.$filters['vehicle_number'].'%');
+        }
+
+        if (filled($filters['paid_amount'] ?? null)) {
+            $query->where('type', 'payment')->where('amount', $filters['paid_amount']);
+        }
+
+        return $query;
     }
 
     /**

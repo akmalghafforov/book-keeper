@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\PaymentMethod;
-use App\Enums\PaymentPurpose;
 use App\Exceptions\InvalidProviderLedgerWorkbook;
 use App\Http\Controllers\Controller;
 use App\Models\Provider;
 use App\Models\ProviderLedger;
+use App\Services\ManualProviderLedgerEntry;
 use App\Services\PaymentCurrencyConverter;
 use App\Services\ProviderLedgerReconciler;
 use Carbon\Carbon;
@@ -69,46 +68,8 @@ class ProviderLedgerController extends Controller
     {
         $query = ProviderLedger::with(['provider', 'product'])
             ->withRunningBalance()
-            ->inReverseOperationOrder();
-
-        if ($request->filled('provider_id')) {
-            $query->where('provider_id', $request->provider_id);
-        }
-
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-
-            $query->where(function ($q) use ($search) {
-                $q->where('notes', 'like', '%'.$search.'%')
-                    ->orWhere('car_number', 'like', '%'.$search.'%')
-                    ->orWhere('distribution_id', 'like', '%'.$search.'%');
-            });
-        }
-
-        if ($request->filled('provider_date_from')) {
-            $query->whereDate('provider_received_at', '>=', $request->provider_date_from);
-        }
-
-        if ($request->filled('provider_date_to')) {
-            $query->whereDate('provider_received_at', '<=', $request->provider_date_to);
-        }
-
-        if ($request->filled('tonnage')) {
-            $query->where('quantity', $request->tonnage);
-        }
-
-        if ($request->filled('vehicle_number')) {
-            $query->where('car_number', 'like', '%'.$request->vehicle_number.'%');
-        }
-
-        if ($request->filled('paid_amount')) {
-            $query->where('type', 'payment')
-                ->where('amount', $request->paid_amount);
-        }
+            ->inReverseOperationOrder()
+            ->filterLedger($request->all());
 
         $providerLedgers = $query->paginate(100)->withQueryString();
 
@@ -133,22 +94,14 @@ class ProviderLedgerController extends Controller
      */
     public function store(Request $request, PaymentCurrencyConverter $paymentCurrencyConverter)
     {
-        $validated = $request->validate($this->manualEntryRules($paymentCurrencyConverter));
+        $validated = $request->validate([
+            ...ManualProviderLedgerEntry::rules($paymentCurrencyConverter),
+            'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
+        ]);
         $transactionDate = $this->parseManualTransactionDate($validated['transaction_date']);
         $validated = $paymentCurrencyConverter->convert($validated);
 
-        ProviderLedger::create([
-            'provider_id' => $validated['provider_id'],
-            'type' => $validated['type'],
-            'payment_method' => $validated['type'] === 'payment' ? $validated['payment_method'] : null,
-            'payment_purpose' => $this->paymentPurpose($validated),
-            'payer_name' => $this->payerName($validated),
-            'amount' => $validated['amount'],
-            'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
-            'transaction_date' => $transactionDate->toDateString(),
-            'provider_received_at' => $transactionDate->toDateTimeString(),
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        ProviderLedger::create(ManualProviderLedgerEntry::attributes($validated, $transactionDate));
 
         $message = $validated['type'] === 'charge'
             ? __('Provider debt recorded successfully.')
@@ -187,25 +140,13 @@ class ProviderLedgerController extends Controller
     {
         $this->ensureManualEntry($providerLedger);
 
-        $validated = $request->validate($this->manualEntryRules());
+        $validated = $request->validate([
+            ...ManualProviderLedgerEntry::rules(),
+            'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
+        ]);
         $transactionDate = $this->parseManualTransactionDate($validated['transaction_date']);
 
-        $providerLedger->update([
-            'provider_id' => $validated['provider_id'],
-            'type' => $validated['type'],
-            'payment_method' => $validated['type'] === 'payment' ? $validated['payment_method'] : null,
-            'payment_purpose' => $this->paymentPurpose($validated),
-            'payer_name' => $this->payerName($validated),
-            'distribution_id' => null,
-            'product_id' => null,
-            'car_number' => $validated['type'] === 'charge' ? ($validated['car_number'] ?? null) : null,
-            'quantity' => null,
-            'buy_price' => null,
-            'amount' => $validated['amount'],
-            'transaction_date' => $transactionDate->toDateString(),
-            'provider_received_at' => $transactionDate->toDateTimeString(),
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        $providerLedger->update(ManualProviderLedgerEntry::attributes($validated, $transactionDate));
 
         return redirect()->route('admin.provider-ledgers.index')
             ->with('success', __('Provider ledger entry updated successfully.'));
@@ -224,37 +165,9 @@ class ProviderLedgerController extends Controller
             ->with('success', __('Provider ledger entry deleted successfully.'));
     }
 
-    private function manualEntryRules(?PaymentCurrencyConverter $paymentCurrencyConverter = null): array
-    {
-        return [
-            'provider_id' => 'required|exists:providers,id',
-            'type' => ['required', Rule::in(['charge', 'payment'])],
-            'payment_method' => ['nullable', 'required_if:type,payment', Rule::enum(PaymentMethod::class)],
-            'payment_purpose' => ['exclude_unless:type,payment', 'nullable', Rule::enum(PaymentPurpose::class), Rule::notIn([PaymentPurpose::Other->value])],
-            'payer_name' => ['exclude_unless:payment_purpose,on_behalf_of', 'required', 'string', 'max:255'],
-            'amount' => 'required|numeric|min:0.01',
-            ...($paymentCurrencyConverter?->rules() ?? []),
-            'car_number' => 'nullable|string|max:50',
-            'transaction_date' => 'required|date_format:d/n/Y H:i,d/m/Y H:i',
-            'notes' => 'nullable|string|max:1000',
-        ];
-    }
-
     private function parseManualTransactionDate(string $transactionDate): Carbon
     {
         return Carbon::createFromFormat('d/n/Y H:i', $transactionDate);
-    }
-
-    private function paymentPurpose(array $validated): ?string
-    {
-        return $validated['type'] === 'payment' ? ($validated['payment_purpose'] ?? null) : null;
-    }
-
-    private function payerName(array $validated): ?string
-    {
-        return $this->paymentPurpose($validated) === PaymentPurpose::OnBehalfOf->value
-            ? $validated['payer_name']
-            : null;
     }
 
     private function ensureManualEntry(ProviderLedger $providerLedger): void

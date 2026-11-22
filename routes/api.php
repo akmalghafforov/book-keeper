@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DebtLedgerController;
 use App\Http\Controllers\Api\DistributionController;
+use App\Http\Controllers\Api\ProviderLedgerController;
 use App\Http\Controllers\Api\SupportingDataController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,13 @@ Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
         Route::middleware('endpoint-access:debt_ledgers.view')->get('debt-ledgers/{debtLedger}', [DebtLedgerController::class, 'show']);
         Route::middleware('endpoint-access:debt_ledgers.update')->patch('debt-ledgers/{debtLedger}', [DebtLedgerController::class, 'update']);
         Route::middleware('endpoint-access:debt_ledgers.delete')->delete('debt-ledgers/{debtLedger}', [DebtLedgerController::class, 'destroy']);
+        Route::controller(ProviderLedgerController::class)->prefix('provider-ledgers')->whereNumber('providerLedger')->group(function () {
+            Route::middleware('endpoint-access:provider_ledgers.view')->get('/', 'index');
+            Route::middleware('endpoint-access:provider_ledgers.create')->post('/', 'store');
+            Route::middleware('endpoint-access:provider_ledgers.view')->get('{providerLedger}', 'show');
+            Route::middleware('endpoint-access:provider_ledgers.update')->patch('{providerLedger}', 'update');
+            Route::middleware('endpoint-access:provider_ledgers.delete')->delete('{providerLedger}', 'destroy');
+        });
         Route::middleware('endpoint-access:distributions.view')->get('distributions', [DistributionController::class, 'index']);
         Route::middleware('endpoint-access:distributions.create')->post('distributions', [DistributionController::class, 'store']);
         Route::middleware('endpoint-access:distributions.view')->get('distributions/{distribution}', [DistributionController::class, 'show']);

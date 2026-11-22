@@ -111,6 +111,83 @@ Create and update body fields are `client_id`, `type` (`charge`, `payment`, or `
 
 Create requests require a unique `Idempotency-Key` header. PATCH and DELETE require the ETag returned from GET/POST/PATCH in `If-Match`; a stale ETag returns `412`. Rows with `origin: "distribution"` cannot be edited or deleted through this endpoint (`409`).
 
+## Provider ledgers
+
+| Method | Route | Permission | Success |
+| --- | --- | --- | --- |
+| GET | `/provider-ledgers` | `provider_ledgers.view` | `200` with a paginated list |
+| GET | `/provider-ledgers/{id}` | `provider_ledgers.view` | `200` with the entry and its `ETag` |
+| POST | `/provider-ledgers` | `provider_ledgers.create` | `201` with the entry and its `ETag` |
+| PATCH | `/provider-ledgers/{id}` | `provider_ledgers.update` | `200` with the updated entry and its `ETag` |
+| DELETE | `/provider-ledgers/{id}` | `provider_ledgers.delete` | `204` with an empty body |
+
+The list uses the admin ledger order, starting with the latest operation timestamp. It defaults to 20 entries per page and caps `per_page` at 100. A filtered list request can combine filters.
+
+```http
+GET /api/v1/provider-ledgers?provider_id=7&type=charge&search=cement&provider_date_from=2026-09-01&provider_date_to=2026-09-30&tonnage=3.500&vehicle_number=TJ-1234&page=1&per_page=20
+```
+
+`search` matches notes, vehicle number, or distribution ID. The received date bounds are inclusive. `tonnage` matches the stored quantity, `vehicle_number` matches part of the vehicle number, and `paid_amount` matches the stored TJS amount of a payment.
+
+Entries have resource type `provider-ledger`. The attributes include `provider_id`, `product_id`, `distribution_id`, and corresponding references when available, plus `type`, `origin`, `amount`, `car_number`, `quantity`, `buy_price`, `payment_method`, `payment_purpose`, `payer_name`, `transaction_date`, `provider_received_at`, `notes`, and `running_balance`. IDs and decimal values are strings. Each running balance includes charges minus payments through that entry in the provider’s full active ledger, even when filters or pagination hide some of those entries.
+
+```http
+POST /api/v1/provider-ledgers
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer <access_token>
+Idempotency-Key: provider-payment-001
+
+{
+  "provider_id": "7",
+  "type": "payment",
+  "amount": "100.00",
+  "currency": "USD",
+  "exchange_rate": "9.50",
+  "payment_method": "cash",
+  "payment_purpose": "on_behalf_of",
+  "payer_name": "Farid",
+  "provider_received_at": "2026-09-10T14:30:00+05:00",
+  "notes": "September payment"
+}
+```
+
+POST and PATCH require an active `provider_id`, `type` (`charge` or `payment`), `amount` of at least `0.01`, and an ISO 8601 `provider_received_at` timestamp with an offset or `Z`. The server stores the timestamp to second precision and derives `transaction_date` in the application timezone. `car_number` applies to charges. Payments require `payment_method` (`cash`, `card`, `ds`, `eo`, or `alif`). Optional `payment_purpose` accepts `on_behalf_of`, `vehicle_and_labor`, `vehicle`, or `labor`. Supply `payer_name` for `on_behalf_of`.
+
+POST payments require `currency` (`TJS`, `USD`, `EUR`, `UZS`, or `RUB`) and a positive `exchange_rate`. The server converts foreign payments to TJS and appends the calculation to notes. PATCH takes the complete editable form with the stored TJS amount. Include optional values you want to retain.
+
+```http
+PATCH /api/v1/provider-ledgers/123
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer <access_token>
+If-Match: "etag-from-response"
+
+{
+  "provider_id": "7",
+  "type": "payment",
+  "amount": "950.0000",
+  "payment_method": "cash",
+  "payment_purpose": "on_behalf_of",
+  "payer_name": "Farid",
+  "provider_received_at": "2026-09-10T14:30:00+05:00",
+  "notes": "September payment | 100 USD × 9.50 = 950 TJS"
+}
+```
+
+DELETE also requires `If-Match` and soft-deletes the entry. POST retries with the same key and payload replay the original `201` body and `ETag` for 24 hours.
+
+| Status | When it applies |
+| --- | --- |
+| `401` | The access token is missing or invalid. |
+| `403` | The user lacks endpoint access. |
+| `404` | The entry is unknown or soft-deleted. |
+| `409` | A POST key is reused with a different payload within 24 hours, or an entry with `origin: "distribution"` or a `distribution_id` is targeted for a direct edit or delete. Use `/api/v1/distributions/{id}` to change distribution-derived entries. |
+| `412` | A manual PATCH or DELETE has a missing or stale `If-Match`. |
+| `422` | Validation fails or `Idempotency-Key` is missing, blank, or longer than 255 bytes. |
+
+Apply the provider-ledger permission migration before enabling client use. It copies existing role grants from the corresponding `debt_ledgers.*` permissions. Provider-ledger endpoint overrides are independent. On staging, verify an authorized list and detail read, create and replay a manual payment, then update and delete it with the returned ETags.
+
 ## Distributions
 
 | Method | Route | Permission |
@@ -149,7 +226,7 @@ Distribution creation needs `Idempotency-Key`. PATCH and DELETE need `If-Match` 
 
 ## Concurrency and idempotency
 
-`POST /debt-ledgers` and `POST /distributions` save a successful response for 24 hours against the combination of user, route, and `Idempotency-Key`. Repeating the same request returns the saved response. Reusing the key with another request body returns `409`.
+`POST /debt-ledgers`, `POST /provider-ledgers`, and `POST /distributions` save a successful response for 24 hours against the combination of user, route, and `Idempotency-Key`. Repeating the same request returns the saved response. Reusing the key with another request body returns `409`.
 
 For mutable resources, first fetch the record and copy its response ETag:
 
