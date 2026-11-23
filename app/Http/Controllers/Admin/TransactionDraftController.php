@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\TransactionDraft;
 use App\Models\TransactionDraftImage;
+use App\Services\TransactionDraftMissingFields;
 use App\Services\TransactionDraftPosting;
 use App\Services\TransactionDraftReviewPage;
 use App\Services\TransactionDraftWorkflow;
@@ -76,6 +77,18 @@ class TransactionDraftController extends Controller
     {
         return $this->workflow->edit($draft, $request->user()->id, $request->header('If-Match'),
             fn () => $this->reviewInput($request, $draft)['fields']);
+    }
+
+    public function missingFields(Request $request, TransactionDraft $draft, TransactionDraftMissingFields $completion): JsonResponse
+    {
+        return $this->workflow->edit($draft, $request->user()->id, $request->header('If-Match'),
+            function (TransactionDraft $locked) use ($completion, $request) {
+                if ($request->isJson() && ! is_object(json_decode($request->getContent())->fields ?? null)) {
+                    throw ValidationException::withMessages(['fields' => __('Supply a fields object.')]);
+                }
+
+                return $completion->validate($locked, $request->all());
+            });
     }
 
     public function approve(Request $request, TransactionDraft $draft): JsonResponse

@@ -34,3 +34,11 @@ test('keeps Select2 empty-term behavior', () => {
     assert.equal(clientSelect2Matcher({ term: '' }, client), client);
     assert.equal(clientSelect2Matcher({}, client), client);
 });
+
+test('matches Tajik names typed in Latin or without Tajik Cyrillic letters', () => {
+    const client = { id: '1', text: 'Ҷамшед Ҳасанов' };
+
+    assert.equal(clientSelect2Matcher({ term: 'Jamshed' }, client), client);
+    assert.equal(clientSelect2Matcher({ term: 'чамшед хасанов' }, client), client);
+    assert.equal(clientSelect2Matcher({ term: 'фыва' }, client), null);
+});

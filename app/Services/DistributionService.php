@@ -4,9 +4,22 @@ namespace App\Services;
 
 use App\Models\Distribution;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class DistributionService
 {
+    public static function entryRules(): array
+    {
+        return [
+            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
+            'product_category_id' => ['required', Rule::exists('product_categories', 'id')],
+            'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
+            'quantity' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'provider_buy_price' => 'nullable|numeric|min:0',
+        ];
+    }
+
     public function create(array $attributes): Distribution
     {
         return DB::transaction(fn () => Distribution::create($this->prepare($attributes)));

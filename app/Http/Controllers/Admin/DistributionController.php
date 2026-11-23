@@ -8,6 +8,7 @@ use App\Models\Distribution;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Supplier;
+use App\Services\DistributionService;
 use App\Services\PotentialDuplicateDetector;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -250,17 +251,12 @@ class DistributionController extends Controller
     private function rules(): array
     {
         return [
+            ...DistributionService::entryRules(),
             'supplier_id' => 'nullable|exists:suppliers,id',
             'client_id' => 'required|exists:clients,id',
             'shop_id' => 'nullable|exists:shops,id',
             'credit_client_id' => 'nullable|exists:clients,id',
-            'credit_client_price' => 'nullable|required_with:credit_client_id|numeric|min:0',
-            'product_category_id' => ['required', Rule::exists('product_categories', 'id')],
             'product_id' => ['required', Rule::exists('products', 'id')->where(fn ($query) => $query->where('product_category_id', request('product_category_id'))->whereNull('deleted_at'))],
-            'quantity_unit' => 'required|in:per_ton,per_bag,per_piece',
-            'quantity' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'provider_buy_price' => 'nullable|numeric|min:0',
             'distribution_date' => 'required|date_format:d/n/Y,d/m/Y',
             'provider_received_at' => 'nullable|date_format:d/n/Y H:i,d/m/Y H:i',
         ];

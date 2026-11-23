@@ -171,6 +171,89 @@ class TransactionDraftTest extends TestCase
             ->assertJsonPath('data.0.id', $id)->assertJsonPath('meta.pagination.total', 1);
     }
 
+    public function test_reviewer_completes_distribution_with_zero_and_preserves_ai_and_manual_values(): void
+    {
+        $client = Client::factory()->create();
+        $credit = Client::factory()->create();
+        $provider = Provider::factory()->create();
+        $product = Product::factory()->create(['default_provider_id' => $provider->id]);
+        $original = [
+            'client_id' => $client->id, 'credit_client_id' => $credit->id,
+            'product_category_id' => $product->product_category_id, 'product_id' => $product->id,
+            'quantity' => 0, 'quantity_unit' => 'per_ton', 'price' => null,
+        ];
+        $id = $this->submit($this->suggestion('distribution', $original))->assertCreated()->json('data.id');
+        $url = self::WEB.$id.'/missing-fields';
+        $this->actingAs($this->reviewer)->withHeader('If-Match', '"1"');
+        $this->patchJson($url, ['fields' => []])->assertUnprocessable()->assertJsonValidationErrors('fields');
+        $this->patchJson($url, ['fields' => (object) []])->assertUnprocessable()
+            ->assertJsonValidationErrors(['distribution_date', 'price', 'credit_client_price']);
+        $this->patchJson($url, ['fields' => ['quantity' => 1]])->assertUnprocessable()->assertJsonValidationErrors('fields.quantity');
+        $this->patchJson(self::WEB.$id, ['fields' => ['price' => 5]])->assertOk()->assertHeader('ETag', '"2"');
+        $this->patchJson($url, ['fields' => ['price' => 8]])->assertStatus(412)
+            ->assertHeader('ETag', '"2"')->assertJsonPath('data.attributes.current_fields.price', 5);
+        $this->withHeader('If-Match', '"2"')->patchJson($url, ['fields' => ['price' => 8]])
+            ->assertUnprocessable()->assertJsonValidationErrors('fields.price');
+
+        $this->patchJson($url, ['fields' => [
+            'distribution_date' => '2026-11-19', 'credit_client_price' => 0, 'provider_buy_price' => 0,
+        ]])->assertOk()->assertHeader('ETag', '"3"')
+            ->assertJsonPath('data.attributes.status', 'pending')
+            ->assertJsonPath('data.attributes.original_fields', $original)
+            ->assertJsonPath('data.attributes.current_fields.price', 5)
+            ->assertJsonPath('data.attributes.current_fields.credit_client_price', 0)
+            ->assertJsonPath('data.attributes.current_fields.provider_buy_price', 0)
+            ->assertJsonPath('data.attributes.events.2.type', 'edited');
+        $this->assertDatabaseCount('distributions', 0);
+        $this->assertDatabaseCount('debt_ledgers', 0);
+        $this->assertDatabaseCount('provider_ledgers', 0);
+    }
+
+    public function test_reviewer_completes_provider_payment_using_application_time_and_tjs_rate(): void
+    {
+        $provider = Provider::factory()->create();
+        $id = $this->submit($this->suggestion('provider_ledger', [
+            'provider_id' => $provider->id, 'type' => 'payment', 'amount' => '20',
+            'currency' => 'TJS', 'payment_purpose' => 'on_behalf_of',
+        ]))->assertCreated()->json('data.id');
+        $url = self::WEB.$id.'/missing-fields';
+        $this->actingAs($this->reviewer)->withHeader('If-Match', '"1"');
+        $this->patchJson($url, ['fields' => (object) []])->assertUnprocessable()
+            ->assertJsonValidationErrors(['payer_name', 'payment_method', 'provider_received_at']);
+        $this->patchJson($url, ['fields' => [
+            'payer_name' => 'Payer', 'payment_method' => 'cash', 'provider_received_at' => '2026-11-19T09:15',
+            'notes' => '  ',
+        ]])->assertOk()->assertHeader('ETag', '"2"')
+            ->assertJsonPath('data.attributes.status', 'pending')
+            ->assertJsonPath('data.attributes.current_fields.exchange_rate', 1)
+            ->assertJsonPath('data.attributes.current_fields.provider_received_at', '2026-11-19T09:15:00+05:00')
+            ->assertJsonMissingPath('data.attributes.current_fields.notes');
+        $this->assertDatabaseCount('provider_ledgers', 0);
+    }
+
+    public function test_debt_completion_requires_reviewer_and_respects_payment_only_reference(): void
+    {
+        $client = Client::factory()->create();
+        $charge = $this->submit($this->suggestion('debt_ledger', [
+            'client_id' => $client->id, 'type' => 'charge', 'amount' => '20',
+        ]))->assertCreated()->json('data.id');
+        $payment = $this->submit($this->suggestion('debt_ledger', [
+            'client_id' => $client->id, 'type' => 'payment', 'amount' => '20', 'currency' => 'USD',
+            'payment_method' => 'cash', 'exchange_rate' => '10',
+        ], 'payment'))->assertCreated()->json('data.id');
+        $fields = ['transaction_date' => '2026-11-19', 'reference_id' => 0];
+        $this->withToken($this->token)->patchJson(self::WEB.$payment.'/missing-fields', ['fields' => $fields])->assertForbidden();
+        $this->flushHeaders()->actingAs(User::factory()->create()->refresh())->patchJson(self::WEB.$payment.'/missing-fields', ['fields' => $fields])->assertForbidden();
+        $this->actingAs($this->reviewer);
+        $this->patchJson(self::WEB.$payment.'/missing-fields', ['fields' => $fields])->assertStatus(412);
+        $this->withHeader('If-Match', '"1"')->patchJson(self::WEB.$charge.'/missing-fields', ['fields' => $fields])
+            ->assertUnprocessable()->assertJsonValidationErrors('fields.reference_id');
+        $this->patchJson(self::WEB.$payment.'/missing-fields', ['fields' => $fields])->assertOk()
+            ->assertJsonPath('data.attributes.current_fields.reference_id', 0)
+            ->assertJsonPath('data.attributes.status', 'pending');
+        $this->assertDatabaseCount('debt_ledgers', 0);
+    }
+
     public function test_request_replay_and_durable_source_uniqueness_ignore_changed_locators(): void
     {
         $payload = $this->suggestion('debt_ledger', []);
@@ -393,6 +476,27 @@ class TransactionDraftTest extends TestCase
             ->assertSee($paymentId)->assertSee('View details')->assertDontSee($siblingId);
     }
 
+    public function test_draft_cards_sort_by_whatsapp_send_time_before_pagination(): void
+    {
+        $this->freezeTime();
+        for ($i = 10; $i >= 0; $i--) {
+            $payload = $this->suggestion('debt_ledger', []);
+            $payload['source']['message_key'] = 'chronology-'.$i;
+            $payload['source']['message_text'] = sprintf('Chronology card %02d', $i);
+            $payload['source']['sent_at'] = $i === 10
+                ? '2026-11-19T06:10:00Z'
+                : sprintf('2026-11-19T11:%02d:00+0500', $i);
+            $this->submit($payload)->assertCreated();
+            $this->travel(1)->seconds();
+        }
+
+        $this->actingAs($this->reviewer)->get(self::WEB)->assertOk()
+            ->assertSeeInOrder(['Chronology card 00', 'Chronology card 05', 'Chronology card 09'])
+            ->assertDontSee('Chronology card 10');
+        $this->get(self::WEB.'?page=2')->assertOk()
+            ->assertSee('Chronology card 10')->assertDontSee('Chronology card 00');
+    }
+
     public function test_original_messages_are_escaped_and_visible_to_reviewers_across_tabs(): void
     {
         $client = Client::factory()->create();
@@ -479,7 +583,7 @@ class TransactionDraftTest extends TestCase
 
         $this->actingAs($this->reviewer)->get(self::WEB)->assertOk()
             ->assertSeeInOrder(['31.04т', $primaryUrl, 'Related source messages', 'test-export #7', $supportUrl])
-            ->assertDontSee('<Без медиафайлов>');
+            ->assertSee('<Без медиафайлов>');
         foreach ([$primaryUrl, $supportUrl] as $url) {
             $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/png')
                 ->assertHeader('X-Content-Type-Options', 'nosniff')->assertContent(base64_decode($content));

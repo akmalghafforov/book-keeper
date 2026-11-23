@@ -133,7 +133,7 @@ class TransactionDraftWorkflow
                 return $failure;
             }
 
-            $this->recordEdit($locked, $actor, $changes());
+            $this->recordEdit($locked, $actor, $changes($locked));
 
             return $this->response($locked);
         });

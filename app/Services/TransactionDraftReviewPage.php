@@ -26,16 +26,20 @@ class TransactionDraftReviewPage
     public function forQueue(string $tab, ?string $kind): array
     {
         $pending = $tab === 'pending';
-        $date = $pending ? 'created_at' : 'updated_at';
-        $direction = $pending ? 'asc' : 'desc';
-        $aggregate = $pending ? 'min' : 'max';
         $query = TransactionDraft::where('status', $tab)
             ->when($kind, fn ($query) => $query->where('kind', $kind));
 
+        $sentAt = "json_extract(source, '$.sent_at')";
+        // SQLite requires a colon in numeric offsets. Drafts can also store +0500.
+        $normalized = "case when substr($sentAt, -5, 1) in ('+', '-')
+            then substr($sentAt, 1, length($sentAt) - 2) || ':' || substr($sentAt, -2)
+            else $sentAt end";
         $messages = (clone $query)->select('chat_key', 'message_key')
-            ->selectRaw("$aggregate($date) as queue_date")
+            ->selectRaw("coalesce(min(julianday($normalized)), julianday(min(created_at))) as queue_date")
+            ->selectRaw('min(created_at) as first_created_at')
             ->groupBy('chat_key', 'message_key')
-            ->orderBy('queue_date', $direction)
+            ->orderBy('queue_date')
+            ->orderBy('first_created_at')
             ->orderBy('chat_key')
             ->orderBy('message_key')
             ->paginate(10)
@@ -48,8 +52,8 @@ class TransactionDraftReviewPage
                 }
             })
             ->with('images:id,draft_id,locator_index')
-            ->orderBy($date, $direction)
-            ->orderBy('id', $direction)
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
         $byMessage = $drafts->groupBy(fn ($draft) => $draft->chat_key.'|'.$draft->message_key);
         $messages->setCollection($messages->getCollection()->filter(fn ($message) => $byMessage->has($message->chat_key.'|'.$message->message_key)
@@ -233,7 +237,7 @@ class TransactionDraftReviewPage
                 'client_id' => [__('Client'), $clientOptions],
                 'shop_id' => [__('Shop (Optional)'), Shop::orderBy('name')->get(['id', 'name', 'client_id'])->toArray()],
                 'product_category_id' => [__('Product Category'), ProductCategory::orderBy('name')->get(['id', 'name'])->toArray()],
-                'product_id' => [__('Product'), Product::orderBy('name')->get(['id', 'name', 'product_category_id'])->toArray()],
+                'product_id' => [__('Product'), Product::orderBy('name')->get(['id', 'name', 'product_category_id', 'default_provider_id', 'buy_price'])->toArray()],
                 'distribution_date' => [__('Date'), null, 'YYYY-MM-DD'],
                 'quantity_unit' => [__('Unit'), $this->options(['per_ton', 'per_bag', 'per_piece'])],
                 'quantity' => [__('Quantity')],

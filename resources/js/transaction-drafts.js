@@ -1,3 +1,5 @@
+import { formatDraftAmount } from './form-amount.js';
+
 const numberFormat = new Intl.NumberFormat('en', { maximumFractionDigits: 4 });
 const missing = '—';
 
@@ -53,6 +55,240 @@ export function draftReview(config) {
         checking: 0,
         pendingApproval: null,
         gradeFamily: '',
+
+        missingOpen: false,
+        missingEntries: {},
+        missingIssues: {},
+        missingMessage: '',
+        missingStale: null,
+        missingUnavailable: false,
+        missingTrigger: null,
+        catalogEntry: null,
+        catalogBusy: false,
+
+        openCatalogEntry(field, trigger) {
+            this.catalogEntry = {
+                field, trigger, type: field === 'supplier_id' ? 'supplier' : 'client',
+                values: {}, error: '',
+            };
+            this.$nextTick(() => this.$refs.catalogEntryInput?.focus());
+        },
+
+        closeCatalogEntry() {
+            const trigger = this.catalogEntry?.trigger;
+            this.catalogEntry = null;
+            this.$nextTick(() => trigger?.focus());
+        },
+
+        async createCatalogEntry() {
+            if (this.catalogBusy || !this.catalogEntry) return;
+            const entry = this.catalogEntry;
+            this.catalogBusy = true;
+            entry.error = '';
+            try {
+                const response = await fetch(this.catalogUrls[entry.type], {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(entry.values),
+                });
+                const body = await response.json();
+                if (!response.ok || !body.success) {
+                    entry.error = Object.values(body.errors ?? {}).flat().join(' ') || body.message || this.messages.failed;
+                    return;
+                }
+                const record = body[entry.type];
+                const option = { id: record.id, name: record.name ?? record.car_number };
+                for (const choices of Object.values(this.draftChoices)) {
+                    for (const key of entry.type === 'client' ? ['client_id', 'credit_client_id'] : ['supplier_id']) {
+                        choices[key]?.push(option);
+                    }
+                }
+                this.setMissing(entry.field, String(option.id));
+                this.closeCatalogEntry();
+            } catch {
+                entry.error = this.messages.failed;
+            } finally {
+                this.catalogBusy = false;
+            }
+        },
+
+        get missingProduct() {
+            return this.draftChoices.distribution?.product_id.find(product => String(product.id) === String(this.missingFields.product_id));
+        },
+
+        isMissing(value) {
+            return value == null || (typeof value === 'string' && value.trim() === '');
+        },
+
+        get missingFields() {
+            return { ...this.saved, ...this.missingEntries };
+        },
+
+        applicableMissing(field) {
+            const fields = this.missingFields;
+            const payment = fields.type === 'payment';
+            if (['currency', 'exchange_rate', 'payment_method', 'payment_purpose', 'reference_id'].includes(field)) return payment;
+            if (field === 'payer_name') return payment && fields.payment_purpose === 'on_behalf_of';
+            if (field === 'car_number') return fields.type === 'charge';
+            if (field === 'credit_client_price') return !this.isMissing(fields.credit_client_id);
+            if (this.kind === 'distribution' && ['provider_buy_price', 'provider_received_at'].includes(field)) {
+                return Boolean(this.missingProduct?.default_provider_id);
+            }
+            return true;
+        },
+
+        canFill(field) {
+            return this.isMissing(this.saved[field]) && this.isMissing(this.original[field]) && this.applicableMissing(field);
+        },
+
+        showMissingField(field) {
+            return this.canFill(field) || !this.isMissing(this.saved[field]) || !this.isMissing(this.original[field]) || this.missingErrors(field).length > 0;
+        },
+
+        missingErrors(field) {
+            return this.missingIssues['fields.' + field] ?? this.missingIssues[field] ?? [];
+        },
+
+        missingValue(field, value) {
+            return this.isMissing(value) ? missing : this.choiceName(field, value) ?? this.draftCatalog[field]?.[value] ?? value;
+        },
+
+        get filledDetails() {
+            const displayed = this.kind === 'distribution'
+                ? [...this.columns, 'quantity_unit']
+                : this.freightId === this.id ? ['amount', 'currency'] : [...this.columns, 'currency', 'notes'];
+            return Object.keys(this.fieldLabels).filter(field => !displayed.includes(field)
+                && this.isMissing(this.original[field]) && !this.isMissing(this.saved[field]));
+        },
+
+        missingOptions(field) {
+            const parent = { shop_id: 'client_id', product_id: 'product_category_id' }[field];
+            const choices = this.draftChoices[this.kind][field];
+            return parent ? choices.filter(choice => String(choice[parent]) === String(this.missingFields[parent])) : choices;
+        },
+
+        missingInput(field) {
+            if (field === 'exchange_rate' && this.missingFields.currency === 'TJS') return '1';
+            if (field === 'provider_buy_price') return this.missingEntries[field] ?? this.missingProduct?.buy_price ?? '';
+            return this.missingEntries[field] ?? '';
+        },
+
+        setMissing(field, value) {
+            if (field === 'product_id' && String(this.missingFields.product_id ?? '') !== String(value)) {
+                delete this.missingEntries.provider_buy_price;
+            }
+            this.missingEntries[field] = value;
+            delete this.missingIssues[field];
+            delete this.missingIssues['fields.' + field];
+            const child = { client_id: 'shop_id', product_category_id: 'product_id' }[field];
+            if (child && this.missingEntries[child] && !this.missingOptions(child).some(option => String(option.id) === this.missingEntries[child])) {
+                delete this.missingEntries[child];
+            }
+        },
+
+        formatDraftAmount,
+
+        setMissingAmount(field, input) {
+            const { raw, display } = formatDraftAmount(input.value);
+            this.setMissing(field, raw);
+            input.value = display;
+        },
+
+        magnify(event) {
+            if (event.pointerType !== 'mouse') return;
+            const frame = event.currentTarget;
+            const image = frame.firstElementChild;
+            const bounds = frame.getBoundingClientRect();
+            const percent = (offset, size) => Math.max(0, Math.min(100, offset / size * 100));
+            image.style.transformOrigin = percent(event.clientX - bounds.left, bounds.width) + '% ' + percent(event.clientY - bounds.top, bounds.height) + '%';
+            image.style.transform = 'scale(2)';
+        },
+
+        openMissing(trigger) {
+            this.missingTrigger = trigger;
+            this.missingEntries = {};
+            this.missingIssues = {};
+            this.missingMessage = '';
+            this.missingStale = null;
+            this.missingUnavailable = false;
+            this.missingOpen = true;
+            this.$refs.missingDialog.showModal();
+        },
+
+        closeMissing() {
+            if (this.busy || this.catalogBusy) return;
+            if (this.catalogEntry) {
+                this.closeCatalogEntry();
+                return;
+            }
+            this.missingOpen = false;
+            this.$refs.missingDialog.close();
+        },
+
+        acceptMissingDraft(draft, etag) {
+            const edits = this.changes;
+            this.saved = draft.current_fields;
+            this.original = draft.original_fields;
+            this.etag = etag;
+            this.fields = { ...this.saved, ...edits };
+            this.confirmed = false;
+            this.preview = emptyPreview();
+        },
+
+        reviewMissingRevision() {
+            this.acceptMissingDraft(this.missingStale.data, this.missingStale.etag);
+            // Drop entries locked by the new revision before checking their dependents.
+            this.missingEntries = Object.fromEntries(Object.entries(this.missingEntries)
+                .filter(([field]) => this.isMissing(this.original[field]) && this.isMissing(this.saved[field])));
+            this.missingEntries = Object.fromEntries(Object.entries(this.missingEntries)
+                .filter(([field, value]) => this.canFill(field) && (!this.draftChoices[this.kind][field]
+                    || this.isMissing(value) || this.missingOptions(field).some(option => String(option.id) === String(value)))));
+            this.missingStale = null;
+            this.missingMessage = '';
+        },
+
+        async saveMissing() {
+            if (this.busy || this.missingStale || this.missingUnavailable || this.catalogEntry) return;
+            this.checking++;
+            this.busy = true;
+            this.missingIssues = {};
+            this.missingMessage = '';
+            const fields = Object.fromEntries(Object.entries(this.missingEntries)
+                .filter(([field, value]) => this.canFill(field) && !this.isMissing(value)));
+            if (this.canFill('exchange_rate') && this.missingFields.currency === 'TJS') fields.exchange_rate = 1;
+            let saved = false;
+
+            try {
+                const { response, body } = await this.request('missing-fields', 'PATCH', { fields });
+                const etag = response.headers.get('ETag');
+                if (response.ok) {
+                    this.acceptMissingDraft(body.data.attributes, etag);
+                    this.message = this.messages.saved;
+                    saved = true;
+                } else {
+                    this.missingMessage = body.message ?? this.messages.failed;
+                    this.missingIssues = body.errors ?? {};
+                    if (response.status === 412 && body.data) this.missingStale = { etag, data: body.data.attributes };
+                    if (response.status === 409 && body.data && body.data.attributes.status !== 'pending') {
+                        this.missingUnavailable = true;
+                        this.close(body.data.attributes);
+                    }
+                }
+            } catch {
+                this.missingMessage = this.messages.failed;
+            } finally {
+                this.busy = false;
+                if (saved) {
+                    this.closeMissing();
+                    this.check();
+                }
+            }
+        },
 
         async request(action, method = 'POST', payload = {}, approvalKey = null) {
             const headers = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrf, 'If-Match': this.etag };
@@ -363,6 +599,75 @@ export function draftHistory(url) {
             } catch {
                 this.failed = true;
             }
+        },
+    };
+}
+
+export function missingPicker(field) {
+    let picker;
+    return {
+        init() {
+            const input = this.$el;
+            const timed = field === 'provider_received_at';
+            input.value = this.missingInput(field);
+            input.addEventListener('change', () => this.setMissing(field, input.value));
+            if (!window.flatpickr) return;
+            input.type = 'text';
+            picker = window.flatpickr(input, {
+                static: timed,
+                appendTo: input.parentElement,
+                dateFormat: timed ? 'Y-m-d\\TH:i' : 'Y-m-d',
+                altInput: true,
+                altInputClass: input.className,
+                altFormat: timed ? 'd/n/Y H:i' : 'd/n/Y',
+                defaultDate: this.missingInput(field) || undefined,
+                enableTime: timed,
+                time_24hr: true,
+                allowInput: true,
+                disableMobile: true,
+                onReady: (_, __, picker) => {
+                    picker.altInput.id = input.id;
+                    input.removeAttribute('id');
+                },
+            });
+        },
+        destroy() {
+            picker?.destroy();
+        },
+    };
+}
+
+export function missingSelect(field) {
+    let select;
+    return {
+        init() {
+            const input = this.$el;
+            input.addEventListener('change', () => this.setMissing(field, input.value));
+            this.$watch(() => [this.missingOptions(field), this.missingInput(field)], () => this.syncMissingSelect(input));
+            this.$nextTick(() => {
+                if (!input.isConnected) return;
+                if (window.jQuery?.fn.select2) {
+                    select = window.jQuery(input).select2({
+                        dropdownParent: window.jQuery(input.parentElement),
+                        width: '100%',
+                        placeholder: ' ',
+                        allowClear: true,
+                        ...(field.endsWith('client_id') ? { matcher: window.clientSelect2Matcher } : {}),
+                    }).on('change.missing', () => this.setMissing(field, input.value));
+                    if (field.endsWith('client_id')) window.enableSelect2SearchOnTyping(input);
+                }
+                this.syncMissingSelect(input);
+            });
+        },
+        syncMissingSelect(input) {
+            this.$nextTick(() => {
+                const value = String(this.missingInput(field));
+                input.value = value;
+                select?.trigger('change.select2');
+            });
+        },
+        destroy() {
+            select?.off('.missing').select2('destroy');
         },
     };
 }

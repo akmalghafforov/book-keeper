@@ -114,19 +114,16 @@ class TransactionDraftPosting
 
     public function prepare(string $kind, array $fields): array
     {
+        $fields = array_map(fn ($value) => is_string($value) && trim($value) === '' ? null : $value, $fields);
         $active = fn (string $table) => Rule::exists($table, 'id')->whereNull('deleted_at');
         $rules = match ($kind) {
             'distribution' => [
+                ...DistributionService::entryRules(),
                 'client_id' => ['required', $active('clients')],
                 'shop_id' => ['nullable', Rule::exists('shops', 'id')->where('client_id', $fields['client_id'] ?? null)],
                 'supplier_id' => ['nullable', $active('suppliers')],
                 'credit_client_id' => ['nullable', $active('clients')],
-                'credit_client_price' => ['nullable', 'required_with:credit_client_id'],
-                'product_category_id' => ['required', Rule::exists('product_categories', 'id')],
                 'product_id' => ['required', $active('products')->where('product_category_id', $fields['product_category_id'] ?? null)],
-                'quantity_unit' => ['required'],
-                'quantity' => ['required'],
-                'price' => ['required'],
                 'distribution_date' => ['required'],
             ],
             'provider_ledger' => [

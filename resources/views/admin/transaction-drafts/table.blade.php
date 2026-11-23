@@ -51,7 +51,11 @@
                         'kind' => $draft->kind,
                         'etag' => $draft->etag(),
                         'csrf' => csrf_token(),
-                        'urls' => collect(['show', 'preview', 'update', 'approve', 'dismiss'])->mapWithKeys(fn ($action) => [$action => route('admin.transaction-drafts.'.$action, $draft)]),
+                        'catalogUrls' => ['client' => route('admin.clients.store'), 'supplier' => route('admin.suppliers.store')],
+                        'original' => (object) $draft->original_fields,
+                        'fieldLabels' => array_map(fn ($definition) => $definition[0], $draftFields),
+                        'columns' => array_keys($columns),
+                        'urls' => collect(['show', 'preview', 'update', 'missing-fields', 'approve', 'dismiss'])->mapWithKeys(fn ($action) => [$action => route('admin.transaction-drafts.'.$action, $draft)]),
                         'messages' => [
                             'saved' => __('Draft saved.'),
                             'checkFields' => __('Check the highlighted fields.'),

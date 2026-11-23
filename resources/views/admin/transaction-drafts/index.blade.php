@@ -3,6 +3,10 @@
 @section('title', __('Drafts Records'))
 @section('header_title', __('Drafts Records'))
 
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+@endpush
+
 @section('content')
 @php
     $pending = $tab === 'pending';

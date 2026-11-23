@@ -53,6 +53,7 @@ Route::middleware(['auth', 'human.web'])->group(function () {
                     Route::get('images/{image}', 'image')->whereNumber('image')->name('image');
                     Route::post('preview', 'preview')->name('preview');
                     Route::patch('/', 'update')->name('update');
+                    Route::patch('missing-fields', 'missingFields')->name('missing-fields');
                     Route::post('approve', 'approve')->name('approve');
                     Route::post('dismiss', 'dismiss')->name('dismiss');
                 });

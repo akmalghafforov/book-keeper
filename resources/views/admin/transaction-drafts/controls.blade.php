@@ -5,8 +5,9 @@
     </p>
 @endif
 <div x-show="!closed" class="flex flex-wrap gap-2">
-    <button type="button" class="{{ $button }}" @click="toggleEditor()" :aria-expanded="editorOpen" :disabled="busy || !!stale">{{ __('Quick edit') }}</button>
     <button type="button" class="{{ $button }} bg-indigo-600 text-white" @click="act('approve')" :disabled="busy || !!stale">{{ __('Approve') }}</button>
+    <button type="button" class="{{ $button }}" @click="openMissing($el)" :disabled="busy || !!stale">{{ __('Add missing fields') }}</button>
+    <button type="button" class="{{ $button }}" @click="toggleEditor()" :aria-expanded="editorOpen" :disabled="busy || !!stale">{{ __('Quick edit') }}</button>
     <button type="button" class="{{ $button }}" @click="toggleDismissal()" :aria-expanded="dismissalOpen" :disabled="busy || !!stale">{{ __('Dismiss') }}</button>
 </div>
 <p x-cloak x-show="!closed && message" class="mt-3 text-sm" x-text="message" role="status"></p>
@@ -21,3 +22,5 @@
         <a x-show="postedRecord?.available" :href="postedRecord?.url" class="underline">{{ __('Open posted record') }}</a>
     </p>
 </template>
+
+@include('admin.transaction-drafts.missing-fields')

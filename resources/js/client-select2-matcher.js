@@ -27,9 +27,26 @@ export function toTajikKeyboardLayout(value) {
     }).join('');
 }
 
+const latinLetters = {
+    а: 'a', б: 'b', в: 'v', г: 'g', ғ: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z',
+    и: 'i', ӣ: 'i', й: 'y', к: 'k', қ: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p',
+    р: 'r', с: 's', т: 't', у: 'u', ӯ: 'u', ф: 'f', х: 'kh', ҳ: 'h', ц: 'ts', ч: 'ch',
+    ҷ: 'j', ш: 'sh', щ: 'shch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+};
+
+const plainCyrillic = { ғ: 'г', ӣ: 'и', қ: 'к', ӯ: 'у', ҳ: 'х', ҷ: 'ч' };
+
+function foldTajik(value) {
+    return value.toLowerCase().replace(/[ғӣқӯҳҷ]/g, letter => plainCyrillic[letter]);
+}
+
+function searchableName(value) {
+    return value.toLowerCase().replace(/[а-яёғӣқӯҳҷ]/g, letter => latinLetters[letter]);
+}
+
 /**
- * Select2 matcher for client names. It keeps Select2's usual behavior while
- * also checking the official Tajik-layout version of the search term.
+ * Match client names using the typed text, Tajik keyboard layout, or Latin
+ * transliteration. Plain Cyrillic spellings also match Tajik letters.
  */
 export function clientSelect2Matcher(params, data) {
     const term = (params.term || '').trim();
@@ -45,7 +62,12 @@ export function clientSelect2Matcher(params, data) {
     const clientName = data.text.toLowerCase();
     const searchTerms = [term, toTajikKeyboardLayout(term)];
 
-    return searchTerms.some((searchTerm) => clientName.includes(searchTerm.toLowerCase()))
+    const latinName = searchableName(clientName);
+    const foldedName = foldTajik(clientName);
+    return searchTerms.some(searchTerm => {
+        const searchable = searchableName(searchTerm);
+        return foldedName.includes(foldTajik(searchTerm)) || (searchable && latinName.includes(searchable));
+    })
         ? data
         : null;
 }

@@ -24,13 +24,9 @@
         return Number.isFinite(converted) ? converted.toFixed(2) : '0.00';
     },
     formatAmount(value) {
-        const [whole, ...decimalParts] = String(value).replace(/,/g, '').replace(/[^\d.]/g, '').split('.');
-        const decimal = decimalParts.join('');
-        const rawAmount = `${whole}${decimalParts.length ? `.${decimal}` : ''}`;
-
-        this.amount = rawAmount;
-
-        return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${decimalParts.length ? `.${decimal}` : ''}`;
+        const { raw, display } = window.formatDraftAmount(value);
+        this.amount = raw;
+        return display;
     },
     enforceTjsRate() {
         if (this.currency === 'TJS') this.exchangeRate = '1';
