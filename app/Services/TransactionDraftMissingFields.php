@@ -44,7 +44,7 @@ class TransactionDraftMissingFields
             }
         }
 
-        $prepared = $this->posting->prepare($draft->kind, $merged);
+        $prepared = $this->posting->prepare($draft, $merged);
         if ($prepared['issues']) {
             throw ValidationException::withMessages($prepared['issues']);
         }

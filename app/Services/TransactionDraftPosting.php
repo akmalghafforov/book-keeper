@@ -112,8 +112,9 @@ class TransactionDraftPosting
         ];
     }
 
-    public function prepare(string $kind, array $fields): array
+    public function prepare(TransactionDraft $draft, array $fields): array
     {
+        $kind = $draft->kind;
         $fields = array_map(fn ($value) => is_string($value) && trim($value) === '' ? null : $value, $fields);
         $active = fn (string $table) => Rule::exists($table, 'id')->whereNull('deleted_at');
         $rules = match ($kind) {
@@ -129,7 +130,7 @@ class TransactionDraftPosting
             'provider_ledger' => [
                 ...ManualProviderLedgerEntry::rules($this->currency),
                 'provider_id' => ['required', $active('providers')],
-                'provider_received_at' => ['required'],
+                'provider_received_at' => ['nullable', 'required_if:type,charge'],
             ],
             'debt_ledger' => [
                 ...ManualDebtLedgerEntry::rules($this->currency),
@@ -167,9 +168,14 @@ class TransactionDraftPosting
             if (! is_finite((float) $attributes['amount']) || $attributes['amount'] >= $limit || $attributes['amount'] < 0.01) {
                 return ['issues' => ['amount' => [__('The posted amount is outside the ledger’s supported TJS range.')]], 'attributes' => [], 'effects' => []];
             }
-            $attributes = $kind === 'provider_ledger'
-                ? ManualProviderLedgerEntry::attributes($attributes, $this->localTime($fields['provider_received_at']))
-                : ManualDebtLedgerEntry::attributes($attributes);
+            if ($kind === 'provider_ledger') {
+                $receivedAt = isset($fields['provider_received_at']) ? $this->localTime($fields['provider_received_at']) : null;
+                $transactionTime = $receivedAt ?? $this->localTime($draft->source['sent_at']);
+                $attributes = ManualProviderLedgerEntry::attributes($attributes, $transactionTime);
+                $attributes['provider_received_at'] = $receivedAt?->format('Y-m-d H:i:s');
+            } else {
+                $attributes = ManualDebtLedgerEntry::attributes($attributes);
+            }
             $attributes['origin'] = 'manual';
         }
 

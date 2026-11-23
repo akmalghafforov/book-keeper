@@ -276,7 +276,7 @@ The durable identity is `source.chat_key`, `source.message_key`, and `source.eve
 | Kind | Fields |
 | --- | --- |
 | `distribution` | `client_id`, `product_category_id`, `product_id`, `quantity_unit` (`per_ton`, `per_bag`, `per_piece`), `quantity`, `price`, `distribution_date`. Optional `shop_id`, `supplier_id`, `credit_client_id` with `credit_client_price`, `provider_buy_price`, and `provider_received_at`. |
-| `provider_ledger` | `provider_id`, `type` (`charge`, `payment`), `amount`, and offset-bearing `provider_received_at`. Optional `car_number` and `notes`. |
+| `provider_ledger` | `provider_id`, `type` (`charge`, `payment`), and `amount`. An offset-bearing `provider_received_at` is required for charges and optional for payments. Payments without it use the source message date in the application timezone as `transaction_date`. Optional `car_number` and `notes`. |
 | `debt_ledger` | `client_id`, `type` (`charge`, `payment`, `credit_note`), `amount`, and `transaction_date`. Optional `notes` and a payment-only `reference_id`. |
 
 Payments require a `payment_method`, `currency`, and positive `exchange_rate`. Use rate `1` for TJS. The converter supports TJS, USD, EUR, UZS, and RUB. Set `payer_name` for `payment_purpose: "on_behalf_of"`. The `other` purpose is available on debt payments. Date-only values use `YYYY-MM-DD`. Omit unknown fields or use explicit `null` when a field was cleared. Unknown field names and malformed supplied values return `422`. Pending drafts display posting issues for incomplete fields and unresolved catalog references.

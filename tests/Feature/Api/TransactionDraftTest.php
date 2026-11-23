@@ -264,7 +264,8 @@ class TransactionDraftTest extends TestCase
         $url = self::WEB.$id.'/missing-fields';
         $this->actingAs($this->reviewer)->withHeader('If-Match', '"1"');
         $this->patchJson($url, ['fields' => (object) []])->assertUnprocessable()
-            ->assertJsonValidationErrors(['payer_name', 'payment_method', 'provider_received_at']);
+            ->assertJsonValidationErrors(['payer_name', 'payment_method'])
+            ->assertJsonMissingValidationErrors('provider_received_at');
         $this->patchJson($url, ['fields' => [
             'payer_name' => 'Payer', 'payment_method' => 'cash', 'provider_received_at' => '2026-11-19T09:15',
             'notes' => '  ',
@@ -274,6 +275,26 @@ class TransactionDraftTest extends TestCase
             ->assertJsonPath('data.attributes.current_fields.provider_received_at', '2026-11-19T09:15:00+05:00')
             ->assertJsonMissingPath('data.attributes.current_fields.notes');
         $this->assertDatabaseCount('provider_ledgers', 0);
+    }
+
+    public function test_provider_payment_without_receipt_time_posts_on_the_source_message_date(): void
+    {
+        $provider = Provider::factory()->create();
+        $payload = $this->suggestion('provider_ledger', [
+            'provider_id' => $provider->id, 'type' => 'payment', 'amount' => '20',
+            'currency' => 'TJS', 'exchange_rate' => 1, 'payment_method' => 'cash',
+        ]);
+        $payload['source']['sent_at'] = '2026-11-19T22:15:00Z';
+        $id = $this->submit($payload)->assertCreated()->json('data.id');
+
+        $this->actingAs($this->reviewer);
+        $this->approve($id, 'payment-without-receipt')->assertOk();
+        $this->assertDatabaseHas('provider_ledgers', [
+            'provider_id' => $provider->id,
+            'type' => 'payment',
+            'provider_received_at' => null,
+        ]);
+        $this->assertSame('2026-11-20', ProviderLedger::sole()->transaction_date->toDateString());
     }
 
     public function test_debt_completion_requires_reviewer_and_respects_payment_only_reference(): void

@@ -79,7 +79,7 @@ class TransactionDraftWorkflow
         ];
 
         if ($detail) {
-            $prepared = $draft->status === 'pending' ? $this->posting->prepare($draft->kind, $this->approvalFields($draft, [])) : null;
+            $prepared = $draft->status === 'pending' ? $this->posting->prepare($draft, $this->approvalFields($draft, [])) : null;
             $events = $draft->events()->get();
             $attributes += [
                 'original_fields' => (object) $draft->original_fields,
@@ -102,7 +102,7 @@ class TransactionDraftWorkflow
     public function preview(TransactionDraft $draft, array $changes): array
     {
         $fields = $this->approvalFields($draft, $changes);
-        $prepared = $this->posting->prepare($draft->kind, $fields);
+        $prepared = $this->posting->prepare($draft, $fields);
         $payment = null;
 
         if (($fields['type'] ?? null) === 'payment' && $prepared['attributes']) {
@@ -162,7 +162,7 @@ class TransactionDraftWorkflow
 
                 $input = $validate();
                 $fields = $this->approvalFields($locked, $input['fields']);
-                $prepared = $this->posting->prepare($locked->kind, $fields);
+                $prepared = $this->posting->prepare($locked, $fields);
                 if ($prepared['issues']) {
                     Log::info('Transaction draft approval validation failed', ['draft_id' => $locked->id, 'kind' => $locked->kind]);
                     throw ValidationException::withMessages($prepared['issues']);
@@ -212,7 +212,7 @@ class TransactionDraftWorkflow
             $input = $validate();
             $existing = null;
             if ($input['reason'] === 'already_recorded') {
-                $prepared = $this->posting->prepare($locked->kind, $this->approvalFields($locked, []));
+                $prepared = $this->posting->prepare($locked, $this->approvalFields($locked, []));
                 $duplicates = $this->duplicates->inspect($locked, $prepared);
                 $existing = collect($duplicates['matches'])->first(fn (array $match) => $match['source'] === 'posted'
                     && $match['kind'] === $locked->kind

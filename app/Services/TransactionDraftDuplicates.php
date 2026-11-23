@@ -37,7 +37,7 @@ class TransactionDraftDuplicates
         $kinds = $draft->kind === 'distribution' ? array_keys(TransactionDraft::KINDS) : [$draft->kind, 'distribution'];
         $pending = TransactionDraft::where('status', 'pending')->whereIn('kind', $kinds)->whereKeyNot($draft->id)->orderBy('id')->cursor();
         foreach ($pending as $other) {
-            $proposal = $this->posting->prepare($other->kind, $other->current_fields);
+            $proposal = $this->posting->prepare($other, $other->current_fields);
             if ($proposal['issues']) {
                 continue;
             }
