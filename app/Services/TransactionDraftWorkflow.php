@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentMethod;
 use App\Models\TransactionDraft;
 use App\Models\TransactionDraftEvent;
 use Closure;
@@ -78,7 +79,7 @@ class TransactionDraftWorkflow
         ];
 
         if ($detail) {
-            $prepared = $draft->status === 'pending' ? $this->posting->prepare($draft->kind, $draft->current_fields) : null;
+            $prepared = $draft->status === 'pending' ? $this->posting->prepare($draft->kind, $this->approvalFields($draft, [])) : null;
             $events = $draft->events()->get();
             $attributes += [
                 'original_fields' => (object) $draft->original_fields,
@@ -100,7 +101,7 @@ class TransactionDraftWorkflow
 
     public function preview(TransactionDraft $draft, array $changes): array
     {
-        $fields = array_replace($draft->current_fields, $changes);
+        $fields = $this->approvalFields($draft, $changes);
         $prepared = $this->posting->prepare($draft->kind, $fields);
         $payment = null;
 
@@ -160,7 +161,7 @@ class TransactionDraftWorkflow
                 }
 
                 $input = $validate();
-                $fields = array_replace($locked->current_fields, $input['fields']);
+                $fields = $this->approvalFields($locked, $input['fields']);
                 $prepared = $this->posting->prepare($locked->kind, $fields);
                 if ($prepared['issues']) {
                     Log::info('Transaction draft approval validation failed', ['draft_id' => $locked->id, 'kind' => $locked->kind]);
@@ -174,7 +175,7 @@ class TransactionDraftWorkflow
                     return response()->json(['message' => __('Review the current potential duplicates before approving.'), ...$duplicates], 409);
                 }
 
-                $this->recordEdit($locked, $actor, $input['fields']);
+                $this->recordEdit($locked, $actor, $fields);
                 $record = $this->posting->post($locked->kind, $prepared['attributes']);
                 $locked->update([
                     'status' => 'approved',
@@ -211,7 +212,7 @@ class TransactionDraftWorkflow
             $input = $validate();
             $existing = null;
             if ($input['reason'] === 'already_recorded') {
-                $prepared = $this->posting->prepare($locked->kind, $locked->current_fields);
+                $prepared = $this->posting->prepare($locked->kind, $this->approvalFields($locked, []));
                 $duplicates = $this->duplicates->inspect($locked, $prepared);
                 $existing = collect($duplicates['matches'])->first(fn (array $match) => $match['source'] === 'posted'
                     && $match['kind'] === $locked->kind
@@ -226,6 +227,19 @@ class TransactionDraftWorkflow
 
             return $this->response($locked);
         });
+    }
+
+    private function approvalFields(TransactionDraft $draft, array $changes): array
+    {
+        $fields = array_replace($draft->current_fields, $changes);
+        if (($fields['type'] ?? null) === 'payment'
+            && blank($fields['payment_method'] ?? null)
+            && blank($draft->original_fields['payment_method'] ?? null)
+            && blank($draft->current_fields['payment_method'] ?? null)) {
+            $fields['payment_method'] = PaymentMethod::Cash->value;
+        }
+
+        return $fields;
     }
 
     public static function digest(array $value): string

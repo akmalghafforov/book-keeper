@@ -69,7 +69,10 @@ class TransactionDraftController extends Controller
     {
         abort_unless($draft->status === 'pending', 409);
 
-        return response()->json($this->workflow->preview($draft, $this->reviewInput($request, $draft)['fields']))
+        return response()->json([
+            ...$this->workflow->preview($draft, $this->reviewInput($request, $draft)['fields']),
+            'revision' => $draft->revision,
+        ])
             ->header('ETag', $draft->etag());
     }
 

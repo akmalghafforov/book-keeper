@@ -1,5 +1,5 @@
 <form class="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-[#3E3E3A]" @submit.prevent="editorOpen && !dismissalOpen && act('update')">
-    <fieldset x-bind:disabled="busy || !!stale" class="space-y-3">
+    <fieldset x-bind:disabled="busy" class="space-y-3">
         <div x-show="editorOpen" class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($draftFields as $field => $definition)
@@ -84,17 +84,5 @@
         </div>
     </fieldset>
 
-    <template x-if="stale">
-        <div class="rounded-lg border border-amber-400 p-3 text-sm" role="status">
-            <p>{{ __('Current revision') }} <span x-text="stale.data.revision"></span></p>
-            <p>{{ __('Compare the saved fields with your edits before continuing.') }}</p>
-            <dl class="my-2 grid grid-cols-2 gap-1">
-                @foreach ($draftFields as $field => $definition)
-                    <dt>{{ $definition[0] }}</dt>
-                    <dd x-text="stale.data.current_fields.{{ $field }} ?? '—'"></dd>
-                @endforeach
-            </dl>
-            <button type="button" class="{{ $button }}" @click="rebase()">{{ __('Continue with current revision and keep my edits') }}</button>
-        </div>
-    </template>
+    <button type="button" x-show="editorOpen" class="{{ $button }}" @click="cancelEditor()" :disabled="busy">{{ __('Cancel') }}</button>
 </form>

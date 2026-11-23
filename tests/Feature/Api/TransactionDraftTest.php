@@ -139,6 +139,32 @@ class TransactionDraftTest extends TestCase
         $this->approve($draft, 'different-key')->assertConflict();
     }
 
+    public function test_approval_defaults_to_cash_only_for_payments_without_a_method(): void
+    {
+        $client = Client::factory()->create();
+        $provider = Provider::factory()->create();
+        $payment = ['type' => 'payment', 'currency' => 'TJS', 'exchange_rate' => '1', 'amount' => 5];
+        $debt = ['client_id' => $client->id, 'transaction_date' => '2026-11-19'];
+        $providerFields = ['provider_id' => $provider->id, 'provider_received_at' => '2026-11-19T09:15:00+05:00'];
+        $debts = $this->submit($this->suggestion('debt_ledger', $debt + $payment))->assertCreated()->json('data.id');
+        $providers = $this->submit($this->suggestion('provider_ledger', $providerFields + $payment + ['payment_method' => null], 'provider'))
+            ->assertCreated()->json('data.id');
+        $charge = $this->submit($this->suggestion('debt_ledger', $debt + ['type' => 'charge', 'amount' => 7], 'charge'))
+            ->assertCreated()->json('data.id');
+
+        $this->actingAs($this->reviewer);
+        $this->postJson(self::WEB.$debts.'/preview')->assertOk()->assertJsonPath('payment.amount_tjs', '5.00');
+        foreach ([$debts, $providers] as $id) {
+            $this->approve($id, 'cash-default')->assertOk()
+                ->assertJsonPath('data.attributes.approval.posted_values.payment_method', 'cash')
+                ->assertJsonPath('data.attributes.current_fields.payment_method', 'cash')
+                ->assertJsonPath('data.attributes.events.1.changes.payment_method.after.value', 'cash');
+        }
+        $this->approve($charge, 'charge')->assertOk()
+            ->assertJsonPath('data.attributes.approval.posted_values.payment_method', null)
+            ->assertJsonMissingPath('data.attributes.current_fields.payment_method');
+    }
+
     public function test_incomplete_edits_audit_explicit_null_and_atomic_edit_and_approve_with_stale_revisions(): void
     {
         $client = Client::factory()->create();
@@ -156,7 +182,7 @@ class TransactionDraftTest extends TestCase
             ->assertStatus(412)->assertHeader('ETag', '"2"')->assertJsonPath('data.attributes.current_fields.amount', '100.00');
 
         $this->approve($id, 'retry', '"2"', ['fields' => ['client_id' => $client->id, 'currency' => 'USD', 'exchange_rate' => '0', 'payment_purpose' => 'on_behalf_of']])
-            ->assertUnprocessable()->assertJsonValidationErrors(['exchange_rate', 'payment_method', 'payer_name']);
+            ->assertUnprocessable()->assertJsonValidationErrors(['exchange_rate', 'payer_name']);
         $this->assertDatabaseCount('transaction_draft_events', 2);
 
         $final = ['client_id' => $client->id, 'payment_method' => 'card', 'transaction_date' => '2026-11-19', 'currency' => 'USD', 'exchange_rate' => '10.25'];

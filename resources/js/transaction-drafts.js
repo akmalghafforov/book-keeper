@@ -3,6 +3,10 @@ import { formatDraftAmount } from './form-amount.js';
 const numberFormat = new Intl.NumberFormat('en', { maximumFractionDigits: 4 });
 const missing = '—';
 
+function draftTag(revision) {
+    return '"' + revision + '"';
+}
+
 function withUnit(number, unit) {
     return [numberFormat.format(number), unit].filter(Boolean).join(' ');
 }
@@ -44,7 +48,6 @@ export function draftReview(config) {
         approvalRetry: null,
         issues: {},
         preview: emptyPreview(),
-        stale: null,
         closed: null,
         message: '',
         confirmed: false,
@@ -230,18 +233,18 @@ export function draftReview(config) {
             this.$refs.missingDialog.close();
         },
 
-        acceptMissingDraft(draft, etag) {
+        acceptMissingDraft(draft) {
             const edits = this.changes;
             this.saved = draft.current_fields;
             this.original = draft.original_fields;
-            this.etag = etag;
+            this.etag = draftTag(draft.revision);
             this.fields = { ...this.saved, ...edits };
             this.confirmed = false;
             this.preview = emptyPreview();
         },
 
         reviewMissingRevision() {
-            this.acceptMissingDraft(this.missingStale.data, this.missingStale.etag);
+            this.acceptMissingDraft(this.missingStale.data);
             // Drop entries locked by the new revision before checking their dependents.
             this.missingEntries = Object.fromEntries(Object.entries(this.missingEntries)
                 .filter(([field]) => this.isMissing(this.original[field]) && this.isMissing(this.saved[field])));
@@ -265,15 +268,14 @@ export function draftReview(config) {
 
             try {
                 const { response, body } = await this.request('missing-fields', 'PATCH', { fields });
-                const etag = response.headers.get('ETag');
                 if (response.ok) {
-                    this.acceptMissingDraft(body.data.attributes, etag);
+                    this.acceptMissingDraft(body.data.attributes);
                     this.message = this.messages.saved;
                     saved = true;
                 } else {
                     this.missingMessage = body.message ?? this.messages.failed;
                     this.missingIssues = body.errors ?? {};
-                    if (response.status === 412 && body.data) this.missingStale = { etag, data: body.data.attributes };
+                    if (response.status === 412 && body.data) this.missingStale = { data: body.data.attributes };
                     if (response.status === 409 && body.data && body.data.attributes.status !== 'pending') {
                         this.missingUnavailable = true;
                         this.close(body.data.attributes);
@@ -342,7 +344,7 @@ export function draftReview(config) {
         },
 
         get gradeDisabled() {
-            return this.busy || !!this.stale || Object.keys(this.edits).length > 0;
+            return this.busy || Object.keys(this.edits).length > 0;
         },
 
         async saveGrade(grade) {
@@ -415,11 +417,6 @@ export function draftReview(config) {
             }
         },
 
-        markStale(response, body) {
-            this.openEditor();
-            this.stale = { etag: response.headers.get('ETag'), data: body.data.attributes };
-        },
-
         setField(field, value) {
             delete this.issues[field];
             delete this.issues['fields.' + field];
@@ -454,12 +451,12 @@ export function draftReview(config) {
         },
 
         async check(saved = this.dismissalOpen) {
-            if (this.closed || this.stale || (!this.editorOpen && !this.dismissalOpen)) return;
+            if (this.closed || (!this.editorOpen && !this.dismissalOpen)) return;
             const token = ++this.checking;
             try {
                 const { response, body } = await this.request('preview', 'POST', { fields: saved ? {} : this.changes });
                 if (this.checking !== token) return;
-                if (response.ok && response.headers.get('ETag') !== this.etag) {
+                if (response.ok && draftTag(body.revision) !== this.etag) {
                     await this.readCurrent(token);
                     return;
                 }
@@ -482,25 +479,37 @@ export function draftReview(config) {
             const { response, body } = await this.request('show', 'GET');
             if (!response.ok || this.checking !== token) return;
             if (body.data.attributes.status !== 'pending') this.close(body.data.attributes);
-            else this.markStale(response, body);
+            else await this.refreshRevision(body.data.attributes);
         },
 
-        rebase() {
-            const edits = this.changes;
-            this.saved = this.stale.data.current_fields;
-            this.fields = { ...this.saved, ...edits };
-            this.edits = Object.fromEntries(Object.keys(edits)
-                .filter(key => String(edits[key] ?? '') !== String(this.saved[key] ?? ''))
-                .map(key => [key, true]));
-            if (this.dismissalOpen) this.editorOpen = false;
+        async refreshRevision(draft) {
+            const changes = Object.entries(this.changes).filter(([field]) =>
+                Object.is(this.saved[field], draft.current_fields[field]));
+            this.saved = draft.current_fields;
+            this.fields = { ...this.saved, ...Object.fromEntries(changes) };
+            this.edits = Object.fromEntries(changes.map(([field]) => [field, true]));
+            this.etag = draftTag(draft.revision);
             this.preview = emptyPreview();
+            this.previewSaved = false;
             this.postedId = '';
-            this.etag = this.stale.etag;
-            this.stale = null;
             this.confirmed = false;
+            this.approvalRetry = null;
             this.issues = {};
+            this.message = this.messages.refreshed;
+            await this.check();
+        },
+
+        cancelEditor() {
+            this.checking++;
+            this.editorOpen = false;
+            this.dismissalOpen = false;
+            this.fields = { ...this.saved };
+            this.edits = {};
+            this.issues = {};
+            this.preview = emptyPreview();
+            this.confirmed = false;
+            this.approvalRetry = null;
             this.message = '';
-            this.check();
         },
 
         close(draft) {
@@ -511,7 +520,7 @@ export function draftReview(config) {
         },
 
         async act(action) {
-            if (this.busy || this.stale || this.closed) return;
+            if (this.busy || this.closed) return;
             const approving = ['approve', 'editApprove'].includes(action);
             const saved = action === 'approve' || Object.keys(this.changes).length === 0;
             const payload = action === 'dismiss'
@@ -539,11 +548,12 @@ export function draftReview(config) {
                         this.saved = draft.current_fields;
                         this.fields = { ...this.saved };
                         this.edits = {};
-                        this.etag = response.headers.get('ETag');
+                        this.etag = draftTag(draft.revision);
                         this.confirmed = false;
                         this.approvalRetry = null;
+                        this.preview = emptyPreview();
+                        this.editorOpen = false;
                         this.message = this.messages.saved;
-                        await this.check();
                     } else {
                         this.close(draft);
                     }
@@ -558,9 +568,8 @@ export function draftReview(config) {
                         this.openEditor();
                     }
                 }
-                if (response.status === 412) {
-                    if (action !== 'dismiss') this.dismissalOpen = false;
-                    this.markStale(response, body);
+                if (response.status === 412 && body.data) {
+                    await this.refreshRevision(body.data.attributes);
                 }
                 if (response.status === 409 && body.data && body.data.attributes.status !== 'pending') this.close(body.data.attributes);
                 if (response.status === 409 && body.matches) {

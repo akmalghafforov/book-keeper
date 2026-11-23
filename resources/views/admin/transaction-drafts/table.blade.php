@@ -58,6 +58,7 @@
                         'urls' => collect(['show', 'preview', 'update', 'missing-fields', 'approve', 'dismiss'])->mapWithKeys(fn ($action) => [$action => route('admin.transaction-drafts.'.$action, $draft)]),
                         'messages' => [
                             'saved' => __('Draft saved.'),
+                            'refreshed' => __('This draft changed while you were reviewing it. Check the refreshed values before trying again.'),
                             'checkFields' => __('Check the highlighted fields.'),
                             'failed' => __('The request could not be completed. You can retry.'),
                         ],
