@@ -25,29 +25,19 @@ unset BASIC_AUTH_PASSWORD
 
 # Basic and Bearer share the Authorization header. Let the app handle authentication
 # for the importer routes while retaining Basic authentication for web and other routes.
+# Match the original request line so the exceptions survive the rewrite to index.php.
 cat > /etc/apache2/conf-available/basic-auth.conf <<'APACHE'
 <Location />
     AuthType Basic
     AuthName "Restricted Access"
     AuthBasicProvider file
     AuthUserFile /run/book-keeper/.htpasswd
-    Require valid-user
+    <RequireAny>
+        Require expr "%{THE_REQUEST} =~ m#^POST /api/v1/(auth/(login|refresh|logout)|transaction-drafts)([?][^ ]*)? HTTP/#"
+        Require expr "%{THE_REQUEST} =~ m#^(GET|HEAD) /api/v1/(transaction-drafts(/[0-9a-fA-F-]{36})?|clients(/[0-9]+/shops)?|product-categories|products|suppliers|providers|distributions|debt-ledgers|provider-ledgers)([?][^ ]*)? HTTP/#"
+        Require valid-user
+    </RequireAny>
 </Location>
-
-<LocationMatch "^/api/v1/(auth/(login|refresh|logout)|transaction-drafts)$">
-    <RequireAny>
-        Require expr "%{REQUEST_METHOD} == 'POST'"
-        Require expr "%{REQUEST_METHOD} in { 'GET', 'HEAD' } && %{REQUEST_URI} == '/api/v1/transaction-drafts'"
-        Require valid-user
-    </RequireAny>
-</LocationMatch>
-
-<LocationMatch "^/api/v1/(transaction-drafts/[0-9a-fA-F-]{36}|clients(/[0-9]+/shops)?|product-categories|products|suppliers|providers)$">
-    <RequireAny>
-        Require expr "%{REQUEST_METHOD} in { 'GET', 'HEAD' }"
-        Require valid-user
-    </RequireAny>
-</LocationMatch>
 APACHE
 a2enconf basic-auth >/dev/null
 
