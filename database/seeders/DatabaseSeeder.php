@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
         ]);
         $admin->roles()->syncWithoutDetaching(Role::whereIn('code', [
-            'draft_reviewer', 'draft_operator', 'codex_draft_importer',
+            'draft_reviewer', 'draft_operator', 'codex_draft_importer', 'admin_operations',
         ])->pluck('id')->all());
 
         $this->call([

@@ -22,7 +22,7 @@ Production stack (on the server):
 make up-prod
 ```
 
-Production migrations run automatically when the app container starts. Migration files are packaged at `/opt/book-keeper/migrations` outside the persistent database volume, so each image uses its current migrations. If you need to run them without opening an interactive shell, use:
+After starting the updated app container, run the production migrations explicitly. The image packages migration files at `/opt/book-keeper/migrations` outside the persistent database volume.
 
 ```bash
 make migrate-prod
