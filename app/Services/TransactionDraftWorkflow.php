@@ -21,7 +21,7 @@ class TransactionDraftWorkflow
         private TransactionDraftDuplicates $duplicates,
     ) {}
 
-    public function submit(string $kind, array $source, array $fields, int $actor): JsonResponse
+    public function submit(string $kind, array $source, array $fields, int $actor, array $images = []): JsonResponse
     {
         $scope = Arr::only($source, ['chat_key', 'message_key', 'event_slot']);
         $id = (string) Str::uuid();
@@ -39,6 +39,9 @@ class TransactionDraftWorkflow
         if ($draft->wasRecentlyCreated) {
             $draft->refresh();
             $this->event($draft, 'submitted', $actor, $this->changes([], $fields));
+            if ($images !== []) {
+                $this->recordImages($draft, $actor, $images);
+            }
 
             return $this->response($draft, 201);
         }
@@ -52,12 +55,32 @@ class TransactionDraftWorkflow
         return $this->response($draft);
     }
 
-    public function response(TransactionDraft $draft, int $status = 200): JsonResponse
+    public function appendImages(TransactionDraft $draft, int $actor, Closure $validate): JsonResponse
     {
-        return response()->json(['data' => $this->resource($draft)], $status)->header('ETag', $draft->etag());
+        return $this->locked($draft, function (TransactionDraft $locked) use ($actor, $validate): JsonResponse {
+            if ($locked->status !== 'pending') {
+                return response()->json(['message' => __('This draft has already been reviewed.')], 409);
+            }
+
+            $this->recordImages($locked, $actor, $validate($locked->source));
+
+            return $this->response($locked);
+        });
     }
 
-    public function resource(TransactionDraft $draft, bool $detail = true, ?bool $postedAvailable = null): array
+    private function recordImages(TransactionDraft $draft, int $actor, array $images): void
+    {
+        $ids = $draft->images()->createMany($images)->modelKeys();
+        $draft->update(['revision' => $draft->revision + 1]);
+        $this->event($draft, 'images_added', $actor, [], ['image_ids' => $ids]);
+    }
+
+    public function response(TransactionDraft $draft, int $status = 200, string $imageRoute = 'api.transaction-drafts.image'): JsonResponse
+    {
+        return response()->json(['data' => $this->resource($draft, imageRoute: $imageRoute)], $status)->header('ETag', $draft->etag());
+    }
+
+    public function resource(TransactionDraft $draft, bool $detail = true, ?bool $postedAvailable = null, string $imageRoute = 'api.transaction-drafts.image'): array
     {
         $source = Arr::except($draft->source, ['message_text']);
         if (isset($source['additional_locators'])) {
@@ -86,6 +109,12 @@ class TransactionDraftWorkflow
                 'current_fields' => (object) $draft->current_fields,
                 'validation_issues' => (object) ($prepared['issues'] ?? []),
                 'events' => $events,
+                'images' => $draft->images()->orderBy('id')->get(['id', 'mime_type', 'locator_index'])->map(fn ($image) => [
+                    'id' => $image->id,
+                    'mime_type' => $image->mime_type,
+                    'locator_index' => $image->locator_index,
+                    'url' => route($imageRoute, [$draft, $image]),
+                ]),
                 'posted_record' => $this->postedRecord($draft, $postedAvailable),
                 'approval' => $draft->approval,
             ];

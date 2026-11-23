@@ -1,8 +1,6 @@
 @php
     $locators = collect([$draft->source, ...($draft->source['additional_locators'] ?? [])])
         ->sortBy(fn ($locator) => isset($locator['sent_at']) ? Illuminate\Support\Facades\Date::parse($locator['sent_at'])->format('U.u') : PHP_INT_MIN);
-    $attachments = $locators->keys()->map(fn ($index) => $draft->images->firstWhere('locator_index', $index))
-        ->filter()->map(fn ($image) => route('admin.transaction-drafts.image', [$draft, $image]))->values();
 @endphp
 
 <dl x-show="filledDetails.length" class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -19,26 +17,31 @@
     </h2>
     <template x-if="missingOpen">
         <div class="grid gap-6 md:grid-cols-2">
-            <section class="min-w-0 space-y-3" aria-label="{{ __('WhatsApp photos') }}" x-data="{ photos: @js($attachments), index: 0 }">
+            <section class="min-w-0 space-y-3" aria-label="{{ __('WhatsApp photos') }}">
                 <template x-if="photos.length">
                     <div class="space-y-2">
                         <div class="w-fit max-w-full overflow-hidden rounded-lg"
                             @pointermove="magnify($event)" @pointerleave="$el.firstElementChild.style.transform = ''">
-                            <img :src="photos[index]" alt="{{ __('WhatsApp photo') }}" class="block max-h-[55dvh] max-w-full">
+                            <img :src="photos[photoIndex]" alt="{{ __('WhatsApp photo') }}" class="block max-h-[55dvh] max-w-full">
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <label x-show="photos.length > 1">{{ __('Photo') }}
-                                <select aria-label="{{ __('Photo') }}" @change="index = Number($el.value)" class="{{ $control }}">
+                                <select aria-label="{{ __('Photo') }}" x-model.number="photoIndex" class="{{ $control }}">
                                     <template x-for="(_, position) in photos" :key="position">
                                         <option :value="position" x-text="position + 1"></option>
                                     </template>
                                 </select>
                             </label>
-                            <a :href="photos[index]" target="_blank" rel="noopener noreferrer" class="underline">{{ __('Open full-size image') }}</a>
+                            <a :href="photos[photoIndex]" target="_blank" rel="noopener noreferrer" class="underline">{{ __('Open full-size image') }}</a>
                         </div>
                     </div>
                 </template>
-                <p x-show="!photos.length">{{ __('No WhatsApp image available.') }}</p>
+                <p x-show="photoStatus === 'loading'" role="status">{{ __('Loading WhatsApp images…') }}</p>
+                <div x-show="photoStatus === 'failed'" role="status">
+                    <p>{{ __('Could not load WhatsApp images.') }}</p>
+                    <button type="button" class="{{ $button }}" @click="refreshPhotos()">{{ __('Retry') }}</button>
+                </div>
+                <p x-show="photoStatus === 'ready' && !photos.length">{{ __('No WhatsApp image available.') }}</p>
             </section>
 
             <div class="min-w-0 space-y-5">

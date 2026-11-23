@@ -33,8 +33,8 @@ cat > /etc/apache2/conf-available/basic-auth.conf <<'APACHE'
     AuthBasicProvider file
     AuthUserFile /run/book-keeper/.htpasswd
     <RequireAny>
-        Require expr "%{THE_REQUEST} =~ m#^POST /api/v1/(auth/(login|refresh|logout)|transaction-drafts)([?][^ ]*)? HTTP/#"
-        Require expr "%{THE_REQUEST} =~ m#^(GET|HEAD) /api/v1/(transaction-drafts(/[0-9a-fA-F-]{36})?|clients(/[0-9]+/shops)?|product-categories|products|suppliers|providers|distributions|debt-ledgers|provider-ledgers)([?][^ ]*)? HTTP/#"
+        Require expr "%{THE_REQUEST} =~ m#^POST /api/v1/(auth/(login|refresh|logout)|transaction-drafts(/[0-9a-fA-F-]{36}/images)?)([?][^ ]*)? HTTP/#"
+        Require expr "%{THE_REQUEST} =~ m#^(GET|HEAD) /api/v1/(transaction-drafts(/[0-9a-fA-F-]{36}(/images/[0-9]+)?)?|clients(/[0-9]+/shops)?|product-categories|products|suppliers|providers|distributions|debt-ledgers|provider-ledgers)([?][^ ]*)? HTTP/#"
         Require valid-user
     </RequireAny>
 </Location>

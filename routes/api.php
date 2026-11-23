@@ -20,6 +20,10 @@ Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
             Route::middleware('endpoint-access:transaction_drafts.submit')->post('/', 'store');
             Route::middleware('endpoint-access:transaction_drafts.view')->get('/', 'index');
             Route::middleware('endpoint-access:transaction_drafts.view')->get('{draft}', 'show')->whereUuid('draft');
+            Route::middleware('endpoint-access:transaction_drafts.submit')
+                ->post('{draft}/images', 'appendImages')->whereUuid('draft');
+            Route::middleware('endpoint-access:transaction_drafts.view')
+                ->get('{draft}/images/{image}', 'image')->whereUuid('draft')->whereNumber('image')->name('api.transaction-drafts.image');
         });
         Route::middleware('endpoint-access:clients.view')->get('clients', [SupportingDataController::class, 'clients']);
         Route::middleware('endpoint-access:clients.create')->post('clients', [SupportingDataController::class, 'storeClient']);

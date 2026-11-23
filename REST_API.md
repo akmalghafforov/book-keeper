@@ -244,11 +244,13 @@ Use the draft queue for transactions derived from WhatsApp exports. Submission c
 | --- | --- | --- |
 | POST | `/transaction-drafts` | `transaction_drafts.submit` |
 | GET | `/transaction-drafts?kind=&status=&corrected=&page=&per_page=` | `transaction_drafts.view` |
-| GET | `/transaction-drafts/{id}` | `transaction_drafts.view` |
+| GET | `/transaction-drafts/{draft}` | `transaction_drafts.view` |
+| POST | `/transaction-drafts/{draft}/images` | `transaction_drafts.submit` |
+| GET | `/transaction-drafts/{draft}/images/{image}` | `transaction_drafts.view` |
 
 Send `Content-Type: application/json` and `Idempotency-Key` on submission. The response is `201` for a new draft. The same request key replays the saved response for 24 hours. A fresh or expired key returns `200` and the existing draft for the same source and original suggestion. A different interpretation of the same source returns `409` with `existing_draft_id`.
 
-The durable identity is `source.chat_key`, `source.message_key`, and `source.event_slot`. Use a stable keyed fingerprint for `message_key` and a distinct slot for each transaction in a multi-event message. Include `sent_at` with an offset, an opaque `export_id`, and a positive `line` or `position`. Optional `additional_locators` list related messages, each with `message_key`, `sent_at`, `export_id`, and a `line` or `position`. Export identifiers and positions can change across exports. Keep raw export text, filenames, and attachments in the source workspace.
+The durable identity is `source.chat_key`, `source.message_key`, and `source.event_slot`. Use a stable keyed fingerprint for `message_key` and a distinct slot for each transaction in a multi-event message. Include `sent_at` with an offset, an opaque `export_id`, and a positive `line` or `position`. Optional `additional_locators` list related messages, each with `message_key`, `sent_at`, `export_id`, and a `line` or `position`. Export identifiers and positions can change across exports. Keep raw exports and filenames in the source workspace.
 
 ```json
 {
@@ -272,6 +274,23 @@ The durable identity is `source.chat_key`, `source.message_key`, and `source.eve
   }
 }
 ```
+
+Include an optional top-level `images` array to attach WhatsApp photos when creating a draft. If the source and original suggestion already exist, the creation endpoint returns the existing draft. To add photos to that draft, send the following JSON to `POST /transaction-drafts/{draft}/images` using its UUID and a new `Idempotency-Key`.
+
+```json
+{
+  "images": [
+    { "content_base64": "<base64-encoded JPEG or PNG>", "locator_index": 0 },
+    { "content_base64": "<base64-encoded JPEG or PNG>" }
+  ]
+}
+```
+
+The append array must be nonempty. Omit `locator_index` to attach a photo directly to the draft. Index `0` refers to the primary message and indexes `1` onward follow the stored order of `additional_locators`. Multiple photos can share a locator. Both upload flows accept up to 20 JPEG or PNG images per request, with limits of 5 MiB decoded per image, 10 MiB decoded per batch, 16 million pixels per image, and 16 MiB for the HTTP request body. Use standard padded base64 with no data-URL prefix. The server verifies the image format from the decoded bytes. Malformed images or invalid locator indexes return `422` and save nothing.
+
+A successful append returns `200` with the updated draft and ETag. Each saved batch increments the revision once and records an `images_added` event with `details.image_ids`. Retrying the same request with the same key within 24 hours replays the saved response. New appends to approved or dismissed drafts return `409`.
+
+Draft detail, creation, and append responses include `data.attributes.images`. Each entry contains a numeric `id`, `mime_type`, a numeric or null `locator_index`, and a `url`. Send an authenticated GET to that URL for the raw image bytes. An image ID belonging to a different draft returns `404`.
 
 | Kind | Fields |
 | --- | --- |

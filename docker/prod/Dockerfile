@@ -54,7 +54,7 @@ RUN savedAptMark="$(apt-mark showmanual)" \
     && a2enmod rewrite \
     && a2enmod auth_basic authn_file \
     && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
-    && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n    Options FollowSymLinks\n</Directory>\n<Directory /var/www/html/storage/app/public>\n    Require all granted\n    Options FollowSymLinks\n</Directory>\n' > /etc/apache2/conf-available/book-keeper.conf \
+    && printf 'LimitRequestBody 16777216\n<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n    Options FollowSymLinks\n</Directory>\n<Directory /var/www/html/storage/app/public>\n    Require all granted\n    Options FollowSymLinks\n</Directory>\n' > /etc/apache2/conf-available/book-keeper.conf \
     && a2enconf book-keeper \
     && apt-mark auto '.*' > /dev/null \
     && apt-mark manual $savedAptMark ghostscript imagemagick libzip5 zip \

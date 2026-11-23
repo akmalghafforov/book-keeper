@@ -10,5 +10,9 @@ class TransactionDraftImage extends Model
 
     public $timestamps = false;
 
+    protected $fillable = ['locator_index', 'mime_type', 'content'];
+
+    protected $casts = ['locator_index' => 'integer'];
+
     protected $hidden = ['content'];
 }

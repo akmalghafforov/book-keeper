@@ -15,9 +15,11 @@ use App\Models\Supplier;
 use App\Models\TransactionDraft;
 use App\Models\User;
 use App\Services\GeneratedReportLedgerBoundaryService;
+use App\Services\TransactionDraftImages;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class TransactionDraftTest extends TestCase
@@ -644,7 +646,10 @@ class TransactionDraftTest extends TestCase
 
         $this->get($primaryUrl)->assertRedirect(route('login'));
         $this->withToken($this->token)->get($primaryUrl)->assertForbidden();
-        $this->getJson(self::API.'/'.$id)->assertOk()->assertDontSee('/images/');
+        $this->getJson(self::API.'/'.$id)->assertOk()
+            ->assertJsonPath('data.attributes.images.0.url', route('api.transaction-drafts.image', [$id, $photos[0]]))
+            ->assertJsonPath('data.attributes.images.1.locator_index', 1);
+        $this->get(route('api.transaction-drafts.image', [$id, $photos[0]]))->assertOk()->assertContent(base64_decode($content));
         $this->flushHeaders()->actingAs(User::factory()->create()->refresh())->get($primaryUrl)->assertForbidden();
 
         $this->actingAs($this->reviewer)->get(self::WEB)->assertOk()
@@ -658,6 +663,127 @@ class TransactionDraftTest extends TestCase
         $this->withHeader('If-Match', '"1"')->postJson(self::WEB.$id.'/dismiss', ['reason' => 'Dismissed suggestion'])->assertOk();
         $this->get(self::WEB.'?tab=dismissed')->assertOk()->assertSee($primaryUrl)->assertSee($supportUrl)
             ->assertDontSee('<Без медиафайлов>');
+    }
+
+    public function test_image_batches_create_and_append_atomically_with_independent_access(): void
+    {
+        $pixel = imagecreatetruecolor(1, 1);
+        ob_start();
+        imagepng($pixel);
+        $png = ob_get_clean();
+        ob_start();
+        imagejpeg($pixel);
+        $jpeg = ob_get_clean();
+
+        $primary = ['content_base64' => base64_encode($png), 'locator_index' => 0];
+        $direct = ['content_base64' => base64_encode($jpeg)];
+        $payload = $this->suggestion('distribution', []);
+        $payload['source']['additional_locators'] = [[
+            'message_key' => 'photo-confirmation',
+            'sent_at' => '2026-11-19T11:02:00+05:00',
+            'export_id' => 'test-export',
+            'line' => 7,
+        ]];
+        $payload['images'] = [$primary, ['content_base64' => 'invalid!']];
+        $this->submit($payload)->assertUnprocessable()->assertJsonValidationErrors('images.1.content_base64');
+        $this->assertDatabaseCount('transaction_drafts', 0);
+        $this->assertDatabaseCount('transaction_draft_images', 0);
+
+        $payload['images'] = [$primary, $direct];
+        $created = $this->submit($payload, 'create-photos')->assertCreated()
+            ->assertHeader('ETag', '"2"')->assertJsonCount(2, 'data.attributes.images')
+            ->assertJsonPath('data.attributes.images.0.locator_index', 0)
+            ->assertJsonPath('data.attributes.images.1.locator_index', null)
+            ->assertJsonPath('data.attributes.images.1.mime_type', 'image/jpeg');
+        $id = $created->json('data.id');
+        $this->submit($payload, 'create-photos')->assertCreated()->assertExactJson($created->json());
+        $payload['images'] = [$primary];
+        $this->submit($payload)->assertOk()->assertJsonCount(2, 'data.attributes.images');
+        $other = $this->submit($this->suggestion('distribution', [], 'other'))->assertCreated()->json('data.id');
+
+        $url = self::API.'/'.$id.'/images';
+        $supporting = [...$primary, 'locator_index' => 1];
+        $batch = ['images' => [$supporting, $supporting, $primary]];
+        $this->withToken($this->token)->postJson($url, $batch)->assertUnprocessable()->assertJsonValidationErrors('Idempotency-Key');
+        $this->withHeader('Idempotency-Key', 'append-photos');
+        $this->postJson($url, ['images' => []])->assertUnprocessable();
+        $this->postJson($url, ['images' => [$primary, [...$primary, 'locator_index' => 2]]])
+            ->assertUnprocessable()->assertJsonValidationErrors('images.1.locator_index');
+        $this->assertDatabaseCount('transaction_draft_images', 2);
+        $appended = $this->postJson($url, $batch)->assertOk()->assertHeader('ETag', '"3"')
+            ->assertJsonCount(5, 'data.attributes.images')
+            ->assertJsonPath('data.attributes.images.2.locator_index', 1)
+            ->assertJsonPath('data.attributes.events.2.type', 'images_added');
+        $images = $appended->json('data.attributes.images');
+        $this->assertSame(array_column(array_slice($images, 2), 'id'), $appended->json('data.attributes.events.2.details.image_ids'));
+        $this->postJson($url, $batch)->assertOk()->assertExactJson($appended->json());
+        $this->assertDatabaseCount('transaction_draft_images', 5);
+        $this->getJson(self::API.'/'.$id)->assertJsonPath('data.attributes.images', $images);
+        $this->getJson(self::API.'/'.$other)->assertJsonCount(0, 'data.attributes.images');
+        $this->get($images[0]['url'])->assertOk()->assertHeader('Content-Type', 'image/png')->assertContent($png);
+        $this->get($images[1]['url'])->assertOk()->assertHeader('Content-Type', 'image/jpeg')->assertContent($jpeg);
+        $this->getJson(self::API.'/'.$other.'/images/'.$images[0]['id'])->assertNotFound();
+
+        DB::table('api_endpoints')->where('endpoint_key', 'transaction_drafts.submit')->update(['active' => false]);
+        $this->postJson($url, $batch)->assertForbidden();
+        $this->get($images[0]['url'])->assertOk();
+        DB::table('api_endpoints')->where('endpoint_key', 'transaction_drafts.submit')->update(['active' => true]);
+        DB::table('api_endpoints')->where('endpoint_key', 'transaction_drafts.view')->update(['active' => false]);
+        $this->get($images[0]['url'])->assertForbidden();
+        $this->postJson($url, $batch)->assertOk();
+
+        $this->flushHeaders()->actingAs($this->reviewer)->getJson(self::WEB.$id)->assertOk()
+            ->assertJsonPath('data.attributes.images.0.url', route('admin.transaction-drafts.image', [$id, $images[0]['id']]));
+        $this->withHeader('If-Match', '"3"')->postJson(self::WEB.$id.'/dismiss', ['reason' => 'Duplicate suggestion'])->assertOk();
+        $this->withToken($this->token)->withHeader('Idempotency-Key', 'closed-photos')->postJson($url, $batch)->assertConflict();
+
+        $approved = $this->submit($this->suggestion('debt_ledger', [
+            'client_id' => (string) Client::factory()->create()->id,
+            'type' => 'charge',
+            'amount' => '12',
+            'transaction_date' => '2026-11-19',
+        ], 'approved'))->assertCreated()->json('data.id');
+        $this->flushHeaders()->approve($approved, 'approve-photos')->assertOk();
+        $this->withToken($this->token)->withHeader('Idempotency-Key', 'approved-photos')
+            ->postJson(self::API.'/'.$approved.'/images', ['images' => [$primary]])->assertConflict();
+        $this->assertDatabaseCount('transaction_draft_images', 5);
+    }
+
+    public function test_image_upload_limits_reject_the_whole_batch(): void
+    {
+        ob_start();
+        imagepng(imagecreatetruecolor(1, 1));
+        $png = ob_get_clean();
+        $photo = ['content_base64' => base64_encode($png)];
+        $payload = $this->suggestion('distribution', []);
+        $id = $this->submit($payload)->assertCreated()->json('data.id');
+        $url = self::API.'/'.$id.'/images';
+        $this->withToken($this->token)->withHeader('Idempotency-Key', 'validate-photos');
+
+        $this->postJson($url, ['images' => array_fill(0, 21, $photo)])
+            ->assertUnprocessable()->assertJsonValidationErrors('images');
+        $this->postJson($url, ['images' => [$photo, ['content_base64' => base64_encode(substr($png, 0, 33))]]])
+            ->assertUnprocessable()->assertJsonValidationErrors('images.1.content_base64');
+
+        // A PNG with an updated IHDR width gets rejected before GD tries to decode its pixels.
+        $header = substr_replace(substr($png, 12, 17), pack('N', 16_000_001), 4, 4);
+        $tooWide = substr($png, 0, 12).$header.pack('N', crc32($header)).substr($png, 33);
+        $this->postJson($url, ['images' => [['content_base64' => base64_encode($tooWide)]]])
+            ->assertUnprocessable()->assertJsonValidationErrors('images.0.content_base64');
+
+        $oversize = ['content_base64' => base64_encode(str_pad($png, 5 * 1024 * 1024 + 1, "\0"))];
+        $large = ['content_base64' => base64_encode(str_pad($png, 4 * 1024 * 1024, "\0"))];
+        $validator = app(TransactionDraftImages::class);
+        foreach (['images.0.content_base64' => [$oversize], 'images' => [$large, $large, $large]] as $field => $batch) {
+            try {
+                $validator->validate($batch, $payload['source']);
+                $this->fail('The decoded byte limit should reject the batch.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey($field, $exception->errors());
+            }
+        }
+        $this->assertDatabaseCount('transaction_draft_images', 0);
+        $this->assertDatabaseCount('transaction_draft_events', 1);
     }
 
     public function test_message_limits_count_unicode_characters_for_each_locator(): void

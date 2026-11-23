@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TransactionDraft;
-use App\Models\TransactionDraftImage;
 use App\Services\ManualProviderLedgerEntry;
+use App\Services\TransactionDraftImages;
 use App\Services\TransactionDraftMissingFields;
 use App\Services\TransactionDraftPosting;
 use App\Services\TransactionDraftReviewPage;
@@ -48,22 +48,13 @@ class TransactionDraftController extends Controller
 
     public function show(TransactionDraft $draft): JsonResponse
     {
-        return $this->workflow->response($draft);
+        return $this->workflow->response($draft, imageRoute: 'admin.transaction-drafts.image')
+            ->header('Cache-Control', 'private, no-store');
     }
 
-    public function image(TransactionDraft $draft, string $image): Response
+    public function image(TransactionDraft $draft, string $image, TransactionDraftImages $images): Response
     {
-        $attachment = $draft->images()->findOrFail($image);
-        abort_unless(in_array($attachment->mime_type, TransactionDraftImage::MIME_TYPES, true), 404);
-        $content = base64_decode($attachment->content, true);
-        abort_if($content === false || $content === '', 404);
-
-        return response($content, 200, [
-            'Content-Type' => $attachment->mime_type,
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-            'Cross-Origin-Resource-Policy' => 'same-origin',
-        ]);
+        return $images->download($draft, $image);
     }
 
     public function preview(Request $request, TransactionDraft $draft): JsonResponse

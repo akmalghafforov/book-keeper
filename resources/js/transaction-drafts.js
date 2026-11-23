@@ -60,6 +60,10 @@ export function draftReview(config) {
         gradeFamily: '',
 
         missingOpen: false,
+        photos: [],
+        photoIndex: 0,
+        photoStatus: 'loading',
+        photoRequest: 0,
         correctionField: null,
         missingEntries: {},
         missingIssues: {},
@@ -247,6 +251,24 @@ export function draftReview(config) {
             this.missingUnavailable = false;
             this.missingOpen = true;
             this.$refs.missingDialog.showModal();
+            this.refreshPhotos();
+        },
+
+        async refreshPhotos() {
+            const request = ++this.photoRequest;
+            this.photos = [];
+            this.photoIndex = 0;
+            this.photoStatus = 'loading';
+            try {
+                const { response, body } = await this.request('show', 'GET');
+                if (request !== this.photoRequest) return;
+                const images = body.data?.attributes?.images;
+                if (!response.ok || !Array.isArray(images)) throw new Error('Could not load draft images');
+                this.photos = images.map(image => image.url);
+                this.photoStatus = 'ready';
+            } catch {
+                if (request === this.photoRequest) this.photoStatus = 'failed';
+            }
         },
 
         closeMissing() {
@@ -255,6 +277,7 @@ export function draftReview(config) {
                 this.closeCatalogEntry();
                 return;
             }
+            this.photoRequest++;
             this.missingOpen = false;
             this.$refs.missingDialog.close();
         },
