@@ -121,3 +121,13 @@
     border-color: #3E3E3A !important;
     color: #ffffff !important;
 }
+
+.draft-provider-date .flatpickr-calendar.static {
+    top: auto;
+    bottom: calc(100% + 2px);
+}
+
+.draft-provider-date .flatpickr-calendar.static::before,
+.draft-provider-date .flatpickr-calendar.static::after {
+    display: none;
+}

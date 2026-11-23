@@ -682,7 +682,10 @@ export function missingPicker(field) {
                 if (picker) picker.setDate(value);
                 else input.value = value;
             });
-            input.addEventListener('change', () => this.setMissing(field, input.value));
+            const syncValue = () => {
+                if (input.value !== this.pickerInput(field)) this.setMissing(field, input.value);
+            };
+            input.addEventListener('change', syncValue);
             if (!window.flatpickr) return;
             input.type = 'text';
             picker = window.flatpickr(input, {
@@ -697,6 +700,8 @@ export function missingPicker(field) {
                 time_24hr: true,
                 allowInput: true,
                 disableMobile: true,
+                // Flatpickr debounces time changes, so sync before the form can submit.
+                onValueUpdate: syncValue,
                 onReady: (_, __, picker) => {
                     picker.altInput.id = input.id;
                     input.removeAttribute('id');

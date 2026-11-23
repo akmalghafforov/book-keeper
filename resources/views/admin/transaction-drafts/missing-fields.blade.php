@@ -119,7 +119,7 @@
                                         <textarea id="{{ $inputId }}" class="{{ $control }}" :value="missingInput('notes')"
                                             @input="setMissing('notes', $el.value)" :aria-invalid="missingErrors('notes').length > 0"></textarea>
                                     @elseif ($field === 'provider_received_at')
-                                        <div class="relative">
+                                        <div class="relative draft-provider-date">
                                             <input id="{{ $inputId }}" class="{{ $control }} ps-10 focus:ring-2 focus:ring-indigo-500"
                                                 type="datetime-local" placeholder="dd/mm/yyyy hh:mm" x-data="missingPicker(@js($field))"
                                                 :aria-invalid="missingErrors(@js($field)).length > 0">
