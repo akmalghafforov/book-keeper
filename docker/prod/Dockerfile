@@ -3,21 +3,33 @@ FROM composer:2 AS vendor
 WORKDIR /app
 
 COPY composer.json composer.lock ./
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --no-progress \
-    --prefer-dist \
-    --optimize-autoloader \
-    --no-scripts \
-    --ignore-platform-req=ext-gd
+# Reuse downloaded archives across builds and retry if a package host times out.
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    export COMPOSER_CACHE_DIR=/tmp/composer-cache; \
+    for delay in 5 15 0; do \
+        if composer install \
+            --no-dev \
+            --no-interaction \
+            --no-progress \
+            --prefer-dist \
+            --optimize-autoloader \
+            --no-scripts \
+            --ignore-platform-req=ext-gd; then \
+            exit 0; \
+        else \
+            status=$?; \
+        fi; \
+        if [ "$delay" -eq 0 ]; then exit "$status"; fi; \
+        echo "Composer install failed (exit $status). Retrying in ${delay}s."; \
+        sleep "$delay"; \
+    done
 
 FROM node:22-alpine AS frontend
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline
 
 COPY resources resources
 COPY public public

@@ -31,7 +31,7 @@ help:
 	@echo "  down-prod     Stop the production Docker containers"
 	@echo "  restart-prod  Restart the production Docker containers"
 	@echo "  build-prod    Build the production Docker containers"
-	@echo "  rebuild-prod  Force a clean rebuild of the production Docker containers"
+	@echo "  rebuild-prod  Pull base images and rebuild production (NO_CACHE=1 for a clean rebuild)"
 	@echo "  cert-local    Generate a trusted local Traefik certificate with mkcert"
 	@echo "  logs-dev      Tail development container logs"
 	@echo "  logs-prod     Tail production container logs"
@@ -104,7 +104,7 @@ build-prod:
 
 rebuild-prod:
 	@test "$(LOCAL_BUILD)" = 1 || (echo "Build on the workstation with LOCAL_BUILD=1."; exit 1)
-	DOCKER_DEFAULT_PLATFORM=linux/amd64 $(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build app --pull --no-cache
+	DOCKER_DEFAULT_PLATFORM=linux/amd64 $(DOCKER_COMPOSE) -f $(PROD_COMPOSE_FILE) build app --pull $(if $(filter 1,$(NO_CACHE)),--no-cache)
 
 cert-local:
 	mkcert -cert-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN).pem -key-file $(TRAEFIK_LOCAL_CERT_DIR)/$(LOCAL_DOMAIN)-key.pem $(LOCAL_DOMAIN)

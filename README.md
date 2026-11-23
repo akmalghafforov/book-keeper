@@ -53,7 +53,7 @@ Set `APP_KEY`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`, and the required in
 Production is pinned to PHP 8.5.12, which fixes CVE-2026-109618 and CVE-2026-109619 in the [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5). Rebuild and recreate both the web and queue containers to apply the update:
 
 ```bash
-make rebuild-prod
+make rebuild-prod NO_CACHE=1
 make up-prod
 docker compose -f compose.prod.yaml exec app php -v
 docker compose -f compose.prod.yaml exec queue php -v
@@ -103,7 +103,7 @@ Useful commands:
 - `make rebuild-dev`
 - `make down-prod`
 - `make build-prod`
-- `make rebuild-prod`
+- `make rebuild-prod` pulls current base images and reuses cached build stages. Set `NO_CACHE=1` for a clean rebuild.
 - `make logs-dev`
 - `make shell-prod`
 - `make logs-prod`
