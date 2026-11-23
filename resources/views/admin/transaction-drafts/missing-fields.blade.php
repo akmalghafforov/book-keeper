@@ -14,7 +14,9 @@
 <dialog x-ref="missingDialog" aria-labelledby="missing-title-{{ $draft->id }}"
     class="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-6xl overflow-auto rounded-xl border border-gray-300 bg-white p-4 text-gray-900 backdrop:bg-black/60 sm:p-6 dark:border-[#3E3E3A] dark:bg-[#181817] dark:text-white"
     @cancel.prevent="closeMissing()" @close="missingTrigger?.focus()">
-    <h2 id="missing-title-{{ $draft->id }}" tabindex="-1" autofocus class="mb-4 text-xl font-semibold">{{ __('Add missing fields') }}</h2>
+    <h2 id="missing-title-{{ $draft->id }}" tabindex="-1" autofocus class="mb-4 text-xl font-semibold">{{ __('Add missing fields') }}
+        <span x-show="correctionField" x-text="correctionField ? ' · ' + fieldLabels[correctionField] : ''"></span>
+    </h2>
     <template x-if="missingOpen">
         <div class="grid gap-6 md:grid-cols-2">
             <section class="min-w-0 space-y-3" aria-label="{{ __('WhatsApp photos') }}" x-data="{ photos: @js($attachments), index: 0 }">
@@ -83,6 +85,9 @@
                             <div x-show="showMissingField(@js($field))" class="text-sm">
                                 <div class="flex items-baseline justify-between gap-2">
                                     <label class="font-medium" for="missing-{{ $draft->id }}-{{ $field }}">{{ $label }}</label>
+                                    <button type="button" x-show="!correctionField && canCorrect(@js($field)) && !Object.keys(missingEntries).length && !catalogEntry"
+                                        class="text-xs text-indigo-700 hover:underline dark:text-indigo-400"
+                                        @click="correctionField = @js($field)">{{ __('Edit :field', ['field' => $label]) }}</button>
                                     @if (in_array($field, ['client_id', 'credit_client_id', 'supplier_id']))
                                         <button type="button" x-show="canFill(@js($field))" @click="openCatalogEntry(@js($field), $el)"
                                             :aria-expanded="catalogEntry?.field === @js($field)" :disabled="!!catalogEntry"
@@ -108,7 +113,7 @@
                                             </template>
                                         </select>
                                     @elseif ($field === 'notes')
-                                        <textarea id="{{ $inputId }}" class="{{ $control }}" :value="missingEntries.notes ?? ''"
+                                        <textarea id="{{ $inputId }}" class="{{ $control }}" :value="missingInput('notes')"
                                             @input="setMissing('notes', $el.value)" :aria-invalid="missingErrors('notes').length > 0"></textarea>
                                     @elseif ($field === 'provider_received_at')
                                         <div class="relative">
@@ -126,9 +131,9 @@
                                                 type="date" x-data="missingPicker(@js($field))"
                                             @elseif (in_array($field, ['amount', 'quantity', 'price', 'credit_client_price', 'provider_buy_price', 'exchange_rate']))
                                                 type="text" inputmode="decimal" :value="formatDraftAmount(missingInput(@js($field))).display"
-                                                @input="setMissingAmount(@js($field), $el)" :readonly="@js($field) === 'exchange_rate' && missingFields.currency === 'TJS'"
+                                                @input="setMissingAmount(@js($field), $el)" :readonly="!correctionField && @js($field) === 'exchange_rate' && missingFields.currency === 'TJS'"
                                             @else
-                                                type="text" :value="missingEntries.{{ $field }} ?? ''" @input="setMissing(@js($field), $el.value)"
+                                                type="text" :value="missingInput(@js($field))" @input="setMissing(@js($field), $el.value)"
                                             @endif
                                             :aria-invalid="missingErrors(@js($field)).length > 0">
                                     @endif

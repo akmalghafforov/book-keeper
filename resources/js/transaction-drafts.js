@@ -60,6 +60,7 @@ export function draftReview(config) {
         gradeFamily: '',
 
         missingOpen: false,
+        correctionField: null,
         missingEntries: {},
         missingIssues: {},
         missingMessage: '',
@@ -145,7 +146,12 @@ export function draftReview(config) {
             return true;
         },
 
+        canCorrect(field) {
+            return !this.isMissing(this.original[field]) || !this.isMissing(this.saved[field]);
+        },
+
         canFill(field) {
+            if (this.correctionField) return field === this.correctionField;
             return this.isMissing(this.saved[field]) && this.isMissing(this.original[field]) && this.applicableMissing(field);
         },
 
@@ -172,13 +178,32 @@ export function draftReview(config) {
         missingOptions(field) {
             const parent = { shop_id: 'client_id', product_id: 'product_category_id' }[field];
             const choices = this.draftChoices[this.kind][field];
-            return parent ? choices.filter(choice => String(choice[parent]) === String(this.missingFields[parent])) : choices;
+            const options = parent ? choices.filter(choice => String(choice[parent]) === String(this.missingFields[parent])) : choices;
+            const savedValue = this.saved[field];
+            if (this.correctionField === field && !this.isMissing(savedValue)
+                && !options.some(option => String(option.id) === String(savedValue))) {
+                return [{ id: savedValue, name: this.missingValue(field, savedValue) }, ...options];
+            }
+            return options;
         },
 
         missingInput(field) {
+            if (this.correctionField === field) return this.missingEntries[field] ?? this.saved[field] ?? '';
             if (field === 'exchange_rate' && this.missingFields.currency === 'TJS') return '1';
             if (field === 'provider_buy_price') return this.missingEntries[field] ?? this.missingProduct?.buy_price ?? '';
             return this.missingEntries[field] ?? '';
+        },
+
+        pickerInput(field) {
+            const value = this.missingInput(field);
+            if (field !== 'provider_received_at' || !/(Z|[+-]\d{2}:?\d{2})$/.test(value)) return value;
+            const date = new Date(value);
+            if (Number.isNaN(date.valueOf())) return '';
+            const parts = Object.fromEntries(new Intl.DateTimeFormat('en', {
+                timeZone: this.timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+            }).formatToParts(date).map(({ type, value }) => [type, value]));
+            return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute;
         },
 
         setMissing(field, value) {
@@ -212,8 +237,9 @@ export function draftReview(config) {
             image.style.transform = 'scale(2)';
         },
 
-        openMissing(trigger) {
+        openMissing(trigger, field = null) {
             this.missingTrigger = trigger;
+            this.correctionField = field;
             this.missingEntries = {};
             this.missingIssues = {};
             this.missingMessage = '';
@@ -245,6 +271,11 @@ export function draftReview(config) {
 
         reviewMissingRevision() {
             this.acceptMissingDraft(this.missingStale.data);
+            if (this.correctionField) {
+                this.missingStale = null;
+                this.missingMessage = '';
+                return;
+            }
             // Drop entries locked by the new revision before checking their dependents.
             this.missingEntries = Object.fromEntries(Object.entries(this.missingEntries)
                 .filter(([field]) => this.isMissing(this.original[field]) && this.isMissing(this.saved[field])));
@@ -261,14 +292,18 @@ export function draftReview(config) {
             this.busy = true;
             this.missingIssues = {};
             this.missingMessage = '';
-            const fields = Object.fromEntries(Object.entries(this.missingEntries)
-                .filter(([field, value]) => this.canFill(field) && !this.isMissing(value)));
-            if (this.canFill('exchange_rate') && this.missingFields.currency === 'TJS') fields.exchange_rate = 1;
+            const correction = this.correctionField;
+            const fields = correction
+                ? (Object.hasOwn(this.missingEntries, correction) ? { [correction]: (this.missingEntries[correction] === '' ? null : this.missingEntries[correction]) } : {})
+                : Object.fromEntries(Object.entries(this.missingEntries)
+                    .filter(([field, value]) => this.canFill(field) && !this.isMissing(value)));
+            if (!correction && this.canFill('exchange_rate') && this.missingFields.currency === 'TJS') fields.exchange_rate = 1;
             let saved = false;
 
             try {
-                const { response, body } = await this.request('missing-fields', 'PATCH', { fields });
+                const { response, body } = await this.request(correction ? 'update' : 'missing-fields', 'PATCH', { fields });
                 if (response.ok) {
+                    if (correction && Object.hasOwn(fields, correction)) delete this.edits[correction];
                     this.acceptMissingDraft(body.data.attributes);
                     this.message = this.messages.saved;
                     saved = true;
@@ -618,7 +653,12 @@ export function missingPicker(field) {
         init() {
             const input = this.$el;
             const timed = field === 'provider_received_at';
-            input.value = this.missingInput(field);
+            input.value = this.pickerInput(field);
+            this.$watch(() => this.pickerInput(field), value => {
+                if (value === input.value) return;
+                if (picker) picker.setDate(value);
+                else input.value = value;
+            });
             input.addEventListener('change', () => this.setMissing(field, input.value));
             if (!window.flatpickr) return;
             input.type = 'text';
@@ -629,7 +669,7 @@ export function missingPicker(field) {
                 altInput: true,
                 altInputClass: input.className,
                 altFormat: timed ? 'd/n/Y H:i' : 'd/n/Y',
-                defaultDate: this.missingInput(field) || undefined,
+                defaultDate: this.pickerInput(field) || undefined,
                 enableTime: timed,
                 time_24hr: true,
                 allowInput: true,

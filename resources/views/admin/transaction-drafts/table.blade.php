@@ -51,6 +51,7 @@
                         'kind' => $draft->kind,
                         'etag' => $draft->etag(),
                         'csrf' => csrf_token(),
+                        'timezone' => config('app.timezone'),
                         'catalogUrls' => ['client' => route('admin.clients.store'), 'supplier' => route('admin.suppliers.store')],
                         'original' => (object) $draft->original_fields,
                         'fieldLabels' => array_map(fn ($definition) => $definition[0], $draftFields),
@@ -71,13 +72,18 @@
                     <tr @if ($folded) style="display: none" @endif
                         @if ($pending && !$distribution) x-show="freightId !== id" @endif>
                         @foreach ($renderedColumns as $field => $label)
-                            @php($value = $field === 'freight' ? ($card['values'][$freightId]['amount'] ?? null) : $values[$field])
+                            @php
+                                $value = $field === 'freight' ? ($card['values'][$freightId]['amount'] ?? null) : $values[$field];
+                                $editField = $field === 'description' ? 'notes' : $field;
+                                $editable = $pending && isset($draftFields[$editField]);
+                            @endphp
                             <td @class([$cellClass, 'max-w-80 whitespace-pre-wrap wrap-anywhere' => $field === 'description', 'whitespace-nowrap' => $field !== 'description'])
                                 @if ($pending && isset($cellVisibility[$field])) x-show="{{ $cellVisibility[$field] }}" @endif
                                 @if (!isset($visibleColumns[$field])) style="display: none" @endif
-                                @if ($pending && $field !== 'product_id') x-text="cellValue(@js($field))" @endif>@if ($pending && $field === 'product_id')
+                                @if ($pending && !$editable) x-text="cellValue(@js($field))" @endif>@if ($pending && $field === 'product_id')
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span x-text="cellValue('product_id')">{{ filled($value) ? $value : '—' }}</span>
+                                        @include('admin.transaction-drafts.edit-field-button', ['editLabel' => $label])
                                         <div x-cloak x-show="gradeFamilies.length" class="flex items-center gap-2">
                                             <span x-show="cementFamilies[id]" x-text="gradeFamily"></span>
                                             <select aria-label="{{ __('Cement family') }}" x-show="!cementFamilies[id]"
@@ -94,6 +100,11 @@
                                             </div>
                                         </div>
                                     </div>
+                                @elseif ($editable)
+                                    <div class="flex items-baseline gap-1">
+                                        <span x-text="cellValue(@js($field))">{{ filled($value) ? $value : '—' }}</span>
+                                        @include('admin.transaction-drafts.edit-field-button', ['editLabel' => $label])
+                                    </div>
                                 @else{{ filled($value) ? $value : '—' }}@endif</td>
                         @endforeach
                     </tr>
@@ -106,7 +117,12 @@
                                 @unless ($distribution)
                                     <p class="mb-2 text-sm font-medium"
                                         @if (!$folded) style="display: none" @endif
-                                        @if ($pending) x-show="freightId === id" @endif>{{ __('Freight Price') }}</p>
+                                        @if ($pending) x-show="freightId === id" @endif>
+                                        {{ __('Freight Price') }}
+                                        @if ($pending)
+                                            @include('admin.transaction-drafts.edit-field-button', ['editField' => 'amount', 'editLabel' => __('Freight Price')])
+                                        @endif
+                                    </p>
                                 @endunless
                                 @if ($pending)
                                     @include('admin.transaction-drafts.controls')

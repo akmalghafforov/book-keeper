@@ -100,7 +100,7 @@ class TransactionDraftTest extends TestCase
         $this->assertSame(0, $report->last_included_ledger_id);
 
         $this->actingAs($this->reviewer)->get(route('admin.transaction-drafts.index'))
-            ->assertOk()->assertSeeInOrder(['Price', 'Total', 'Per Ton', '>6</td>', '>12</td>', '2 USD', '1 TJS'], false);
+            ->assertOk()->assertSeeInOrder(['Price', 'Total', 'Per Ton', '>6</span>', '>12</td>', '2 USD', '1 TJS'], false);
         foreach (['distributions' => 'goods', 'provider-ledgers' => 'provider-payment', 'debt-ledgers' => 'customer-receipt'] as $page => $slot) {
             $this->get('/admin/'.$page)->assertOk()->assertSee('Drafts Records')->assertDontSee($slot)->assertDontSee('Quick edit');
         }
@@ -195,6 +195,25 @@ class TransactionDraftTest extends TestCase
             ->assertJsonPath('data.attributes.events.3.type', 'approved');
         $this->withToken($this->token)->getJson(self::API.'?status=approved&corrected=true&kind=debt_ledger')->assertOk()
             ->assertJsonPath('data.0.id', $id)->assertJsonPath('meta.pagination.total', 1);
+    }
+
+    public function test_a_single_detected_field_can_be_corrected_without_completing_the_draft(): void
+    {
+        $payload = $this->suggestion('provider_ledger', [
+            'type' => 'charge', 'amount' => 40, 'provider_received_at' => '2026-11-19T09:15:00+05:00',
+        ]);
+        $id = $this->submit($payload)->assertCreated()->json('data.id');
+
+        $this->actingAs($this->reviewer)->get(self::WEB)->assertOk()->assertSee('aria-label="Edit Amount"', false);
+        $this->withHeader('If-Match', '"1"')->patchJson(self::WEB.$id, [
+            'fields' => ['provider_received_at' => '2026-11-20T14:35'],
+        ])->assertOk()->assertHeader('ETag', '"2"')
+            ->assertJsonPath('data.attributes.status', 'pending')
+            ->assertJsonPath('data.attributes.original_fields', $payload['fields'])
+            ->assertJsonPath('data.attributes.current_fields.provider_received_at', '2026-11-20T14:35:00+05:00')
+            ->assertJsonPath('data.attributes.current_fields.amount', 40)
+            ->assertJsonCount(1, 'data.attributes.events.1.changes');
+        $this->assertDatabaseCount('provider_ledgers', 0);
     }
 
     public function test_reviewer_completes_distribution_with_zero_and_preserves_ai_and_manual_values(): void

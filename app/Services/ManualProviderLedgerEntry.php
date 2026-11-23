@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentPurpose;
 use DateTimeInterface;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class ManualProviderLedgerEntry
@@ -29,6 +31,13 @@ class ManualProviderLedgerEntry
         'date',
         'regex:/\A\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?(?:Z|[+-](?:[01]\d|2[0-3]):?[0-5]\d)\z/',
     ];
+
+    public static function normalizeDraftTimestamp(string $timestamp): string
+    {
+        return Validator::make(['date' => $timestamp], ['date' => 'date_format:Y-m-d\TH:i,Y-m-d\TH:i:s'])->passes()
+            ? Date::parse($timestamp, config('app.timezone'))->toIso8601String()
+            : $timestamp;
+    }
 
     public static function attributes(array $validated, DateTimeInterface $receivedAt): array
     {

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\TransactionDraft;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -33,10 +32,7 @@ class TransactionDraftMissingFields
         }
 
         if (is_string($changes['provider_received_at'] ?? null)) {
-            $timestamp = $changes['provider_received_at'];
-            if (Validator::make(['date' => $timestamp], ['date' => 'date_format:Y-m-d\TH:i,Y-m-d\TH:i:s'])->passes()) {
-                $changes['provider_received_at'] = Date::parse($timestamp, config('app.timezone'))->toIso8601String();
-            }
+            $changes['provider_received_at'] = ManualProviderLedgerEntry::normalizeDraftTimestamp($changes['provider_received_at']);
         }
 
         $merged = array_map(fn ($value) => $this->missing($value) ? null : $value, array_replace($draft->current_fields, $changes));

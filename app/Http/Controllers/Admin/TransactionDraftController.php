@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\TransactionDraft;
 use App\Models\TransactionDraftImage;
+use App\Services\ManualProviderLedgerEntry;
 use App\Services\TransactionDraftMissingFields;
 use App\Services\TransactionDraftPosting;
 use App\Services\TransactionDraftReviewPage;
@@ -115,7 +116,11 @@ class TransactionDraftController extends Controller
 
     private function reviewInput(Request $request, TransactionDraft $draft): array
     {
-        $validated = Validator::make($request->all() + ['fields' => []], [
+        $input = $request->all() + ['fields' => []];
+        if (is_array($input['fields']) && is_string($input['fields']['provider_received_at'] ?? null)) {
+            $input['fields']['provider_received_at'] = ManualProviderLedgerEntry::normalizeDraftTimestamp($input['fields']['provider_received_at']);
+        }
+        $validated = Validator::make($input, [
             ...$this->posting->formatRules($draft->kind),
             'duplicate_confirmation' => ['sometimes', 'nullable', 'string', 'size:64'],
         ])->validate();
