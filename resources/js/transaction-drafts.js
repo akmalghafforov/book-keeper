@@ -1,10 +1,40 @@
+const numberFormat = new Intl.NumberFormat('en', { maximumFractionDigits: 4 });
+const missing = '—';
+
+function withUnit(number, unit) {
+    return [numberFormat.format(number), unit].filter(Boolean).join(' ');
+}
+
+export function draftMessage(config) {
+    return {
+        ...config,
+
+        get showShop() {
+            return this.distributionIds.some(id => Boolean(this.savedDrafts[id].shop_id));
+        },
+
+        get freightId() {
+            if (this.distributionIds.length !== 1) return null;
+            const vehicles = this.paymentIds.filter(id => {
+                const { type, payment_purpose } = this.savedDrafts[id];
+                return type === 'payment' && payment_purpose === 'vehicle';
+            });
+            return vehicles.length === 1 ? vehicles[0] : null;
+        },
+
+        hasPaymentRows(ids) {
+            return ids.some(id => id !== this.freightId);
+        },
+    };
+}
+
 export function draftReview(config) {
     const emptyPreview = () => ({ validation_issues: {}, effects: [], matches: [], payment: null });
     const getKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');
 
     return {
         ...config,
-        fields: { ...config.saved },
+        fields: {},
         edits: {},
         editorReady: false,
         editorOpen: false,
@@ -22,6 +52,7 @@ export function draftReview(config) {
         previewSaved: false,
         checking: 0,
         pendingApproval: null,
+        gradeFamily: '',
 
         async request(action, method = 'POST', payload = {}, approvalKey = null) {
             const headers = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrf, 'If-Match': this.etag };
@@ -45,12 +76,80 @@ export function draftReview(config) {
                 : [];
         },
 
-        summaryValue(field, isCatalogField) {
+        init() {
+            this.fields = { ...this.saved };
+            this.gradeFamily = this.cementFamilies[this.id] ?? '';
+        },
+
+        get saved() {
+            return this.savedDrafts[this.id];
+        },
+
+        set saved(fields) {
+            this.savedDrafts[this.id] = fields;
+        },
+
+        choiceName(field, value) {
+            return this.draftChoices[this.kind]?.[field]?.find(option => String(option.id) === String(value))?.name;
+        },
+
+        get gradeFamilies() {
+            if (this.closed || this.saved.product_id != null || this.saved.quantity_unit !== 'per_bag'
+                || String(this.saved.product_category_id) !== String(this.cementReview.baggedCategory)) return [];
+            const families = Object.keys(this.cementReview.gradePairs);
+            const suggested = this.cementFamilies[this.id];
+            return suggested ? families.filter(family => family === suggested) : families;
+        },
+
+        get gradePair() {
+            return this.gradeFamilies.includes(this.gradeFamily) ? this.cementReview.gradePairs[this.gradeFamily] : null;
+        },
+
+        get gradeDisabled() {
+            return this.busy || !!this.stale || Object.keys(this.edits).length > 0;
+        },
+
+        async saveGrade(grade) {
+            const product = this.gradePair?.[grade];
+            if (!product || this.gradeDisabled) return;
+            this.dismissalOpen = false;
+            this.setField('product_id', product);
+            await this.act('update');
+            if (!this.closed && this.edits.product_id) this.openEditor();
+        },
+
+        get bulkWeightWarning() {
+            const overweight = fields => this.cementReview.bulkCategory != null
+                && String(fields.product_category_id) === String(this.cementReview.bulkCategory)
+                && fields.quantity_unit === 'per_ton' && Number(fields.quantity) > 40;
+            return !this.closed && (overweight(this.saved) || (this.editorOpen && overweight(this.fields)));
+        },
+
+        cellValue(field) {
             const value = this.saved[field];
-            if (value == null) return '';
-            const choices = this.draftChoices[this.kind]?.[field];
-            return choices?.find(option => String(option.id) === String(value))?.name
-                ?? (isCatalogField ? '#' + value : String(value));
+            switch (field) {
+                case 'quantity':
+                    return value == null ? missing : withUnit(value, this.choiceName('quantity_unit', this.saved.quantity_unit));
+                case 'price':
+                    return value == null ? missing : numberFormat.format(value);
+                case 'total': {
+                    const { quantity, price } = this.saved;
+                    return quantity == null || price == null ? missing : numberFormat.format(quantity * price);
+                }
+                case 'amount':
+                case 'freight': {
+                    const payment = field === 'amount' ? this.saved : this.savedDrafts[this.freightId];
+                    return payment?.amount == null ? missing : withUnit(payment.amount, payment.currency);
+                }
+                case 'description': {
+                    const { notes, payment_purpose, payer_name } = this.saved;
+                    if (notes?.trim()) return notes;
+                    const purpose = this.choiceName('payment_purpose', payment_purpose);
+                    return purpose?.replace(':payerName', () => payer_name?.trim() ? payer_name : missing) ?? missing;
+                }
+                default:
+                    return this.choiceName(field, value) ?? this.draftCatalog[field]?.[value] ?? missing;
+            }
         },
 
         openEditor() {

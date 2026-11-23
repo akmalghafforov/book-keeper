@@ -19,6 +19,13 @@
     "Actions": "Действия",
     "Name": "Имя",
     "Phone": "Телефон",
+    "Car Number": "Номер машины",
+    "Freight Price": "Стоимость перевозки",
+    "Operation": "Операция",
+    "cash": "Наличные",
+    "Карта": "Карта",
+    "Method": "Способ",
+    "Description": "Описание",
     "Amount": "Сумма",
     "Type": "Тип",
     "Date": "Дата",
@@ -348,5 +355,8 @@
     "Approve saved values": "Утвердить сохранённые данные",
     "View details": "Подробнее",
     "No drafts match this view.": "Подходящих черновиков нет.",
-    "No matching posted records.": "Подходящие проведённые записи не найдены."
+    "No matching posted records.": "Подходящие проведённые записи не найдены.",
+    "Cement family": "Производитель цемента",
+    "Select cement family": "Выберите производителя цемента",
+    "Bulk weight exceeds 40 tonnes. Verify the ticket and document any exception before approving.": "Вес насыпного цемента превышает 40 тонн. Перед утверждением проверьте накладную и задокументируйте любое исключение."
 }

@@ -19,6 +19,13 @@
     "Actions": "Амалҳо",
     "Name": "Ном",
     "Phone": "Телефон",
+    "Car Number": "Рақами мошин",
+    "Freight Price": "Нархи боркашонӣ",
+    "Operation": "Амалиёт",
+    "cash": "Нақд",
+    "Карта": "Корт",
+    "Method": "Усул",
+    "Description": "Тавсиф",
     "Amount": "Маблағ",
     "Type": "Намуд",
     "Date": "Сана",
@@ -348,5 +355,8 @@
     "Approve saved values": "Тасдиқи маълумоти сабтшуда",
     "View details": "Дидани тафсилот",
     "No drafts match this view.": "Сиёҳнависи мувофиқ ёфт нашуд.",
-    "No matching posted records.": "Сабти мувофиқ ёфт нашуд."
+    "No matching posted records.": "Сабти мувофиқ ёфт нашуд.",
+    "Cement family": "Истеҳсолкунандаи семент",
+    "Select cement family": "Истеҳсолкунандаи сементро интихоб кунед",
+    "Bulk weight exceeds 40 tonnes. Verify the ticket and document any exception before approving.": "Вазни сементи рехта аз 40 тонна зиёд аст. Пеш аз тасдиқ борхатро санҷед ва ҳар истисноро сабт кунед."
 }

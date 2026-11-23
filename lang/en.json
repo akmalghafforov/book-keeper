@@ -19,6 +19,13 @@
     "Actions": "Actions",
     "Name": "Name",
     "Phone": "Phone",
+    "Car Number": "Car Number",
+    "Freight Price": "Freight Price",
+    "Operation": "Operation",
+    "cash": "Cash",
+    "Карта": "Card",
+    "Method": "Method",
+    "Description": "Description",
     "Amount": "Amount",
     "Type": "Type",
     "Date": "Date",
@@ -296,5 +303,8 @@
     "This report has no client available for sharing.": "This report has no client available for sharing.",
     "Debt report for :client (report #:serial, generated :generatedAt).": "Debt report for :client (report #:serial, generated :generatedAt).",
     "Report period: :start to :end.": "Report period: :start to :end.",
-    "Report period: from :start.": "Report period: from :start."
+    "Report period: from :start.": "Report period: from :start.",
+    "Cement family": "Cement family",
+    "Select cement family": "Select cement family",
+    "Bulk weight exceeds 40 tonnes. Verify the ticket and document any exception before approving.": "Bulk weight exceeds 40 tonnes. Verify the ticket and document any exception before approving."
 }
