@@ -37,6 +37,7 @@ class SqliteDatabaseImporter
         'provider_ledgers',
         'transaction_drafts',
         'transaction_draft_events',
+        'transaction_draft_images',
     ];
 
     public function __construct(private SqliteDatabaseSnapshot $snapshot) {}

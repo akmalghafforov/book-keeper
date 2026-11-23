@@ -50,6 +50,7 @@ Route::middleware(['auth', 'human.web'])->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::prefix('{draft}')->whereUuid('draft')->group(function () {
                     Route::get('/', 'show')->name('show');
+                    Route::get('images/{image}', 'image')->whereNumber('image')->name('image');
                     Route::post('preview', 'preview')->name('preview');
                     Route::patch('/', 'update')->name('update');
                     Route::post('approve', 'approve')->name('approve');

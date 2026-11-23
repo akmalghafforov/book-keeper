@@ -32,15 +32,16 @@ class TransactionDraftPosting
             'message_key' => ['required', ...$opaque],
             'sent_at' => ['required', ...ManualProviderLedgerEntry::OFFSET_TIMESTAMP],
             'export_id' => ['required', ...$opaque],
+            'message_text' => ['sometimes', 'required', 'string', 'max:4096'],
         ];
         $rules = [
-            'source' => ['required', 'array:chat_key,message_key,sent_at,export_id,line,position,event_slot,additional_locators'],
+            'source' => ['required', 'array:chat_key,message_key,sent_at,export_id,line,position,event_slot,additional_locators,message_text'],
             'source.chat_key' => ['required', ...$opaque],
             'source.event_slot' => ['required', ...$opaque],
             'source.line' => ['required_without:source.position', 'integer', 'min:1'],
             'source.position' => ['required_without:source.line', 'integer', 'min:1'],
             'source.additional_locators' => ['sometimes', 'array', 'list', 'max:20'],
-            'source.additional_locators.*' => ['required', 'array:message_key,sent_at,export_id,line,position'],
+            'source.additional_locators.*' => ['required', 'array:message_key,sent_at,export_id,line,position,message_text'],
             'source.additional_locators.*.line' => ['required_without:source.additional_locators.*.position', 'integer', 'min:1'],
             'source.additional_locators.*.position' => ['required_without:source.additional_locators.*.line', 'integer', 'min:1'],
         ];

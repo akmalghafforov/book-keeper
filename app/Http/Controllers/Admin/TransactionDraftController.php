@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TransactionDraft;
+use App\Models\TransactionDraftImage;
 use App\Services\TransactionDraftPosting;
 use App\Services\TransactionDraftReviewPage;
 use App\Services\TransactionDraftWorkflow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -45,6 +47,21 @@ class TransactionDraftController extends Controller
     public function show(TransactionDraft $draft): JsonResponse
     {
         return $this->workflow->response($draft);
+    }
+
+    public function image(TransactionDraft $draft, string $image): Response
+    {
+        $attachment = $draft->images()->findOrFail($image);
+        abort_unless(in_array($attachment->mime_type, TransactionDraftImage::MIME_TYPES, true), 404);
+        $content = base64_decode($attachment->content, true);
+        abort_if($content === false || $content === '', 404);
+
+        return response($content, 200, [
+            'Content-Type' => $attachment->mime_type,
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cross-Origin-Resource-Policy' => 'same-origin',
+        ]);
     }
 
     public function preview(Request $request, TransactionDraft $draft): JsonResponse

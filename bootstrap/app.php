@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->trimStrings(except: ['source.message_text', 'source.additional_locators.*.message_text']);
 
         $middleware->web(prepend: [
             \App\Http\Middleware\RejectBearerDraftReview::class,

@@ -38,6 +38,11 @@ class TransactionDraft extends Model
         return $this->hasMany(TransactionDraftEvent::class, 'draft_id')->orderBy('revision');
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(TransactionDraftImage::class, 'draft_id');
+    }
+
     public function etag(): string
     {
         return '"'.$this->revision.'"';

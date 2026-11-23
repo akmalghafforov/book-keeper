@@ -18,7 +18,7 @@ class TransactionDraftReviewPage
     public function forQueue(string $tab, ?string $kind): array
     {
         $pending = $tab === 'pending';
-        $drafts = TransactionDraft::query()->where('status', $tab)
+        $drafts = TransactionDraft::with('images:id,draft_id,locator_index')->where('status', $tab)
             ->when($kind, fn ($query) => $query->where('kind', $kind))
             ->orderBy($pending ? 'created_at' : 'updated_at', $pending ? 'asc' : 'desc')
             ->orderBy('id', $pending ? 'asc' : 'desc')

@@ -2,14 +2,6 @@
     <fieldset x-bind:disabled="busy || !!stale" class="space-y-3">
         <div x-show="editorOpen" class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                @if (!empty($source['additional_locators']))
-                    <div class="col-span-full text-sm">
-                        <p class="font-medium">{{ __('Related source messages') }}</p>
-                        @foreach ($source['additional_locators'] as $locator)
-                            <p>{{ $locator['sent_at'] }} · {{ $locator['export_id'] }} #{{ $locator['line'] ?? $locator['position'] }}</p>
-                        @endforeach
-                    </div>
-                @endif
                 @foreach ($draftFields as $field => $definition)
                     @php([$label, $choices, $placeholder] = array_pad($definition, 3, null))
                     <label x-show="visible('{{ $field }}')" class="text-sm font-medium">

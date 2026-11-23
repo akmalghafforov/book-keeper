@@ -58,12 +58,20 @@ class TransactionDraftWorkflow
 
     public function resource(TransactionDraft $draft, bool $detail = true, ?bool $postedAvailable = null): array
     {
+        $source = Arr::except($draft->source, ['message_text']);
+        if (isset($source['additional_locators'])) {
+            $source['additional_locators'] = array_map(
+                fn (array $locator) => Arr::except($locator, ['message_text']),
+                $source['additional_locators'],
+            );
+        }
+
         $attributes = [
             'kind' => $draft->kind,
             'status' => $draft->status,
             'revision' => $draft->revision,
             'corrected' => $draft->corrected,
-            'source' => $draft->source,
+            'source' => $source,
             'submitted_by' => $draft->submitted_by,
             'created_at' => $draft->created_at->toIso8601String(),
             'updated_at' => $draft->updated_at->toIso8601String(),

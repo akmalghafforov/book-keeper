@@ -11,7 +11,7 @@
 @endphp
 
 <section x-data="{ remaining: { count: {{ $pendingCount }} }, draftChoices: @js($choices) }"
-    class="space-y-4 text-gray-900 dark:text-white">
+    class="@container space-y-4 text-gray-900 dark:text-white">
     <div class="flex flex-wrap items-end justify-between gap-4">
         <nav aria-label="{{ __('Draft status') }}" class="flex flex-wrap gap-2">
             @foreach ($tabs as $status => $label)
@@ -63,12 +63,16 @@
             @endphp
             <li class="rounded-xl border border-gray-200 bg-white p-4 dark:border-[#3E3E3A] dark:bg-[#161615]"
                 @if ($pending) x-data="draftReview(@js($config))" @endif>
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div class="min-w-0 space-y-1">
+                <div @class([
+                    'grid items-start gap-x-4 gap-y-3 @2xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]',
+                    '@4xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]' => $pending,
+                ])>
+                    <div class="min-w-0 space-y-1 wrap-anywhere">
                         @include('admin.transaction-drafts.summary')
                     </div>
+                    @include('admin.transaction-drafts.source')
                     @if ($pending)
-                        <div x-show="!closed" class="flex flex-wrap gap-2">
+                        <div x-show="!closed" class="flex flex-wrap gap-2 @2xl:col-span-2 @4xl:col-span-1">
                             <button type="button" class="{{ $button }}" @click="toggleEditor()" :aria-expanded="editorOpen" :disabled="busy || !!stale">{{ __('Quick edit') }}</button>
                             <button type="button" class="{{ $button }} bg-indigo-600 text-white" @click="act('approve')" :disabled="busy || !!stale">{{ __('Approve') }}</button>
                             <button type="button" class="{{ $button }}" @click="toggleDismissal()" :aria-expanded="dismissalOpen" :disabled="busy || !!stale">{{ __('Dismiss') }}</button>

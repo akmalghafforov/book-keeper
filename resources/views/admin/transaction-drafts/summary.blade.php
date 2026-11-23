@@ -27,7 +27,10 @@
         @endphp
         <span @if ($pending) x-text="summaryValue(@js($field), @js($catalogField))" @endif>{{ $name }}</span>
     @endforeach
-</p>
-<p class="break-words text-sm text-gray-600 dark:text-gray-300">
-    {{ $source['chat_key'] }} · {{ $source['export_id'] }} #{{ $source['line'] ?? $source['position'] }} · {{ $source['event_slot'] }}
+    @if ($distribution)
+        @php($price = $draft->current_fields['price'] ?? null)
+        <span class="whitespace-nowrap empty:hidden"
+            @if ($pending) x-text="saved.price == null ? '' : @js(__('Price')) + ' ' + saved.price + ' TJS'" @endif
+        >{{ $price === null ? '' : __('Price').' '.$price.' TJS' }}</span>
+    @endif
 </p>

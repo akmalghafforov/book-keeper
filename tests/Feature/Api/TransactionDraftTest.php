@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Provider;
 use App\Models\ProviderLedger;
 use App\Models\Shop;
+use App\Models\TransactionDraft;
 use App\Models\User;
 use App\Services\GeneratedReportLedgerBoundaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,7 +98,7 @@ class TransactionDraftTest extends TestCase
         $this->assertSame(0, $report->last_included_ledger_id);
 
         $this->actingAs($this->reviewer)->get(route('admin.transaction-drafts.index'))
-            ->assertOk()->assertSeeInOrder(['goods', 'provider-payment', 'customer-receipt']);
+            ->assertOk()->assertSee('Price 6 TJS')->assertSeeInOrder(['goods', 'provider-payment', 'customer-receipt']);
         foreach (['distributions' => 'goods', 'provider-ledgers' => 'provider-payment', 'debt-ledgers' => 'customer-receipt'] as $page => $slot) {
             $this->get('/admin/'.$page)->assertOk()->assertSee('Drafts Records')->assertDontSee($slot)->assertDontSee('Quick edit');
         }
@@ -109,6 +110,7 @@ class TransactionDraftTest extends TestCase
             ->assertJsonPath('data.attributes.status', 'approved')
             ->assertJsonPath('data.attributes.approval.posted_values.subtotal', '12.0000')
             ->assertJsonCount(3, 'data.attributes.approval.generated_records');
+        $this->get(self::WEB.'?tab=approved&kind=distribution')->assertOk()->assertSee('Price 6 TJS');
 
         $providerApproval = $this->approve($providerDraft, 'approve-provider')->assertOk()
             ->assertJsonPath('data.attributes.approval.posted_values.amount', '20.0000')
@@ -171,12 +173,17 @@ class TransactionDraftTest extends TestCase
     {
         $payload = $this->suggestion('debt_ledger', []);
         $payload['source']['additional_locators'] = [['message_key' => 'extra', 'sent_at' => '2026-11-19T11:00:00+05:00', 'export_id' => 'test-export', 'position' => 2]];
+        $payload['source']['message_text'] = 'Original message';
         $first = $this->submit($payload, 'first-key')->assertCreated();
         $this->submit($payload, 'first-key')->assertCreated()->assertContent($first->getContent());
         $id = $first->json('data.id');
+        $payload['source']['message_text'] = 'Changed message';
+        $this->submit($payload, 'first-key')->assertConflict();
         $payload['source']['line'] = 405;
         $payload['source']['export_id'] = 'another-export';
         $this->submit($payload)->assertOk()->assertJsonPath('data.id', $id)->assertJsonPath('data.attributes.source.line', 1);
+
+        $this->assertSame('Original message', TransactionDraft::findOrFail($id)->source['message_text']);
 
         $this->travel(25)->hours();
         $this->submit($payload, 'first-key')->assertOk()->assertJsonPath('data.id', $id);
@@ -189,6 +196,123 @@ class TransactionDraftTest extends TestCase
 
         $payload['source']['excerpt'] = 'raw text must be rejected';
         $this->submit($payload)->assertUnprocessable()->assertJsonValidationErrors('source');
+    }
+
+    public function test_original_messages_are_escaped_and_visible_to_reviewers_across_tabs(): void
+    {
+        $client = Client::factory()->create();
+        $primary = "  Қабул шуд 👋\n<script>alert('receipt')</script>\n  ";
+        $supporting = "Тасдиқ шуд\n<img src=x onerror=alert(1)>";
+        $payload = $this->suggestion('debt_ledger', [
+            'client_id' => $client->id, 'type' => 'payment', 'amount' => '10',
+            'currency' => 'TJS', 'exchange_rate' => '1', 'payment_method' => 'cash', 'transaction_date' => '2026-11-19',
+        ]);
+        $references = $payload['source'] + ['additional_locators' => [[
+            'message_key' => 'receipt-confirmation',
+            'sent_at' => '2026-11-19T11:02:00+05:00',
+            'export_id' => 'test-export',
+            'position' => 7,
+        ]]];
+        $payload['source'] = $references + ['message_text' => $primary];
+        $payload['source']['additional_locators'][0]['message_text'] = $supporting;
+
+        $id = $this->submit($payload)->assertCreated()->assertJsonPath('data.attributes.source', $references)->json('data.id');
+        $payload['source']['event_slot'] = 'dismiss-this';
+        $dismissId = $this->submit($payload)->assertCreated()->json('data.id');
+        $this->submit($this->suggestion('debt_ledger', [], 'legacy'))->assertCreated();
+        $this->assertSame($payload['fields'], TransactionDraft::findOrFail($id)->original_fields);
+        $this->assertSame($primary, TransactionDraft::findOrFail($id)->source['message_text']);
+        $this->assertSame($supporting, TransactionDraft::findOrFail($id)->source['additional_locators'][0]['message_text']);
+
+        $this->withToken($this->token)->getJson(self::API.'/'.$id)
+            ->assertOk()->assertJsonPath('data.attributes.source', $references);
+        $this->getJson(self::API)->assertOk()->assertJsonMissingPath('data.0.attributes.source.message_text')
+            ->assertJsonMissingPath('data.0.attributes.source.additional_locators.0.message_text')
+            ->assertDontSee('Қабул шуд')->assertDontSee('Тасдиқ шуд');
+        $this->getJson(self::WEB)->assertForbidden()->assertDontSee('Қабул шуд');
+
+        $this->flushHeaders()->actingAs(User::factory()->create()->refresh())->get(self::WEB)
+            ->assertForbidden()->assertDontSee('Қабул шуд');
+
+        $this->actingAs($this->reviewer)->get(self::WEB)->assertOk()
+            ->assertSeeInOrder(['WhatsApp message', $primary, 'Related source messages', '2026-11-19T11:02:00+05:00', 'test-export #7', $supporting])
+            ->assertDontSee('<script>alert', false)->assertDontSee('<img src=x', false)
+            ->assertSee('test-chat · test-export #1 · legacy');
+        $this->withHeader('If-Match', '"1"')->postJson(self::WEB.$dismissId.'/dismiss', ['reason' => 'Duplicate suggestion'])->assertOk();
+        $posted = $this->approve($id, 'approve-message')->assertOk()
+            ->assertJsonPath('data.attributes.source', $references);
+        $this->assertNull(DebtLedger::findOrFail($posted->json('data.attributes.posted_record.id'))->notes);
+
+        foreach (['approved', 'dismissed'] as $tab) {
+            $this->get(self::WEB.'?tab='.$tab)->assertOk()->assertSee($primary)->assertSee($supporting);
+        }
+    }
+
+    public function test_archived_photos_are_served_only_to_reviewers_on_their_draft(): void
+    {
+        $payload = $this->suggestion('distribution', []);
+        $payload['source']['message_text'] = "<Без медиафайлов>\n31.04т";
+        $payload['source']['additional_locators'] = [[
+            'message_key' => 'photo-confirmation',
+            'sent_at' => '2026-11-19T11:02:00+05:00',
+            'export_id' => 'test-export',
+            'line' => 7,
+            'message_text' => '<Без медиафайлов>',
+        ]];
+        $id = $this->submit($payload)->assertCreated()->json('data.id');
+        $payload['source']['event_slot'] = 'another-draft';
+        $otherId = $this->submit($payload)->assertCreated()->json('data.id');
+
+        $content = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/jS8AAAAASUVORK5CYII=';
+        foreach ([0, 1] as $index) {
+            $photos[$index] = DB::table('transaction_draft_images')->insertGetId([
+                'draft_id' => $id,
+                'locator_index' => $index,
+                'mime_type' => 'image/png',
+                'content' => $content,
+            ]);
+        }
+        $primaryUrl = route('admin.transaction-drafts.image', [$id, $photos[0]]);
+        $supportUrl = route('admin.transaction-drafts.image', [$id, $photos[1]]);
+
+        $this->get($primaryUrl)->assertRedirect(route('login'));
+        $this->withToken($this->token)->get($primaryUrl)->assertForbidden();
+        $this->getJson(self::API.'/'.$id)->assertOk()->assertDontSee('/images/');
+        $this->flushHeaders()->actingAs(User::factory()->create()->refresh())->get($primaryUrl)->assertForbidden();
+
+        $this->actingAs($this->reviewer)->get(self::WEB)->assertOk()
+            ->assertSeeInOrder(['31.04т', $primaryUrl, 'Related source messages', 'test-export #7', $supportUrl])
+            ->assertSee('<Без медиафайлов>');
+        foreach ([$primaryUrl, $supportUrl] as $url) {
+            $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/png')
+                ->assertHeader('X-Content-Type-Options', 'nosniff')->assertContent(base64_decode($content));
+        }
+        $this->get(route('admin.transaction-drafts.image', [$otherId, $photos[0]]))->assertNotFound();
+        $this->withHeader('If-Match', '"1"')->postJson(self::WEB.$id.'/dismiss', ['reason' => 'Dismissed suggestion'])->assertOk();
+        $this->get(self::WEB.'?tab=dismissed')->assertOk()->assertSee($primaryUrl)->assertSee($supportUrl)
+            ->assertDontSee('<Без медиафайлов>');
+    }
+
+    public function test_message_limits_count_unicode_characters_for_each_locator(): void
+    {
+        $payload = $this->suggestion('debt_ledger', []);
+        $payload['source']['message_text'] = str_repeat('🌿', 4096);
+        $payload['source']['additional_locators'] = array_fill(0, 20, [
+            'message_key' => 'extra',
+            'sent_at' => '2026-11-19T11:02:00+05:00',
+            'export_id' => 'test-export',
+            'line' => 2,
+            'message_text' => $payload['source']['message_text'],
+        ]);
+        $this->submit($payload)->assertCreated();
+
+        $payload['source']['message_text'] .= '🌿';
+        $payload['source']['additional_locators'][0]['message_text'] .= '🌿';
+        $payload['source']['additional_locators'][1]['message_text'] = ['invalid'];
+        $payload['source']['additional_locators'][] = $payload['source']['additional_locators'][0];
+        $this->submit($payload)->assertUnprocessable()->assertJsonValidationErrors([
+            'source.message_text', 'source.additional_locators', 'source.additional_locators.0.message_text', 'source.additional_locators.1.message_text',
+        ]);
     }
 
     public function test_catalog_mismatches_and_invalid_dates_are_field_errors(): void
